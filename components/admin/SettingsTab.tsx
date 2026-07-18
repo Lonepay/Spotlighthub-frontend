@@ -61,6 +61,7 @@ export function SettingsTab() {
   const [cacheCleared, setCacheCleared] = useState(false);
   const [copied, setCopied] = useState(false);
   const [uploadingOgImage, setUploadingOgImage] = useState(false);
+  const [clearingErrorLogs, setClearingErrorLogs] = useState(false);
 
   useEffect(() => {
     admin.getSettings().then((data) => {
@@ -114,6 +115,17 @@ export function SettingsTab() {
       setErrorLogs(data.entries);
     } finally {
       setLoadingLogs(false);
+    }
+  };
+
+  const handleClearErrorLogs = async () => {
+    if (!confirm('Clear all error logs? This cannot be undone.')) return;
+    setClearingErrorLogs(true);
+    try {
+      await admin.clearErrorLogs();
+      setErrorLogs([]);
+    } finally {
+      setClearingErrorLogs(false);
     }
   };
 
@@ -460,9 +472,20 @@ export function SettingsTab() {
         <h2 className="font-display font-bold text-lg">Error Logs</h2>
         <Card>
           <CardContent className="pt-6 space-y-4">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm text-muted-foreground">Most recent entries from the backend&apos;s laravel.log, newest first.</p>
-              <Button variant="outline" size="sm" onClick={refreshErrors}>Refresh</Button>
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="sm" onClick={refreshErrors}>Refresh</Button>
+                <Button variant="outline" size="sm" onClick={() => admin.downloadErrorLogsExport('csv')}>
+                  <Download className="w-4 h-4" /> CSV
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => admin.downloadErrorLogsExport('pdf')}>
+                  <Download className="w-4 h-4" /> PDF
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleClearErrorLogs} disabled={clearingErrorLogs} className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                  <Trash2 className="w-4 h-4" /> {clearingErrorLogs ? 'Clearing...' : 'Clear'}
+                </Button>
+              </div>
             </div>
             <div className="space-y-2 max-h-[500px] overflow-y-auto font-mono text-xs">
               {loadingLogs && <p className="text-muted-foreground">Loading...</p>}

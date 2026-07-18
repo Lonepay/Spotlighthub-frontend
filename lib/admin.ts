@@ -195,6 +195,26 @@ export const admin = {
     return data as { entries: string[] };
   },
 
+  async clearErrorLogs() {
+    const { data } = await api.delete('/admin/settings/error-logs');
+    return data;
+  },
+
+  async downloadErrorLogsExport(format: 'csv' | 'pdf', limit = 1000) {
+    const { data } = await api.get('/admin/settings/error-logs/export', {
+      params: { format, limit },
+      responseType: 'blob',
+    });
+    const url = window.URL.createObjectURL(new Blob([data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `error-logs-export.${format}`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
+
   async downloadExport(resource: 'users' | 'events' | 'tickets' | 'payments' | 'activity-logs', format: 'csv' | 'pdf', filters?: Record<string, any>) {
     const { data } = await api.get(`/admin/export/${resource}`, {
       params: { ...filters, format },
