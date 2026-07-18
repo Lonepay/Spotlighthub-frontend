@@ -60,6 +60,7 @@ export function SettingsTab() {
   const [clearingCache, setClearingCache] = useState(false);
   const [cacheCleared, setCacheCleared] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [uploadingOgImage, setUploadingOgImage] = useState(false);
 
   useEffect(() => {
     admin.getSettings().then((data) => {
@@ -126,6 +127,22 @@ export function SettingsTab() {
       setTimeout(() => setSaved(false), 2000);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleOgImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingOgImage(true);
+    try {
+      const updated = await admin.uploadOgImage(file);
+      setSettings(updated);
+      setForm(updated);
+    } catch {
+      alert('Failed to upload image');
+    } finally {
+      setUploadingOgImage(false);
+      e.target.value = '';
     }
   };
 
@@ -216,13 +233,25 @@ export function SettingsTab() {
               />
             </div>
             <div>
-              <Label htmlFor="og_image">Social share image URL</Label>
-              <Input
+              <Label htmlFor="og_image">Social share image</Label>
+              {settings.og_image_url && (
+                <img
+                  src={settings.og_image_url}
+                  alt="Social share preview"
+                  className="mt-2 mb-2 w-full max-w-xs rounded-lg border border-border object-cover aspect-[1200/630]"
+                />
+              )}
+              <input
                 id="og_image"
-                value={form.og_image_url ?? ''}
-                onChange={(e) => setForm({ ...form, og_image_url: e.target.value })}
-                placeholder="https://.../og-image.jpg"
+                type="file"
+                accept="image/*"
+                onChange={handleOgImageUpload}
+                disabled={uploadingOgImage}
+                className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer cursor-pointer"
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                {uploadingOgImage ? 'Uploading...' : 'Recommended 1200×630px. Shown when the site is shared on social media.'}
+              </p>
             </div>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? 'Saving...' : saved ? 'Saved' : 'Save changes'}

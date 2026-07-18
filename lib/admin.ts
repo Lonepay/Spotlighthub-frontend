@@ -160,10 +160,18 @@ export const admin = {
     site_title: string | null;
     site_description: string | null;
     site_keywords: string | null;
-    og_image_url: string | null;
     flutterwave_webhook_secret_hash: string | null;
   }>): Promise<AdminSettings> {
     const { data } = await api.put('/admin/settings', payload);
+    return data;
+  },
+
+  async uploadOgImage(file: File): Promise<AdminSettings> {
+    const formData = new FormData();
+    formData.append('image', file);
+    const { data } = await api.post('/admin/settings/og-image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return data;
   },
 
