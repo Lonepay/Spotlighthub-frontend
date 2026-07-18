@@ -179,5 +179,20 @@ export const admin = {
     const { data } = await api.get('/admin/settings/error-logs', { params: { limit } });
     return data as { entries: string[] };
   },
+
+  async downloadExport(resource: 'users' | 'events' | 'tickets' | 'payments', format: 'csv' | 'pdf', filters?: Record<string, any>) {
+    const { data } = await api.get(`/admin/export/${resource}`, {
+      params: { ...filters, format },
+      responseType: 'blob',
+    });
+    const url = window.URL.createObjectURL(new Blob([data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${resource}-export.${format}`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
 };
 

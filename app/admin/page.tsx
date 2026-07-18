@@ -13,7 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Users, Calendar, Ticket, Award, BarChart3, Plus, Edit, Trash, ChevronUp, ChevronDown, Newspaper, Receipt, Settings } from 'lucide-react';
+import { Users, Calendar, Ticket, Award, BarChart3, Plus, Edit, Trash, ChevronUp, ChevronDown, Newspaper, Receipt, Settings, Search, Download } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { SettingsTab } from '@/components/admin/SettingsTab';
 import Link from 'next/link';
@@ -32,6 +32,9 @@ export default function AdminDashboardPage() {
   const [sortBy, setSortBy] = useState<string>('created_at');
   const [sortDir, setSortDir] = useState<'asc'|'desc'>('desc');
   const [search, setSearch] = useState<string>('');
+  const [eventCategoryFilter, setEventCategoryFilter] = useState<string>('');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>('');
+  const [paymentSearch, setPaymentSearch] = useState<string>('');
 
   const [newUser, setNewUser] = useState<{name:string; email:string; role:'attendee'|'organizer'|'admin'; password:string}>({
     name: '', email: '', role: 'attendee', password: ''
@@ -80,8 +83,8 @@ export default function AdminDashboardPage() {
     setUsersList(data.data || data);
   };
 
-  const refreshEvents = async () => {
-    const data = await admin.getEvents({ search, sort_by: sortBy, sort_dir: sortDir });
+  const refreshEvents = async (categoryOverride?: string) => {
+    const data = await admin.getEvents({ search, category: categoryOverride ?? eventCategoryFilter, sort_by: sortBy, sort_dir: sortDir });
     setEventsList(data.data || data);
   };
 
@@ -91,7 +94,7 @@ export default function AdminDashboardPage() {
   };
 
   const refreshPayments = async () => {
-    const data = await admin.getPayments({ sort_by: sortBy, sort_dir: sortDir });
+    const data = await admin.getPayments({ search: paymentSearch, status: paymentStatusFilter, sort_by: sortBy, sort_dir: sortDir });
     setPaymentsList(data.data || data);
   };
 
@@ -150,6 +153,17 @@ export default function AdminDashboardPage() {
         <option key={o.value} value={o.value}>{o.label}</option>
       ))}
     </select>
+  );
+
+  const exportButtons = (resource: 'users' | 'events' | 'tickets' | 'payments', filters: Record<string, any>) => (
+    <div className="flex items-center gap-1">
+      <Button variant="outline" size="sm" onClick={() => admin.downloadExport(resource, 'csv', filters)}>
+        <Download className="w-4 h-4" /> CSV
+      </Button>
+      <Button variant="outline" size="sm" onClick={() => admin.downloadExport(resource, 'pdf', filters)}>
+        <Download className="w-4 h-4" /> PDF
+      </Button>
+    </div>
   );
 
   return (
@@ -310,7 +324,9 @@ export default function AdminDashboardPage() {
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                   <h2 className="font-display font-bold text-lg">Users</h2>
                   <div className="flex items-center gap-2">
-                    <Input placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-48" />
+                    <Input placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && refreshUsers()} className="w-48" />
+                    <Button variant="outline" size="icon" onClick={refreshUsers}><Search className="w-4 h-4" /></Button>
+                    {exportButtons('users', { search })}
                     <Button onClick={() => setCreatingUser((v) => !v)}>
                       <Plus className="w-4 h-4" /> Add User
                     </Button>
@@ -415,7 +431,19 @@ export default function AdminDashboardPage() {
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                   <h2 className="font-display font-bold text-lg">Events</h2>
                   <div className="flex items-center gap-2">
-                    <Input placeholder="Search events..." value={search} onChange={(e)=>setSearch(e.target.value)} className="w-48" />
+                    <Input placeholder="Search events..." value={search} onChange={(e)=>setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && refreshEvents()} className="w-48" />
+                    <select
+                      className="h-10 rounded-lg border border-input bg-background px-2 text-sm"
+                      value={eventCategoryFilter}
+                      onChange={async (e) => { setEventCategoryFilter(e.target.value); await refreshEvents(e.target.value); }}
+                    >
+                      <option value="">All categories</option>
+                      {dashboard.events_by_category.map((cat: any) => (
+                        <option key={cat.category} value={cat.category}>{cat.category}</option>
+                      ))}
+                    </select>
+                    <Button variant="outline" size="icon" onClick={()=>refreshEvents()}><Search className="w-4 h-4" /></Button>
+                    {exportButtons('events', { search, category: eventCategoryFilter })}
                     <Button onClick={()=>setCreatingEvent((v)=>!v)}>
                       <Plus className="w-4 h-4"/> Add Event
                     </Button>
@@ -509,13 +537,16 @@ export default function AdminDashboardPage() {
               <CardContent className="p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                   <h2 className="font-display font-bold text-lg">Tickets</h2>
-                  <Input
-                    placeholder="Search by ticket code..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') refreshTickets(); }}
-                    className="w-56 font-mono"
-                  />
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Search by ticket code..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') refreshTickets(); }}
+                      className="w-56 font-mono"
+                    />
+                    {exportButtons('tickets', { code: search })}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2 mb-4">
                   <span className="text-sm text-muted-foreground">Sort by:</span>
