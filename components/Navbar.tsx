@@ -144,7 +144,7 @@ export function Navbar() {
         {mobileMenuOpen && (
           <div className="md:hidden fixed inset-x-0 top-16 h-[calc(100vh-4rem)] overflow-y-auto bg-background border-t border-border p-4 z-40 shadow-elevated">
             <div className="grid grid-cols-2 gap-2 mb-4">
-              <Link href="/" className="flex items-center justify-center space-x-2 px-3 py-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 text-sm font-medium transition-colors" onClick={() => setMobileMenuOpen(false)}>
+              <Link href="/" className="flex items-center justify-center space-x-2 px-3 py-2 rounded-none bg-secondary/30 hover:bg-secondary/50 text-sm font-medium transition-colors" onClick={() => setMobileMenuOpen(false)}>
                 <Home className="w-4 h-4" />
                 <span>Home</span>
               </Link>
@@ -152,7 +152,7 @@ export function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="flex items-center justify-center space-x-2 px-3 py-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 text-sm font-medium transition-colors"
+                  className="flex items-center justify-center space-x-2 px-3 py-2 rounded-none bg-secondary/30 hover:bg-secondary/50 text-sm font-medium transition-colors"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   <link.icon className="w-4 h-4" />
@@ -176,32 +176,32 @@ export function Navbar() {
 
                   <div className="grid grid-cols-1 gap-1">
                     {user.role === 'admin' ? (
-                      <Link href="/admin" className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-secondary/50 text-sm text-muted-foreground hover:text-primary font-medium transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                      <Link href="/admin" className="flex items-center space-x-3 px-3 py-2 rounded-none hover:bg-secondary/50 text-sm text-muted-foreground hover:text-primary font-medium transition-colors" onClick={() => setMobileMenuOpen(false)}>
                         <Shield className="w-4 h-4" />
                         <span>Admin Dashboard</span>
                       </Link>
                     ) : user.role === 'organizer' ? (
                       <>
-                        <Link href="/organizer" className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-secondary/50 text-sm text-muted-foreground hover:text-primary font-medium transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                        <Link href="/organizer" className="flex items-center space-x-3 px-3 py-2 rounded-none hover:bg-secondary/50 text-sm text-muted-foreground hover:text-primary font-medium transition-colors" onClick={() => setMobileMenuOpen(false)}>
                           <LayoutDashboard className="w-4 h-4" />
                           <span>Organizer Dashboard</span>
                         </Link>
-                        <Link href="/create-event" className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-secondary/50 text-sm text-muted-foreground hover:text-primary font-medium transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                        <Link href="/create-event" className="flex items-center space-x-3 px-3 py-2 rounded-none hover:bg-secondary/50 text-sm text-muted-foreground hover:text-primary font-medium transition-colors" onClick={() => setMobileMenuOpen(false)}>
                           <PlusCircle className="w-4 h-4" />
                           <span>Create Event</span>
                         </Link>
                       </>
                     ) : (
-                      <Link href="/dashboard" className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-secondary/50 text-sm text-muted-foreground hover:text-primary font-medium transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                      <Link href="/dashboard" className="flex items-center space-x-3 px-3 py-2 rounded-none hover:bg-secondary/50 text-sm text-muted-foreground hover:text-primary font-medium transition-colors" onClick={() => setMobileMenuOpen(false)}>
                         <LayoutDashboard className="w-4 h-4" />
                         <span>Dashboard</span>
                       </Link>
                     )}
-                    <Link href="/profile" className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-secondary/50 text-sm text-muted-foreground hover:text-primary font-medium transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                    <Link href="/profile" className="flex items-center space-x-3 px-3 py-2 rounded-none hover:bg-secondary/50 text-sm text-muted-foreground hover:text-primary font-medium transition-colors" onClick={() => setMobileMenuOpen(false)}>
                       <Settings className="w-4 h-4" />
                       <span>Profile Settings</span>
                     </Link>
-                    <Link href="/my-tickets" className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-secondary/50 text-sm text-muted-foreground hover:text-primary font-medium transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                    <Link href="/my-tickets" className="flex items-center space-x-3 px-3 py-2 rounded-none hover:bg-secondary/50 text-sm text-muted-foreground hover:text-primary font-medium transition-colors" onClick={() => setMobileMenuOpen(false)}>
                       <Ticket className="w-4 h-4" />
                       <span>My Tickets</span>
                     </Link>
@@ -209,7 +209,7 @@ export function Navbar() {
 
                   <button
                     onClick={() => { logout(); setMobileMenuOpen(false); }}
-                    className="w-full flex items-center justify-center space-x-2 bg-destructive/10 text-destructive font-medium py-2 rounded-lg text-sm hover:bg-destructive/20 transition-colors"
+                    className="w-full flex items-center justify-center space-x-2 bg-destructive/10 text-destructive font-medium py-2 rounded-none text-sm hover:bg-destructive/20 transition-colors"
                   >
                     <LogOut className="w-4 h-4" />
                     <span>Logout</span>

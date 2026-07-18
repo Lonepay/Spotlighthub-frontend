@@ -42,6 +42,14 @@ export default function AdminDashboardPage() {
   const [ticketsList, setTicketsList] = useState<any[]>([]);
   const [paymentsList, setPaymentsList] = useState<any[]>([]);
   const [blogPostsList, setBlogPostsList] = useState<any[]>([]);
+
+  type PageMeta = { current_page: number; last_page: number; total: number };
+  const defaultPageMeta: PageMeta = { current_page: 1, last_page: 1, total: 0 };
+  const [usersPage, setUsersPage] = useState<PageMeta>(defaultPageMeta);
+  const [eventsPage, setEventsPage] = useState<PageMeta>(defaultPageMeta);
+  const [ticketsPage, setTicketsPage] = useState<PageMeta>(defaultPageMeta);
+  const [paymentsPage, setPaymentsPage] = useState<PageMeta>(defaultPageMeta);
+  const [blogPage, setBlogPage] = useState<PageMeta>(defaultPageMeta);
   // sortBy is scoped per-tab: each resource has different valid columns, so a
   // sort field picked on one tab (e.g. "Published" on Blog) must not leak
   // into another tab's fetch (e.g. Tickets, where it isn't a valid column
@@ -67,6 +75,8 @@ export default function AdminDashboardPage() {
   const [search, setSearch] = useState<string>('');
   const [eventCategoryFilter, setEventCategoryFilter] = useState<string>('');
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>('');
+  const [ticketStatusFilter, setTicketStatusFilter] = useState<string>('');
+  const [userRoleFilter, setUserRoleFilter] = useState<string>('');
   const [paymentSearch, setPaymentSearch] = useState<string>('');
 
   const [newUser, setNewUser] = useState<{name:string; email:string; role:'attendee'|'organizer'|'admin'; password:string}>({
@@ -111,28 +121,33 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const refreshUsers = async () => {
-    const data = await admin.getUsers({ search, sort_by: sortBy, sort_dir: sortDir });
+  const refreshUsers = async (page: number = usersPage.current_page, roleOverride?: string) => {
+    const data = await admin.getUsers({ search, role: roleOverride ?? userRoleFilter, sort_by: sortBy, sort_dir: sortDir, page });
     setUsersList(data.data || data);
+    setUsersPage({ current_page: data.current_page ?? 1, last_page: data.last_page ?? 1, total: data.total ?? 0 });
   };
 
-  const refreshEvents = async (categoryOverride?: string) => {
-    const data = await admin.getEvents({ search, category: categoryOverride ?? eventCategoryFilter, sort_by: sortBy, sort_dir: sortDir });
+  const refreshEvents = async (categoryOverride?: string, page: number = eventsPage.current_page) => {
+    const data = await admin.getEvents({ search, category: categoryOverride ?? eventCategoryFilter, sort_by: sortBy, sort_dir: sortDir, page });
     setEventsList(data.data || data);
+    setEventsPage({ current_page: data.current_page ?? 1, last_page: data.last_page ?? 1, total: data.total ?? 0 });
   };
 
-  const refreshTickets = async () => {
-    const data = await admin.getTickets({ code: search, sort_by: sortBy, sort_dir: sortDir });
+  const refreshTickets = async (page: number = ticketsPage.current_page, statusOverride?: string) => {
+    const data = await admin.getTickets({ code: search, status: statusOverride ?? ticketStatusFilter, sort_by: sortBy, sort_dir: sortDir, page });
     setTicketsList(data.data || data);
+    setTicketsPage({ current_page: data.current_page ?? 1, last_page: data.last_page ?? 1, total: data.total ?? 0 });
   };
 
-  const refreshPayments = async (statusOverride?: string) => {
-    const data = await admin.getPayments({ search: paymentSearch, status: statusOverride ?? paymentStatusFilter, sort_by: sortBy, sort_dir: sortDir });
+  const refreshPayments = async (statusOverride?: string, page: number = paymentsPage.current_page) => {
+    const data = await admin.getPayments({ search: paymentSearch, status: statusOverride ?? paymentStatusFilter, sort_by: sortBy, sort_dir: sortDir, page });
     setPaymentsList(data.data || data);
+    setPaymentsPage({ current_page: data.current_page ?? 1, last_page: data.last_page ?? 1, total: data.total ?? 0 });
   };
 
-  const refreshBlogPosts = async () => {
-    const data = await admin.getBlogPosts({ search, sort_by: sortBy, sort_dir: sortDir });
+  const refreshBlogPosts = async (page: number = blogPage.current_page) => {
+    const data = await admin.getBlogPosts({ search, sort_by: sortBy, sort_dir: sortDir, page });
+    setBlogPage({ current_page: data.current_page ?? 1, last_page: data.last_page ?? 1, total: data.total ?? 0 });
     setBlogPostsList(data.data || data);
   };
 
@@ -198,6 +213,21 @@ export default function AdminDashboardPage() {
       </Button>
     </div>
   );
+
+  const paginationControls = (meta: PageMeta, onPageChange: (page: number) => void) => {
+    if (meta.last_page <= 1) return null;
+    return (
+      <div className="flex items-center justify-between pt-4">
+        <span className="text-xs text-muted-foreground">
+          Page {meta.current_page} of {meta.last_page} ({meta.total} total)
+        </span>
+        <div className="flex gap-1">
+          <Button variant="outline" size="sm" disabled={meta.current_page <= 1} onClick={() => onPageChange(meta.current_page - 1)}>Previous</Button>
+          <Button variant="outline" size="sm" disabled={meta.current_page >= meta.last_page} onClick={() => onPageChange(meta.current_page + 1)}>Next</Button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <DashboardShell title="Admin Dashboard" description={`Welcome back, ${authUser?.name}`}>
@@ -348,8 +378,18 @@ export default function AdminDashboardPage() {
                   <h2 className="font-display font-bold text-lg">Users</h2>
                   <div className="flex items-center gap-2">
                     <Input placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && refreshUsers()} className="w-48" />
-                    <Button variant="outline" size="icon" onClick={refreshUsers}><Search className="w-4 h-4" /></Button>
-                    {exportButtons('users', { search })}
+                    <select
+                      className="h-10 rounded-none border border-input bg-background px-2 text-sm"
+                      value={userRoleFilter}
+                      onChange={(e) => { setUserRoleFilter(e.target.value); refreshUsers(1, e.target.value); }}
+                    >
+                      <option value="">All roles</option>
+                      <option value="attendee">Attendees</option>
+                      <option value="organizer">Organizers</option>
+                      <option value="admin">Admins</option>
+                    </select>
+                    <Button variant="outline" size="icon" onClick={() => refreshUsers()}><Search className="w-4 h-4" /></Button>
+                    {exportButtons('users', { search, role: userRoleFilter })}
                     <Button onClick={() => setCreatingUser((v) => !v)}>
                       <Plus className="w-4 h-4" /> Add User
                     </Button>
@@ -389,7 +429,7 @@ export default function AdminDashboardPage() {
                   <Button variant="outline" size="icon" onClick={()=>setSortDir(sortDir==='asc'?'desc':'asc')}>
                     {sortDir==='asc'? <ChevronUp className="w-4 h-4"/> : <ChevronDown className="w-4 h-4"/>}
                   </Button>
-                  <Button variant="outline" onClick={refreshUsers}>Refresh</Button>
+                  <Button variant="outline" onClick={() => refreshUsers()}>Refresh</Button>
                 </div>
 
                 <Table>
@@ -420,7 +460,7 @@ export default function AdminDashboardPage() {
                         </TableCell>
                         <TableCell>
                           <select
-                            className="h-9 rounded-lg border border-input bg-background px-2 text-sm"
+                            className="h-9 rounded-none border border-input bg-background px-2 text-sm"
                             value={u.role}
                             onChange={async(e)=>{ try { await admin.updateUserRole(u.id, e.target.value as any); await refreshUsers(); } catch(err){ alert('Failed to update role'); } }}
                           >
@@ -446,6 +486,8 @@ export default function AdminDashboardPage() {
                     ))}
                   </TableBody>
                 </Table>
+                {usersList.length === 0 && <p className="text-muted-foreground text-center py-8">No users found.</p>}
+                {paginationControls(usersPage, refreshUsers)}
               </CardContent>
             </Card>
           </TabsContent>
@@ -459,7 +501,7 @@ export default function AdminDashboardPage() {
                   <div className="flex items-center gap-2">
                     <Input placeholder="Search events..." value={search} onChange={(e)=>setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && refreshEvents()} className="w-48" />
                     <select
-                      className="h-10 rounded-lg border border-input bg-background px-2 text-sm"
+                      className="h-10 rounded-none border border-input bg-background px-2 text-sm"
                       value={eventCategoryFilter}
                       onChange={async (e) => { setEventCategoryFilter(e.target.value); await refreshEvents(e.target.value); }}
                     >
@@ -555,6 +597,8 @@ export default function AdminDashboardPage() {
                     </div>
                   ))}
                 </div>
+                {eventsList.length === 0 && <p className="text-muted-foreground text-center py-8">No events found.</p>}
+                {paginationControls(eventsPage, (page) => refreshEvents(undefined, page))}
               </CardContent>
             </Card>
           </TabsContent>
@@ -580,10 +624,22 @@ export default function AdminDashboardPage() {
                       placeholder="Search by ticket code..."
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') refreshTickets(); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') refreshTickets(1); }}
                       className="w-56 font-mono"
                     />
-                    {exportButtons('tickets', { code: search })}
+                    <select
+                      className="h-10 rounded-none border border-input bg-background px-2 text-sm"
+                      value={ticketStatusFilter}
+                      onChange={(e) => { setTicketStatusFilter(e.target.value); refreshTickets(1, e.target.value); }}
+                    >
+                      <option value="">All statuses</option>
+                      <option value="valid">Valid</option>
+                      <option value="checked_in">Checked</option>
+                      <option value="invalid">Invalid</option>
+                      <option value="revoked">Revoked</option>
+                    </select>
+                    <Button variant="outline" size="icon" onClick={() => refreshTickets(1)}><Search className="w-4 h-4" /></Button>
+                    {exportButtons('tickets', { code: search, status: ticketStatusFilter })}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 mb-4">
@@ -595,7 +651,7 @@ export default function AdminDashboardPage() {
                   <Button variant="outline" size="icon" onClick={()=>setSortDir(sortDir==='asc'?'desc':'asc')}>
                     {sortDir==='asc'? <ChevronUp className="w-4 h-4"/> : <ChevronDown className="w-4 h-4"/>}
                   </Button>
-                  <Button variant="outline" onClick={refreshTickets}>Refresh</Button>
+                  <Button variant="outline" onClick={() => refreshTickets()}>Refresh</Button>
                 </div>
                 <Table>
                   <TableHeader>
@@ -620,7 +676,7 @@ export default function AdminDashboardPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <select
-                            className="h-9 rounded-lg border border-input bg-background px-2 text-sm"
+                            className="h-9 rounded-none border border-input bg-background px-2 text-sm"
                             value={ticket.status || 'valid'}
                             onChange={async (e) => {
                               const status = e.target.value as 'valid' | 'checked_in' | 'invalid' | 'revoked';
@@ -641,6 +697,7 @@ export default function AdminDashboardPage() {
                 {ticketsList.length===0 && (
                   <p className="text-muted-foreground text-center py-8">No tickets found.</p>
                 )}
+                {paginationControls(ticketsPage, refreshTickets)}
               </CardContent>
             </Card>
           </TabsContent>
@@ -660,9 +717,9 @@ export default function AdminDashboardPage() {
                       className="w-56"
                     />
                     <select
-                      className="h-10 rounded-lg border border-input bg-background px-2 text-sm"
+                      className="h-10 rounded-none border border-input bg-background px-2 text-sm"
                       value={paymentStatusFilter}
-                      onChange={async (e) => { setPaymentStatusFilter(e.target.value); await refreshPayments(e.target.value); }}
+                      onChange={async (e) => { setPaymentStatusFilter(e.target.value); await refreshPayments(e.target.value, 1); }}
                     >
                       <option value="">All statuses</option>
                       <option value="pending">Pending</option>
@@ -698,7 +755,7 @@ export default function AdminDashboardPage() {
                         </TableCell>
                         <TableCell>
                           <select
-                            className="h-9 rounded-lg border border-input bg-background px-2 text-sm"
+                            className="h-9 rounded-none border border-input bg-background px-2 text-sm"
                             value={payment.status}
                             onChange={async(e)=>{ try{ await admin.updatePaymentStatus(payment.id, e.target.value as any); await refreshPayments(); } catch(err){ alert('Failed to update status'); } }}
                           >
@@ -723,6 +780,8 @@ export default function AdminDashboardPage() {
                     ))}
                   </TableBody>
                 </Table>
+                {paymentsList.length === 0 && <p className="text-muted-foreground text-center py-8">No payments found.</p>}
+                {paginationControls(paymentsPage, (page) => refreshPayments(undefined, page))}
               </CardContent>
             </Card>
           </TabsContent>
@@ -735,7 +794,7 @@ export default function AdminDashboardPage() {
                   <h2 className="font-display font-bold text-lg">Blog Posts</h2>
                   <div className="flex items-center gap-2">
                     <Input placeholder="Search posts..." value={search} onChange={(e)=>setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && refreshBlogPosts()} className="w-48" />
-                    <Button variant="outline" size="icon" onClick={refreshBlogPosts}><Search className="w-4 h-4" /></Button>
+                    <Button variant="outline" size="icon" onClick={() => refreshBlogPosts()}><Search className="w-4 h-4" /></Button>
                     <Button onClick={()=>setCreatingBlogPost((v)=>!v)}>
                       <Plus className="w-4 h-4"/> Add Post
                     </Button>
@@ -781,7 +840,7 @@ export default function AdminDashboardPage() {
                   <Button variant="outline" size="icon" onClick={()=>setSortDir(sortDir==='asc'?'desc':'asc')}>
                     {sortDir==='asc'? <ChevronUp className="w-4 h-4"/> : <ChevronDown className="w-4 h-4"/>}
                   </Button>
-                  <Button variant="outline" onClick={refreshBlogPosts}>Refresh</Button>
+                  <Button variant="outline" onClick={() => refreshBlogPosts()}>Refresh</Button>
                 </div>
 
                 <div className="space-y-3">
@@ -850,6 +909,7 @@ export default function AdminDashboardPage() {
                     <p className="text-muted-foreground text-center py-8">No blog posts found.</p>
                   )}
                 </div>
+                {paginationControls(blogPage, (page) => refreshBlogPosts(page))}
               </CardContent>
             </Card>
           </TabsContent>

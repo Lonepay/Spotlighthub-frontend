@@ -40,5 +40,10 @@ export const tickets = {
     const { data } = await api.put(`/tickets/${ticketId}/status`, { status, reason });
     return data;
   },
+
+  async getForEvent(eventId: number, page = 1) {
+    const { data } = await api.get(`/organizer/events/${eventId}/tickets`, { params: { page } });
+    return data;
+  },
 };
 

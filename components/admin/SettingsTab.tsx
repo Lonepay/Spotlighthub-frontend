@@ -377,7 +377,7 @@ export function SettingsTab() {
                 className="w-64"
               />
               <select
-                className="h-10 rounded-lg border border-input bg-background px-2 text-sm"
+                className="h-10 rounded-none border border-input bg-background px-2 text-sm"
                 value={activityCategory}
                 onChange={(e) => { setActivityCategory(e.target.value); setActivityPage(1); refreshActivity(1); }}
               >

@@ -11,6 +11,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Trash2, Edit2 } from 'lucide-react';
 import DOMPurify from 'isomorphic-dompurify';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { tickets as ticketsApi } from '@/lib/tickets';
 
 interface TicketVariation {
   id?: number;
@@ -28,6 +31,8 @@ export default function OrganizerEventDetailPage() {
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [variations, setVariations] = useState<TicketVariation[]>([]);
+  const [soldTickets, setSoldTickets] = useState<any[]>([]);
+  const [ticketsPage, setTicketsPage] = useState({ current_page: 1, last_page: 1 });
   const [showVariationForm, setShowVariationForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState<TicketVariation>({
@@ -43,8 +48,29 @@ export default function OrganizerEventDetailPage() {
     } else {
       loadEvent();
       loadVariations();
+      loadTickets(1);
     }
   }, [params.id, user]);
+
+  const loadTickets = async (page: number) => {
+    try {
+      const data = await ticketsApi.getForEvent(Number(params.id), page);
+      setSoldTickets(data.data || data);
+      setTicketsPage({ current_page: data.current_page ?? 1, last_page: data.last_page ?? 1 });
+    } catch (error) {
+      console.error('Failed to load tickets:', error);
+    }
+  };
+
+  const handleTicketStatusChange = async (ticketId: number, status: 'valid' | 'checked_in' | 'invalid' | 'revoked') => {
+    const reason = (status === 'invalid' || status === 'revoked') ? window.prompt(`Reason for marking this ticket ${status}?`) || undefined : undefined;
+    try {
+      await ticketsApi.updateStatus(ticketId, status, reason);
+      await loadTickets(ticketsPage.current_page);
+    } catch (error) {
+      alert('Failed to update ticket status');
+    }
+  };
 
   const loadEvent = async () => {
     try {
@@ -301,6 +327,59 @@ export default function OrganizerEventDetailPage() {
             ) : (
               <div className="text-center py-10">
                 <p className="text-muted-foreground">No ticket types yet. Create one to get started!</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <h2 className="font-display font-bold text-xl mb-4">Sold Tickets</h2>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Code</TableHead>
+                  <TableHead>Attendee</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Update Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {soldTickets.map((ticket: any) => (
+                  <TableRow key={ticket.id}>
+                    <TableCell className="font-mono text-xs">{ticket.code}</TableCell>
+                    <TableCell className="text-muted-foreground">{ticket.user?.name || ticket.attendee_name}</TableCell>
+                    <TableCell className="text-muted-foreground">{ticket.variation?.name || 'General'}</TableCell>
+                    <TableCell>
+                      <Badge variant={ticket.status === 'checked_in' ? 'success' : (ticket.status === 'revoked' || ticket.status === 'invalid') ? 'destructive' : 'outline'}>
+                        {ticket.status || 'valid'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <select
+                        className="h-9 rounded-none border border-input bg-background px-2 text-sm"
+                        value={ticket.status || 'valid'}
+                        onChange={(e) => handleTicketStatusChange(ticket.id, e.target.value as any)}
+                      >
+                        <option value="valid">Valid</option>
+                        <option value="checked_in">Checked</option>
+                        <option value="invalid">Invalid</option>
+                        <option value="revoked">Revoked</option>
+                      </select>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            {soldTickets.length === 0 && <p className="text-muted-foreground text-center py-8">No tickets sold yet.</p>}
+            {ticketsPage.last_page > 1 && (
+              <div className="flex items-center justify-between pt-4">
+                <span className="text-xs text-muted-foreground">Page {ticketsPage.current_page} of {ticketsPage.last_page}</span>
+                <div className="flex gap-1">
+                  <Button variant="outline" size="sm" disabled={ticketsPage.current_page <= 1} onClick={() => loadTickets(ticketsPage.current_page - 1)}>Previous</Button>
+                  <Button variant="outline" size="sm" disabled={ticketsPage.current_page >= ticketsPage.last_page} onClick={() => loadTickets(ticketsPage.current_page + 1)}>Next</Button>
+                </div>
               </div>
             )}
           </CardContent>

@@ -59,7 +59,7 @@ export function WithdrawalsTab() {
       <div className="flex items-center gap-2">
         <span className="text-sm text-muted-foreground">Status:</span>
         <select
-          className="h-10 rounded-lg border border-input bg-background px-2 text-sm"
+          className="h-10 rounded-none border border-input bg-background px-2 text-sm"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >

@@ -111,7 +111,7 @@ export const admin = {
     return data;
   },
 
-  async getTickets(filters?: { event_id?: number; user_id?: number; code?: string; page?: number; sort_by?: string; sort_dir?: 'asc'|'desc' }) {
+  async getTickets(filters?: { event_id?: number; user_id?: number; code?: string; status?: string; page?: number; sort_by?: string; sort_dir?: 'asc'|'desc' }) {
     const { data } = await api.get('/admin/tickets', { params: filters });
     return data;
   },
