@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, MapPin, Upload, ArrowRight, Loader2 } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
+import { RichTextEditor } from '@/components/RichTextEditor';
 
 export default function CreateEventPage() {
   const router = useRouter();
@@ -89,12 +90,9 @@ export default function CreateEventPage() {
 
             <div>
               <Label htmlFor="event-description">Description *</Label>
-              <textarea
-                id="event-description"
-                required
+              <RichTextEditor
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-sm outline-none transition-colors focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary min-h-[120px]"
+                onChange={(html) => setFormData({ ...formData, description: html })}
                 placeholder="Describe your event in detail..."
               />
             </div>

@@ -11,6 +11,8 @@ import { events, Event } from '@/lib/events';
 import { Calendar, MapPin, Ticket, ArrowLeft, Check, CreditCard, Clock, Star, Info, Minus, Plus, Zap, Wallet } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import DOMPurify from 'isomorphic-dompurify';
+import { VerifiedBadge } from '@/components/VerifiedBadge';
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -118,8 +120,12 @@ export default function EventDetailPage() {
           ) : (
             <div className="w-full h-full bg-gradient-primary" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/40 to-transparent" />
+          {/* Always a dark scrim, regardless of site theme — the title/back
+              button/ratings/date/time/location below are hardcoded white to
+              sit on the hero image, so this can't follow the light/dark
+              `background` token or it washes them out in light mode. */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent" />
         </div>
 
         <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-end pb-24 lg:pb-32">
@@ -178,9 +184,10 @@ export default function EventDetailPage() {
                 <Info className="w-6 h-6 mr-2 text-primary-glow" />
                 About the Event
               </h2>
-              <p className="text-lg text-muted-foreground leading-relaxed whitespace-pre-line">
-                {event.description}
-              </p>
+              <div
+                className="prose prose-lg max-w-none text-muted-foreground leading-relaxed [&_p]:mb-4 [&_a]:text-primary [&_strong]:text-foreground [&_h1]:text-foreground [&_h2]:text-foreground [&_h3]:text-foreground [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(event.description) }}
+              />
 
               <div className="border-t border-border mt-8 pt-8">
                 <h3 className="font-semibold text-foreground mb-4">Presented by</h3>
@@ -189,8 +196,11 @@ export default function EventDetailPage() {
                     <span className="text-xl font-bold text-primary">{event.user?.name?.charAt(0) || 'S'}</span>
                   </div>
                   <div>
-                    <p className="font-medium text-foreground">{event.user?.name || 'Spotlighticket Partner'}</p>
-                    <p className="text-sm text-muted-foreground">Verified Organizer</p>
+                    <p className="font-medium text-foreground flex items-center gap-1.5">
+                      {event.user?.name || 'Spotlighticket Partner'}
+                      {event.user?.is_verified && <VerifiedBadge />}
+                    </p>
+                    <p className="text-sm text-muted-foreground">{event.user?.is_verified ? 'Verified Organizer' : 'Organizer'}</p>
                   </div>
                 </div>
               </div>

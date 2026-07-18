@@ -17,6 +17,7 @@ export interface Event {
     id: number;
     name: string;
     email: string;
+    is_verified?: boolean;
   };
   available_tickets?: number;
   created_at: string;

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Mail, Phone, MapPin, Send, MessageSquare, Clock } from 'lucide-react';
+import { contact } from '@/lib/contact';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -17,17 +18,22 @@ export default function ContactPage() {
   });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
 
-    // Simulate form submission
-    setTimeout(() => {
+    try {
+      await contact.send(formData);
       setSubmitted(true);
-      setLoading(false);
       setFormData({ name: '', email: '', subject: '', message: '' });
-    }, 1000);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to send your message. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -60,6 +66,11 @@ export default function ContactPage() {
               {submitted && (
                 <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-500 flex items-center">
                   <span className="mr-2">✓</span> Thank you for your message! We'll get back to you soon.
+                </div>
+              )}
+              {error && (
+                <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-xl text-destructive">
+                  {error}
                 </div>
               )}
 

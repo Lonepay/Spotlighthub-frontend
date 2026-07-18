@@ -16,10 +16,13 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Users, Calendar, Ticket, Award, Plus, Edit, Trash, ChevronUp, ChevronDown, Newspaper, Receipt, Search, Download } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { SettingsTab } from '@/components/admin/SettingsTab';
+import { RichTextEditor } from '@/components/RichTextEditor';
+import { KycReviewTab } from '@/components/admin/KycReviewTab';
+import { VerifiedBadge } from '@/components/VerifiedBadge';
 import Link from 'next/link';
 
-type AdminTab = 'overview' | 'users' | 'events' | 'tickets' | 'payments' | 'blog' | 'settings';
-const VALID_TABS: AdminTab[] = ['overview', 'users', 'events', 'tickets', 'payments', 'blog', 'settings'];
+type AdminTab = 'overview' | 'users' | 'events' | 'kyc' | 'tickets' | 'payments' | 'blog' | 'settings';
+const VALID_TABS: AdminTab[] = ['overview', 'users', 'events', 'kyc', 'tickets', 'payments', 'blog', 'settings'];
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -405,7 +408,10 @@ export default function AdminDashboardPage() {
                               {u.name?.charAt(0)?.toUpperCase()}
                             </div>
                             <div>
-                              <div className="font-medium text-sm">{u.name}</div>
+                              <div className="font-medium text-sm flex items-center gap-1.5">
+                                {u.name}
+                                {u.is_verified && <VerifiedBadge />}
+                              </div>
                               <div className="text-xs text-muted-foreground">{u.email}</div>
                             </div>
                           </div>
@@ -479,7 +485,9 @@ export default function AdminDashboardPage() {
                       <Input type="number" placeholder="Total Tickets" value={newEvent.total_tickets} onChange={(e)=>setNewEvent({...newEvent, total_tickets: Number(e.target.value)})}/>
                       <Input placeholder="Category" value={newEvent.category} onChange={(e)=>setNewEvent({...newEvent, category:e.target.value})}/>
                     </div>
-                    <textarea className="w-full mt-4 rounded-xl border border-input bg-background px-4 py-3 text-sm" rows={3} placeholder="Description" value={newEvent.description} onChange={(e)=>setNewEvent({...newEvent, description:e.target.value})}/>
+                    <div className="mt-4">
+                      <RichTextEditor value={newEvent.description} onChange={(html) => setNewEvent({ ...newEvent, description: html })} placeholder="Description" />
+                    </div>
                     <div className="flex justify-end space-x-2 mt-4">
                       <Button variant="outline" onClick={()=>setCreatingEvent(false)}>Cancel</Button>
                       <Button onClick={async()=>{ try { await admin.createEvent(newEvent); setCreatingEvent(false); setNewEvent({title:'',description:'',date:'',time:'',venue:'',category:'Concert',price:0,total_tickets:1}); await refreshEvents(); } catch(e){ alert('Failed to create event'); } }}>Create</Button>
@@ -547,6 +555,11 @@ export default function AdminDashboardPage() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* KYC Review */}
+          <TabsContent value="kyc">
+            <KycReviewTab />
           </TabsContent>
 
           {/* Tickets */}

@@ -41,6 +41,7 @@ import {
   Trash2,
   Activity,
   AlertTriangle,
+  BadgeCheck,
 } from 'lucide-react';
 
 type NavLink = { type: 'link'; label: string; href: string; icon: any };
@@ -60,6 +61,7 @@ const NAV_BY_ROLE: Record<string, NavEntry[]> = {
     link('Overview', '/organizer', LayoutDashboard),
     link('Create Event', '/create-event', PlusCircle),
     link('Scan Tickets', '/organizer/scan', QrCode),
+    link('Verification', '/organizer/verification', BadgeCheck),
     link('Explore', '/events', Compass),
     link('Settings', '/profile', Settings),
   ],
@@ -72,6 +74,7 @@ const NAV_BY_ROLE: Record<string, NavEntry[]> = {
       items: [
         { label: 'Users', href: '/admin?tab=users', icon: Users },
         { label: 'Events', href: '/admin?tab=events', icon: Calendar },
+        { label: 'KYC Review', href: '/admin?tab=kyc', icon: BadgeCheck },
         { label: 'Tickets', href: '/admin?tab=tickets', icon: Ticket },
         { label: 'Payments', href: '/admin?tab=payments', icon: Receipt },
         { label: 'Blog', href: '/admin?tab=blog', icon: Newspaper },

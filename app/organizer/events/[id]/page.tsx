@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Trash2, Edit2 } from 'lucide-react';
+import DOMPurify from 'isomorphic-dompurify';
 
 interface TicketVariation {
   id?: number;
@@ -161,7 +162,10 @@ export default function OrganizerEventDetailPage() {
         <Card>
           <CardContent className="p-6">
             <h2 className="font-display font-bold text-xl mb-2">{event.title}</h2>
-            <p className="text-muted-foreground mb-6">{event.description}</p>
+            <div
+              className="prose prose-sm max-w-none text-muted-foreground mb-6 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(event.description) }}
+            />
             <div className="grid sm:grid-cols-4 gap-4">
               <div>
                 <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Date</p>
