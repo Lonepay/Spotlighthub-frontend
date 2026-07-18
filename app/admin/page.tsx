@@ -13,7 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Users, Calendar, Ticket, Award, BarChart3, Plus, Edit, Trash, ChevronUp, ChevronDown, Newspaper, Receipt, Settings, Search, Download } from 'lucide-react';
+import { Users, Calendar, Ticket, Award, Plus, Edit, Trash, ChevronUp, ChevronDown, Newspaper, Receipt, Search, Download } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { SettingsTab } from '@/components/admin/SettingsTab';
 import Link from 'next/link';
@@ -220,16 +220,6 @@ export default function AdminDashboardPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-          <TabsList>
-            <TabsTrigger value="overview"><BarChart3 className="w-4 h-4" /> <span className="hidden sm:inline">Overview</span></TabsTrigger>
-            <TabsTrigger value="users"><Users className="w-4 h-4" /> <span className="hidden sm:inline">Users</span></TabsTrigger>
-            <TabsTrigger value="events"><Calendar className="w-4 h-4" /> <span className="hidden sm:inline">Events</span></TabsTrigger>
-            <TabsTrigger value="tickets"><Ticket className="w-4 h-4" /> <span className="hidden sm:inline">Tickets</span></TabsTrigger>
-            <TabsTrigger value="payments"><NairaSign className="w-4 h-4" /> <span className="hidden sm:inline">Payments</span></TabsTrigger>
-            <TabsTrigger value="blog"><Newspaper className="w-4 h-4" /> <span className="hidden sm:inline">Blog</span></TabsTrigger>
-            <TabsTrigger value="settings"><Settings className="w-4 h-4" /> <span className="hidden sm:inline">Settings</span></TabsTrigger>
-          </TabsList>
-
           {/* Overview */}
           <TabsContent value="overview" className="space-y-6">
             <Card>

@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Percent, Search, Trash2, Activity, AlertTriangle, Copy, Check, Download, ChevronLeft, ChevronRight, User as UserIcon, CreditCard, Ticket as TicketIcon, ShieldAlert, SlidersHorizontal } from 'lucide-react';
 
 type SettingsForm = Partial<AdminSettings> & { flutterwave_webhook_secret_hash?: string };
@@ -153,16 +153,8 @@ export function SettingsTab() {
 
   return (
     <Tabs value={subTab} onValueChange={(v) => setSubTab(v as typeof subTab)}>
-      <TabsList>
-        <TabsTrigger value="general">General &amp; Fees</TabsTrigger>
-        <TabsTrigger value="seo">SEO</TabsTrigger>
-        <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
-        <TabsTrigger value="cache">Cache</TabsTrigger>
-        <TabsTrigger value="activity">Activity Logs</TabsTrigger>
-        <TabsTrigger value="errors">Error Logs</TabsTrigger>
-      </TabsList>
-
-      <TabsContent value="general">
+      <TabsContent value="general" className="space-y-4">
+        <h2 className="font-display font-bold text-lg">General &amp; Fees</h2>
         <Card>
           <CardContent className="pt-6 space-y-4 max-w-md">
             <div>
@@ -191,7 +183,8 @@ export function SettingsTab() {
         </Card>
       </TabsContent>
 
-      <TabsContent value="seo">
+      <TabsContent value="seo" className="space-y-4">
+        <h2 className="font-display font-bold text-lg">SEO</h2>
         <Card>
           <CardContent className="pt-6 space-y-4 max-w-lg">
             <div>
@@ -239,6 +232,7 @@ export function SettingsTab() {
       </TabsContent>
 
       <TabsContent value="webhooks" className="space-y-6">
+        <h2 className="font-display font-bold text-lg">Webhooks</h2>
         <Card>
           <CardContent className="pt-6 space-y-4 max-w-lg">
             <div className="flex items-center justify-between">
@@ -315,7 +309,8 @@ export function SettingsTab() {
         </Card>
       </TabsContent>
 
-      <TabsContent value="cache">
+      <TabsContent value="cache" className="space-y-4">
+        <h2 className="font-display font-bold text-lg">Cache</h2>
         <Card>
           <CardContent className="pt-6 space-y-4 max-w-md">
             <p className="text-sm text-muted-foreground">
@@ -328,7 +323,8 @@ export function SettingsTab() {
         </Card>
       </TabsContent>
 
-      <TabsContent value="activity">
+      <TabsContent value="activity" className="space-y-4">
+        <h2 className="font-display font-bold text-lg">Activity Logs</h2>
         <Card>
           <CardContent className="pt-6 space-y-4">
             <div className="flex flex-wrap items-center gap-2">
@@ -431,7 +427,8 @@ export function SettingsTab() {
         </Card>
       </TabsContent>
 
-      <TabsContent value="errors">
+      <TabsContent value="errors" className="space-y-4">
+        <h2 className="font-display font-bold text-lg">Error Logs</h2>
         <Card>
           <CardContent className="pt-6 space-y-4">
             <div className="flex items-center justify-between gap-2">
