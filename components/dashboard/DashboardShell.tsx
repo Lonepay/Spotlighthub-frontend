@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import {
@@ -29,27 +29,63 @@ import {
   X,
   LogOut,
   ChevronDown,
+  Users,
+  Calendar,
+  Receipt,
+  Newspaper,
+  UserCircle,
+  Wrench,
+  Percent,
+  Globe,
+  Webhook,
+  Trash2,
+  Activity,
+  AlertTriangle,
 } from 'lucide-react';
 
-const NAV_BY_ROLE: Record<string, { label: string; href: string; icon: any }[]> = {
+type NavLink = { type: 'link'; label: string; href: string; icon: any };
+type NavGroup = { type: 'group'; label: string; icon: any; items: { label: string; href: string; icon: any }[] };
+type NavEntry = NavLink | NavGroup;
+
+const link = (label: string, href: string, icon: any): NavLink => ({ type: 'link', label, href, icon });
+
+const NAV_BY_ROLE: Record<string, NavEntry[]> = {
   attendee: [
-    { label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
-    { label: 'My Tickets', href: '/my-tickets', icon: Ticket },
-    { label: 'Explore', href: '/events', icon: Compass },
-    { label: 'Settings', href: '/profile', icon: Settings },
+    link('Overview', '/dashboard', LayoutDashboard),
+    link('My Tickets', '/my-tickets', Ticket),
+    link('Explore', '/events', Compass),
+    link('Settings', '/profile', Settings),
   ],
   organizer: [
-    { label: 'Overview', href: '/organizer', icon: LayoutDashboard },
-    { label: 'Create Event', href: '/create-event', icon: PlusCircle },
-    { label: 'Scan Tickets', href: '/organizer/scan', icon: QrCode },
-    { label: 'Explore', href: '/events', icon: Compass },
-    { label: 'Settings', href: '/profile', icon: Settings },
+    link('Overview', '/organizer', LayoutDashboard),
+    link('Create Event', '/create-event', PlusCircle),
+    link('Scan Tickets', '/organizer/scan', QrCode),
+    link('Explore', '/events', Compass),
+    link('Settings', '/profile', Settings),
   ],
   admin: [
-    { label: 'Overview', href: '/admin', icon: LayoutDashboard },
-    { label: 'Scan Tickets', href: '/organizer/scan', icon: QrCode },
-    { label: 'Explore', href: '/events', icon: Compass },
-    { label: 'Settings', href: '/profile', icon: Settings },
+    link('Overview', '/admin?tab=overview', LayoutDashboard),
+    {
+      type: 'group',
+      label: 'Admin Tools',
+      icon: Wrench,
+      items: [
+        { label: 'Users', href: '/admin?tab=users', icon: Users },
+        { label: 'Events', href: '/admin?tab=events', icon: Calendar },
+        { label: 'Tickets', href: '/admin?tab=tickets', icon: Ticket },
+        { label: 'Payments', href: '/admin?tab=payments', icon: Receipt },
+        { label: 'Blog', href: '/admin?tab=blog', icon: Newspaper },
+        { label: 'General & Fees', href: '/admin?tab=settings&sub=general', icon: Percent },
+        { label: 'SEO', href: '/admin?tab=settings&sub=seo', icon: Globe },
+        { label: 'Webhooks', href: '/admin?tab=settings&sub=webhooks', icon: Webhook },
+        { label: 'Cache', href: '/admin?tab=settings&sub=cache', icon: Trash2 },
+        { label: 'Activity Logs', href: '/admin?tab=settings&sub=activity', icon: Activity },
+        { label: 'Error Logs', href: '/admin?tab=settings&sub=errors', icon: AlertTriangle },
+      ],
+    },
+    link('Scan Tickets', '/organizer/scan', QrCode),
+    link('Explore', '/events', Compass),
+    link('My Profile', '/profile', UserCircle),
   ],
 };
 
@@ -63,10 +99,54 @@ export function DashboardShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentTab = searchParams.get('tab');
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const navItems = NAV_BY_ROLE[user?.role || 'attendee'] || NAV_BY_ROLE.attendee;
+
+  const isItemActive = (href: string) => {
+    const [itemPath, itemQuery] = href.split('?');
+    if (pathname !== itemPath) return false;
+    if (!itemQuery) return !currentTab && searchParams.toString() === '';
+
+    const itemParams = new URLSearchParams(itemQuery);
+    for (const [key, value] of itemParams.entries()) {
+      const actual = searchParams.get(key) ?? (key === 'tab' ? 'overview' : key === 'sub' ? 'general' : null);
+      if (actual !== value) return false;
+    }
+    return true;
+  };
+
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    for (const entry of navItems) {
+      if (entry.type === 'group') {
+        initial[entry.label] = entry.items.some((i) => isItemActive(i.href));
+      }
+    }
+    return initial;
+  });
+
+  const navLink = (item: { label: string; href: string; icon: any }, indent = false) => {
+    const isActive = isItemActive(item.href);
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={() => setMobileOpen(false)}
+        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${indent ? 'ml-3 pl-3 border-l border-border' : ''} ${
+          isActive
+            ? 'bg-primary/10 text-primary'
+            : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+        }`}
+      >
+        <item.icon className="w-4 h-4 shrink-0" />
+        {item.label}
+      </Link>
+    );
+  };
 
   const SidebarContent = (
     <div className="flex h-full flex-col">
@@ -77,22 +157,29 @@ export function DashboardShell({
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href;
+        {navItems.map((entry) => {
+          if (entry.type === 'link') {
+            return navLink(entry);
+          }
+
+          const isOpen = openGroups[entry.label] ?? false;
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setMobileOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isActive
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-              }`}
-            >
-              <item.icon className="w-4 h-4 shrink-0" />
-              {item.label}
-            </Link>
+            <div key={entry.label}>
+              <button
+                type="button"
+                onClick={() => setOpenGroups((prev) => ({ ...prev, [entry.label]: !isOpen }))}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+              >
+                <entry.icon className="w-4 h-4 shrink-0" />
+                <span className="flex-1 text-left">{entry.label}</span>
+                <ChevronDown className={`w-4 h-4 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {isOpen && (
+                <div className="mt-1 space-y-1">
+                  {entry.items.map((item) => navLink(item, true))}
+                </div>
+              )}
+            </div>
           );
         })}
       </nav>

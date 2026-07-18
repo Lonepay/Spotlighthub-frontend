@@ -21,6 +21,8 @@ export interface AdminSettings {
   og_image_url: string | null;
   has_flutterwave_webhook_secret: boolean;
   flutterwave_webhook_url: string;
+  has_paystack_secret_key: boolean;
+  paystack_webhook_url: string;
 }
 
 export interface AdminDashboard {
@@ -170,8 +172,13 @@ export const admin = {
     return data;
   },
 
-  async getActivityLogs(filters?: { action?: string; user_id?: number; page?: number }) {
+  async getActivityLogs(filters?: { search?: string; action?: string; category?: string; user_id?: number; from?: string; to?: string; page?: number }) {
     const { data } = await api.get('/admin/settings/activity-logs', { params: filters });
+    return data;
+  },
+
+  async getActivityLogActions(): Promise<string[]> {
+    const { data } = await api.get('/admin/settings/activity-log-actions');
     return data;
   },
 
@@ -180,7 +187,7 @@ export const admin = {
     return data as { entries: string[] };
   },
 
-  async downloadExport(resource: 'users' | 'events' | 'tickets' | 'payments', format: 'csv' | 'pdf', filters?: Record<string, any>) {
+  async downloadExport(resource: 'users' | 'events' | 'tickets' | 'payments' | 'activity-logs', format: 'csv' | 'pdf', filters?: Record<string, any>) {
     const { data } = await api.get(`/admin/export/${resource}`, {
       params: { ...filters, format },
       responseType: 'blob',

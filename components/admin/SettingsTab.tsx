@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { admin, AdminSettings } from '@/lib/admin';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,18 +9,52 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Percent, Search, Trash2, Activity, AlertTriangle, Copy, Check } from 'lucide-react';
+import { Percent, Search, Trash2, Activity, AlertTriangle, Copy, Check, Download, ChevronLeft, ChevronRight, User as UserIcon, CreditCard, Ticket as TicketIcon, ShieldAlert, SlidersHorizontal } from 'lucide-react';
 
 type SettingsForm = Partial<AdminSettings> & { flutterwave_webhook_secret_hash?: string };
 
+const ACTIVITY_CATEGORY_META: Record<string, { label: string; icon: any }> = {
+  user: { label: 'Users', icon: UserIcon },
+  admin: { label: 'Admin actions', icon: ShieldAlert },
+  payment: { label: 'Payments', icon: CreditCard },
+  ticket: { label: 'Tickets', icon: TicketIcon },
+  settings: { label: 'Settings', icon: SlidersHorizontal },
+};
+
+type SubTab = 'general' | 'seo' | 'webhooks' | 'cache' | 'activity' | 'errors';
+const VALID_SUB_TABS: SubTab[] = ['general', 'seo', 'webhooks', 'cache', 'activity', 'errors'];
+
 export function SettingsTab() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const subParam = searchParams.get('sub') as SubTab | null;
   const [settings, setSettings] = useState<AdminSettings | null>(null);
   const [form, setForm] = useState<SettingsForm>({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [subTab, setSubTab] = useState<'general' | 'seo' | 'webhooks' | 'cache' | 'activity' | 'errors'>('general');
+  const [subTab, setSubTabState] = useState<SubTab>(
+    subParam && VALID_SUB_TABS.includes(subParam) ? subParam : 'general'
+  );
+
+  const setSubTab = (tab: SubTab) => {
+    setSubTabState(tab);
+    router.replace(`/admin?tab=settings&sub=${tab}`, { scroll: false });
+  };
+
+  useEffect(() => {
+    if (subParam && VALID_SUB_TABS.includes(subParam) && subParam !== subTab) {
+      setSubTabState(subParam);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subParam]);
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
-  const [activityFilter, setActivityFilter] = useState('');
+  const [activitySearch, setActivitySearch] = useState('');
+  const [activityCategory, setActivityCategory] = useState('');
+  const [activityFrom, setActivityFrom] = useState('');
+  const [activityTo, setActivityTo] = useState('');
+  const [activityPage, setActivityPage] = useState(1);
+  const [activityMeta, setActivityMeta] = useState<{ current_page: number; last_page: number; total: number } | null>(null);
+  const [activityCategories, setActivityCategories] = useState<string[]>([]);
   const [errorLogs, setErrorLogs] = useState<string[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [clearingCache, setClearingCache] = useState(false);
@@ -31,22 +66,44 @@ export function SettingsTab() {
       setSettings(data);
       setForm(data);
     });
+    admin.getActivityLogActions().then((actions) => {
+      setActivityCategories(Array.from(new Set(actions.map((a) => a.split('.')[0]))));
+    });
   }, []);
 
   useEffect(() => {
-    if (subTab === 'activity') refreshActivity();
+    if (subTab === 'activity') refreshActivity(1);
     if (subTab === 'errors') refreshErrors();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subTab]);
 
-  const refreshActivity = async () => {
+  const activityFilters = (page: number) => ({
+    search: activitySearch || undefined,
+    category: activityCategory || undefined,
+    from: activityFrom || undefined,
+    to: activityTo || undefined,
+    page,
+  });
+
+  const refreshActivity = async (page: number = activityPage) => {
     setLoadingLogs(true);
     try {
-      const data = await admin.getActivityLogs({ action: activityFilter || undefined });
+      const data = await admin.getActivityLogs(activityFilters(page));
       setActivityLogs(data.data || data);
+      setActivityMeta({ current_page: data.current_page, last_page: data.last_page, total: data.total });
     } finally {
       setLoadingLogs(false);
     }
+  };
+
+  const searchActivity = () => {
+    setActivityPage(1);
+    refreshActivity(1);
+  };
+
+  const goToActivityPage = (page: number) => {
+    setActivityPage(page);
+    refreshActivity(page);
   };
 
   const refreshErrors = async () => {
@@ -181,11 +238,17 @@ export function SettingsTab() {
         </Card>
       </TabsContent>
 
-      <TabsContent value="webhooks">
+      <TabsContent value="webhooks" className="space-y-6">
         <Card>
           <CardContent className="pt-6 space-y-4 max-w-lg">
+            <div className="flex items-center justify-between">
+              <h3 className="font-display font-semibold">Flutterwave</h3>
+              <Badge variant={settings.has_flutterwave_webhook_secret ? 'default' : 'outline'}>
+                {settings.has_flutterwave_webhook_secret ? 'Custom secret set' : 'Using FLW_SECRET_KEY'}
+              </Badge>
+            </div>
             <div>
-              <Label>Flutterwave webhook URL</Label>
+              <Label>Webhook URL</Label>
               <div className="flex gap-2">
                 <Input readOnly value={settings.flutterwave_webhook_url} />
                 <Button type="button" variant="outline" size="icon" onClick={copyWebhookUrl}>
@@ -214,6 +277,42 @@ export function SettingsTab() {
             </Button>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardContent className="pt-6 space-y-4 max-w-lg">
+            <div className="flex items-center justify-between">
+              <h3 className="font-display font-semibold">Paystack</h3>
+              <Badge variant={settings.has_paystack_secret_key ? 'default' : 'destructive'}>
+                {settings.has_paystack_secret_key ? 'Configured' : 'Not configured'}
+              </Badge>
+            </div>
+            <div>
+              <Label>Webhook URL</Label>
+              <div className="flex gap-2">
+                <Input readOnly value={settings.paystack_webhook_url} />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => { navigator.clipboard.writeText(settings.paystack_webhook_url); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
+                >
+                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Same URL as Flutterwave above — one endpoint handles both gateways, routed by their signature header. Paste this into Paystack Dashboard → Settings → API Keys &amp; Webhooks.
+              </p>
+            </div>
+            {!settings.has_paystack_secret_key && (
+              <p className="text-xs text-destructive">
+                No <code>PAYSTACK_SECRET_KEY</code> is set in the backend&apos;s .env, so incoming Paystack webhooks will be rejected. Paystack checkout is unavailable until this is set.
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Unlike Flutterwave, Paystack doesn&apos;t support a separate configurable webhook secret — it signs requests with your account&apos;s secret key directly. Set <code>PAYSTACK_PUBLIC_KEY</code> / <code>PAYSTACK_SECRET_KEY</code> in the backend&apos;s .env, then restart the backend.
+            </p>
+          </CardContent>
+        </Card>
       </TabsContent>
 
       <TabsContent value="cache">
@@ -232,36 +331,102 @@ export function SettingsTab() {
       <TabsContent value="activity">
         <Card>
           <CardContent className="pt-6 space-y-4">
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Input
-                placeholder="Filter by action (e.g. login, payment)"
-                value={activityFilter}
-                onChange={(e) => setActivityFilter(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && refreshActivity()}
+                placeholder="Search description, action, or user..."
+                value={activitySearch}
+                onChange={(e) => setActivitySearch(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && searchActivity()}
+                className="w-64"
               />
-              <Button variant="outline" onClick={refreshActivity}>
+              <select
+                className="h-10 rounded-lg border border-input bg-background px-2 text-sm"
+                value={activityCategory}
+                onChange={(e) => { setActivityCategory(e.target.value); setActivityPage(1); refreshActivity(1); }}
+              >
+                <option value="">All categories</option>
+                {activityCategories.map((cat) => (
+                  <option key={cat} value={cat}>{ACTIVITY_CATEGORY_META[cat]?.label ?? cat}</option>
+                ))}
+              </select>
+              <Input
+                type="date"
+                value={activityFrom}
+                onChange={(e) => setActivityFrom(e.target.value)}
+                className="w-40"
+                aria-label="From date"
+              />
+              <span className="text-xs text-muted-foreground">to</span>
+              <Input
+                type="date"
+                value={activityTo}
+                onChange={(e) => setActivityTo(e.target.value)}
+                className="w-40"
+                aria-label="To date"
+              />
+              <Button variant="outline" size="icon" onClick={searchActivity}>
                 <Search className="w-4 h-4" />
               </Button>
+              <div className="flex items-center gap-1 ml-auto">
+                <Button variant="outline" size="sm" onClick={() => admin.downloadExport('activity-logs', 'csv', activityFilters(1))}>
+                  <Download className="w-4 h-4" /> CSV
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => admin.downloadExport('activity-logs', 'pdf', activityFilters(1))}>
+                  <Download className="w-4 h-4" /> PDF
+                </Button>
+              </div>
             </div>
+
             <div className="space-y-2 max-h-[500px] overflow-y-auto">
               {loadingLogs && <p className="text-muted-foreground text-sm">Loading...</p>}
               {!loadingLogs && activityLogs.length === 0 && (
-                <p className="text-muted-foreground text-sm text-center py-8">No activity recorded yet.</p>
+                <p className="text-muted-foreground text-sm text-center py-8">No activity matches these filters.</p>
               )}
-              {activityLogs.map((log) => (
-                <div key={log.id} className="flex items-start gap-3 border-b border-border pb-2 last:border-0">
-                  <Activity className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="outline">{log.action}</Badge>
-                      <span className="text-xs text-muted-foreground">{log.user?.name ?? 'System'}</span>
-                      <span className="text-xs text-muted-foreground">{new Date(log.created_at).toLocaleString()}</span>
+              {activityLogs.map((log) => {
+                const category = log.action.split('.')[0];
+                const Icon = ACTIVITY_CATEGORY_META[category]?.icon ?? Activity;
+                return (
+                  <div key={log.id} className="flex items-start gap-3 border-b border-border pb-2 last:border-0">
+                    <Icon className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="outline">{log.action}</Badge>
+                        <span className="text-xs text-muted-foreground">{log.user?.name ?? 'System'}</span>
+                        <span className="text-xs text-muted-foreground">{new Date(log.created_at).toLocaleString()}</span>
+                        {log.ip_address && <span className="text-xs text-muted-foreground">· {log.ip_address}</span>}
+                      </div>
+                      {log.description && <p className="text-sm mt-1">{log.description}</p>}
                     </div>
-                    {log.description && <p className="text-sm mt-1">{log.description}</p>}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
+
+            {activityMeta && activityMeta.last_page > 1 && (
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-xs text-muted-foreground">
+                  Page {activityMeta.current_page} of {activityMeta.last_page} ({activityMeta.total} total)
+                </span>
+                <div className="flex gap-1">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={activityMeta.current_page <= 1}
+                    onClick={() => goToActivityPage(activityMeta.current_page - 1)}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={activityMeta.current_page >= activityMeta.last_page}
+                    onClick={() => goToActivityPage(activityMeta.current_page + 1)}
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </TabsContent>

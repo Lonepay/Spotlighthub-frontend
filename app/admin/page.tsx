@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { useAuth } from '@/components/AuthProvider';
@@ -18,19 +18,47 @@ import { NairaSign } from '@/components/icons/NairaSign';
 import { SettingsTab } from '@/components/admin/SettingsTab';
 import Link from 'next/link';
 
+type AdminTab = 'overview' | 'users' | 'events' | 'tickets' | 'payments' | 'blog' | 'settings';
+const VALID_TABS: AdminTab[] = ['overview', 'users', 'events', 'tickets', 'payments', 'blog', 'settings'];
+
 export default function AdminDashboardPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user: authUser, loading: authLoading } = useAuth();
   const [dashboard, setDashboard] = useState<AdminDashboard | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'events' | 'tickets' | 'payments' | 'blog' | 'settings'>('overview');
+  const tabParam = searchParams.get('tab') as AdminTab | null;
+  const [activeTab, setActiveTabState] = useState<AdminTab>(
+    tabParam && VALID_TABS.includes(tabParam) ? tabParam : 'overview'
+  );
+
   const [usersList, setUsersList] = useState<any[]>([]);
   const [eventsList, setEventsList] = useState<any[]>([]);
   const [ticketsList, setTicketsList] = useState<any[]>([]);
   const [paymentsList, setPaymentsList] = useState<any[]>([]);
   const [blogPostsList, setBlogPostsList] = useState<any[]>([]);
+  // sortBy is scoped per-tab: each resource has different valid columns, so a
+  // sort field picked on one tab (e.g. "Published" on Blog) must not leak
+  // into another tab's fetch (e.g. Tickets, where it isn't a valid column
+  // and would silently fail server-side).
   const [sortBy, setSortBy] = useState<string>('created_at');
   const [sortDir, setSortDir] = useState<'asc'|'desc'>('desc');
+
+  const setActiveTab = (tab: AdminTab) => {
+    setActiveTabState(tab);
+    setSortBy('created_at');
+    setSortDir('desc');
+    router.replace(`/admin?tab=${tab}`, { scroll: false });
+  };
+
+  useEffect(() => {
+    if (tabParam && VALID_TABS.includes(tabParam) && tabParam !== activeTab) {
+      setActiveTabState(tabParam);
+      setSortBy('created_at');
+      setSortDir('desc');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabParam]);
   const [search, setSearch] = useState<string>('');
   const [eventCategoryFilter, setEventCategoryFilter] = useState<string>('');
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>('');
