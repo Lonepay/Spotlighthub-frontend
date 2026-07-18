@@ -13,6 +13,8 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import DOMPurify from 'isomorphic-dompurify';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
+import { CountdownTimer } from '@/components/CountdownTimer';
+import { VenueMap } from '@/components/VenueMap';
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -171,6 +173,10 @@ export default function EventDetailPage() {
                 {event.is_virtual ? 'Online Stream' : event.venue}
               </div>
             </div>
+
+            <div className="max-w-sm">
+              <CountdownTimer date={event.date} time={event.time} />
+            </div>
           </div>
         </div>
       </div>
@@ -188,6 +194,15 @@ export default function EventDetailPage() {
                 className="prose prose-lg max-w-none text-muted-foreground leading-relaxed [&_p]:mb-4 [&_a]:text-primary [&_strong]:text-foreground [&_h1]:text-foreground [&_h2]:text-foreground [&_h3]:text-foreground [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6"
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(event.description) }}
               />
+
+              {!event.is_virtual && (
+                <div className="mt-8">
+                  <h3 className="font-semibold text-foreground mb-4 flex items-center">
+                    <MapPin className="w-5 h-5 mr-2 text-primary-glow" /> Location
+                  </h3>
+                  <VenueMap latitude={event.latitude} longitude={event.longitude} venue={event.venue} location={event.location} />
+                </div>
+              )}
 
               <div className="border-t border-border mt-8 pt-8">
                 <h3 className="font-semibold text-foreground mb-4">Presented by</h3>

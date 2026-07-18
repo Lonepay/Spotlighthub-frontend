@@ -6,6 +6,9 @@ export interface Event {
   description: string;
   category: string;
   venue: string;
+  location?: string | null;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
   is_virtual?: boolean;
   date: string;
   time: string;

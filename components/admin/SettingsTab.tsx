@@ -210,6 +210,54 @@ export function SettingsTab() {
             </Button>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardContent className="pt-6 space-y-4 max-w-md">
+            <h3 className="font-display font-semibold">Payouts</h3>
+            <div>
+              <Label htmlFor="low-balance">Low balance alert threshold (₦)</Label>
+              <Input
+                id="low-balance"
+                type="number"
+                min={0}
+                value={form.low_balance_threshold ?? ''}
+                onChange={(e) => setForm({ ...form, low_balance_threshold: parseFloat(e.target.value) })}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Admins get emailed when the Paystack payout balance drops below this.
+              </p>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="auto-withdrawals">Automate withdrawals</Label>
+                <p className="text-xs text-muted-foreground">Verified organizers get paid automatically via Paystack.</p>
+              </div>
+              <input
+                id="auto-withdrawals"
+                type="checkbox"
+                className="w-5 h-5"
+                checked={form.auto_withdrawals_enabled ?? false}
+                onChange={(e) => setForm({ ...form, auto_withdrawals_enabled: e.target.checked })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="auto-min">Minimum amount for automation (₦)</Label>
+              <Input
+                id="auto-min"
+                type="number"
+                min={0}
+                value={form.auto_withdrawal_minimum ?? ''}
+                onChange={(e) => setForm({ ...form, auto_withdrawal_minimum: parseFloat(e.target.value) })}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Only verified (blue-tick) organizers requesting at least this much get auto-paid; everyone else stays in manual review.
+              </p>
+            </div>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? 'Saving...' : saved ? 'Saved' : 'Save changes'}
+            </Button>
+          </CardContent>
+        </Card>
       </TabsContent>
 
       <TabsContent value="seo" className="space-y-4">

@@ -5,7 +5,7 @@ import { wallet, Withdrawal } from '@/lib/wallet';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Check, X, Banknote } from 'lucide-react';
+import { Check, X, Banknote, Zap, AlertTriangle } from 'lucide-react';
 
 export function WithdrawalsTab() {
   const [statusFilter, setStatusFilter] = useState('pending');
@@ -13,6 +13,8 @@ export function WithdrawalsTab() {
   const [loading, setLoading] = useState(true);
   const [rejectingId, setRejectingId] = useState<number | null>(null);
   const [reason, setReason] = useState('');
+  const [payoutBalance, setPayoutBalance] = useState<number | null | undefined>(undefined);
+  const [payingId, setPayingId] = useState<number | null>(null);
 
   const refresh = async () => {
     setLoading(true);
@@ -29,6 +31,10 @@ export function WithdrawalsTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
 
+  useEffect(() => {
+    wallet.adminPayoutBalance().then((r) => setPayoutBalance(r.balance)).catch(() => setPayoutBalance(null));
+  }, []);
+
   const handleApprove = async (id: number) => {
     await wallet.adminApprove(id);
     await refresh();
@@ -37,6 +43,18 @@ export function WithdrawalsTab() {
   const handleMarkPaid = async (id: number) => {
     await wallet.adminMarkPaid(id);
     await refresh();
+  };
+
+  const handlePayViaPaystack = async (id: number) => {
+    setPayingId(id);
+    try {
+      await wallet.adminPayViaPaystack(id);
+      await refresh();
+    } catch (e: any) {
+      alert(e.response?.data?.message || 'Paystack payout failed');
+    } finally {
+      setPayingId(null);
+    }
   };
 
   const handleReject = async (id: number) => {
@@ -56,6 +74,21 @@ export function WithdrawalsTab() {
 
   return (
     <div className="space-y-4">
+      {payoutBalance !== undefined && (
+        <div className={`flex items-center gap-2 p-3 rounded-xl border text-sm ${payoutBalance === null ? 'border-border bg-muted/30 text-muted-foreground' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'}`}>
+          {payoutBalance === null ? (
+            <>
+              <AlertTriangle className="w-4 h-4" />
+              Paystack balance unavailable — check that real API credentials are configured.
+            </>
+          ) : (
+            <>
+              <Banknote className="w-4 h-4" />
+              Paystack payout balance: ₦{payoutBalance.toLocaleString('en-NG')}
+            </>
+          )}
+        </div>
+      )}
       <div className="flex items-center gap-2">
         <span className="text-sm text-muted-foreground">Status:</span>
         <select
@@ -86,6 +119,7 @@ export function WithdrawalsTab() {
                   <div className="flex items-center gap-2">
                     <p className="font-semibold">{w.user?.name}</p>
                     {statusBadge(w.status)}
+                    {w.auto_processed && <Badge variant="outline" className="text-primary border-primary/40"><Zap className="w-3 h-3" /> Auto</Badge>}
                   </div>
                   <p className="text-sm text-muted-foreground">{w.user?.email}</p>
                   <p className="text-lg font-bold mt-1">₦{Number(w.amount).toLocaleString('en-NG')}</p>
@@ -102,9 +136,14 @@ export function WithdrawalsTab() {
                       <Check className="w-4 h-4" /> Approve
                     </Button>
                   )}
+                  {(w.status === 'pending' || w.status === 'approved') && (
+                    <Button size="sm" onClick={() => handlePayViaPaystack(w.id)} disabled={payingId === w.id}>
+                      <Zap className="w-4 h-4" /> {payingId === w.id ? 'Processing...' : 'Pay via Paystack'}
+                    </Button>
+                  )}
                   {w.status === 'approved' && (
-                    <Button size="sm" onClick={() => handleMarkPaid(w.id)}>
-                      <Banknote className="w-4 h-4" /> Mark Paid
+                    <Button size="sm" variant="outline" onClick={() => handleMarkPaid(w.id)}>
+                      <Banknote className="w-4 h-4" /> Mark Paid Manually
                     </Button>
                   )}
                   {(w.status === 'pending' || w.status === 'approved') && (

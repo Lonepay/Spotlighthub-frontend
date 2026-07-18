@@ -23,6 +23,9 @@ export interface AdminSettings {
   flutterwave_webhook_url: string;
   has_paystack_secret_key: boolean;
   paystack_webhook_url: string;
+  low_balance_threshold: number | null;
+  auto_withdrawal_minimum: number | null;
+  auto_withdrawals_enabled: boolean;
 }
 
 export interface AdminDashboard {
@@ -156,6 +159,9 @@ export const admin = {
     site_description: string | null;
     site_keywords: string | null;
     flutterwave_webhook_secret_hash: string | null;
+    low_balance_threshold: number | null;
+    auto_withdrawal_minimum: number | null;
+    auto_withdrawals_enabled: boolean;
   }>): Promise<AdminSettings> {
     const { data } = await api.put('/admin/settings', payload);
     return data;
