@@ -1,0 +1,337 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { Navbar } from '@/components/Navbar';
+import { Footer } from '@/components/Footer';
+import { Button } from '@/components/ui/button';
+import { useCart } from '@/lib/cart';
+import { events, Event } from '@/lib/events';
+import { Calendar, MapPin, Ticket, ArrowLeft, Check, CreditCard, Clock, Star, Info, Minus, Plus, Zap, Wallet } from 'lucide-react';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
+
+export default function EventDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const { setItem } = useCart();
+  const [event, setEvent] = useState<Event | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [quantity, setQuantity] = useState(1);
+
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [selectedGateway, setSelectedGateway] = useState<'flutterwave' | 'paystack'>('flutterwave');
+
+  const formatNaira = (value: number) =>
+    new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+      maximumFractionDigits: 0,
+    }).format(value);
+
+  useEffect(() => {
+    loadEvent();
+  }, [params.id]);
+
+  useEffect(() => {
+    if (event) {
+      setSelectedDate(new Date(event.date));
+      setSelectedTime(event.time);
+    }
+  }, [event]);
+
+  const loadEvent = async () => {
+    try {
+      const data = await events.getOne(Number(params.id));
+      setEvent(data);
+    } catch (error) {
+      console.error('Failed to load event:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddToCart = () => {
+    if (!event) return;
+    if (!selectedDate || !selectedTime) {
+      toast.error('Please select a date and time.');
+      return;
+    }
+    setItem({
+      event,
+      quantity,
+      selectedDate: format(selectedDate, 'yyyy-MM-dd'),
+      selectedTime,
+      gateway: selectedGateway,
+    });
+    toast.success('Added to cart');
+    router.push('/cart');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="animate-pulse space-y-8">
+            <div className="h-[50vh] bg-muted rounded-3xl" />
+            <div className="h-8 bg-muted rounded w-1/3" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!event) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="flex flex-col items-center justify-center h-[60vh]">
+          <h1 className="text-2xl font-bold text-muted-foreground">Event not found</h1>
+          <button onClick={() => router.push('/events')} className="mt-4 text-primary hover:underline">
+            Browse all events
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const availableTickets = event.available_tickets ?? event.total_tickets;
+
+  return (
+    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary selection:text-primary-foreground">
+      <Navbar />
+
+      {/* Hero Backdrop */}
+      <div className="relative w-full h-[70vh] lg:h-[85vh]">
+        <div className="absolute inset-0">
+          {event.image ? (
+            <Image
+              src={`${process.env.NEXT_PUBLIC_BACKEND_URL?.replace('/api', '')}/storage/${event.image}`}
+              alt={event.title}
+              fill
+              className="object-cover"
+              priority
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-primary" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/40 to-transparent" />
+        </div>
+
+        <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-end pb-24 lg:pb-32">
+          <button
+            onClick={() => router.back()}
+            className="absolute top-8 left-4 lg:left-8 flex items-center space-x-2 text-white/80 hover:text-white transition-colors glass px-4 py-2 rounded-full"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Explore</span>
+          </button>
+
+          <div className="max-w-3xl space-y-6">
+            <div className="flex items-center space-x-3">
+              <span className="px-3 py-1 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider rounded-md">
+                {event.category}
+              </span>
+              {event.is_virtual && (
+                <span className="px-3 py-1 bg-blue-500/20 text-blue-200 border border-blue-500/30 text-xs font-bold uppercase tracking-wider rounded-md backdrop-blur-sm">
+                  Virtual
+                </span>
+              )}
+              <span className="flex items-center text-yellow-400 text-sm font-medium">
+                <Star className="w-4 h-4 fill-current mr-1" />
+                4.8 (2.4k reviews)
+              </span>
+            </div>
+
+            <h1 className="text-5xl lg:text-7xl font-display font-extrabold tracking-tight text-white leading-[1.1]">
+              {event.title}
+            </h1>
+
+            <div className="flex flex-wrap items-center gap-6 text-lg text-white/80">
+              <div className="flex items-center">
+                <Calendar className="w-5 h-5 mr-2 text-primary-glow" />
+                {new Date(event.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </div>
+              <div className="flex items-center">
+                <Clock className="w-5 h-5 mr-2 text-primary-glow" />
+                {event.time}
+              </div>
+              <div className="flex items-center">
+                <MapPin className="w-5 h-5 mr-2 text-primary-glow" />
+                {event.is_virtual ? 'Online Stream' : event.venue}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20 relative z-10 pb-20">
+        <div className="grid lg:grid-cols-3 gap-12">
+          {/* Left Column: Details (padded below the hero's fade so text never sits over the image) */}
+          <div className="lg:col-span-2 space-y-12 pt-20">
+            <section>
+              <h2 className="text-2xl font-bold mb-4 flex items-center">
+                <Info className="w-6 h-6 mr-2 text-primary-glow" />
+                About the Event
+              </h2>
+              <p className="text-lg text-muted-foreground leading-relaxed whitespace-pre-line">
+                {event.description}
+              </p>
+
+              <div className="border-t border-border mt-8 pt-8">
+                <h3 className="font-semibold text-foreground mb-4">Presented by</h3>
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                    <span className="text-xl font-bold text-primary">{event.user?.name?.charAt(0) || 'S'}</span>
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">{event.user?.name || 'Spotlighticket Partner'}</p>
+                    <p className="text-sm text-muted-foreground">Verified Organizer</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          {/* Right Column: Ticket selector */}
+          <div className="lg:col-span-1" id="booking-section">
+            <div className="sticky top-24 glass rounded-3xl shadow-elevated p-6 lg:p-8">
+              <div className="space-y-8">
+                <div className="flex justify-between items-baseline border-b border-border pb-6">
+                  <div>
+                    <p className="text-sm text-muted-foreground uppercase font-bold tracking-wider">Total Price</p>
+                    <div className="text-3xl font-black text-gradient">
+                      {event.price === 0 ? 'FREE' : formatNaira(event.price * quantity)}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">{availableTickets} seats left</p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground mb-3 flex items-center justify-between">
+                    <span>Select Date</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      min={new Date().toISOString().split('T')[0]}
+                      value={selectedDate ? format(selectedDate, 'yyyy-MM-dd') : ''}
+                      onChange={(e) => setSelectedDate(e.target.value ? new Date(e.target.value) : null)}
+                      className="w-full bg-secondary/30 border border-transparent focus:border-primary rounded-xl px-4 py-3 outline-none transition-all text-foreground appearance-none"
+                    />
+                    <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground mb-3 flex items-center">
+                    <Clock className="w-4 h-4 mr-2" />
+                    Select Showtime
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="time"
+                      value={selectedTime || ''}
+                      onChange={(e) => setSelectedTime(e.target.value)}
+                      className="w-full bg-secondary/30 border border-transparent focus:border-primary rounded-xl px-4 py-3 outline-none transition-all text-foreground appearance-none"
+                    />
+                    <Clock className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground mb-3 flex items-center">
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    Payment Method
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {([
+                      { id: 'flutterwave', label: 'Flutterwave', icon: Zap },
+                      { id: 'paystack', label: 'Paystack', icon: Wallet },
+                    ] as const).map((gw) => (
+                      <button
+                        key={gw.id}
+                        onClick={() => setSelectedGateway(gw.id)}
+                        className={`relative py-3 px-4 rounded-xl text-sm font-bold border-2 transition-all duration-200 ease-smooth flex items-center justify-center gap-2 active:scale-[0.97] ${
+                          selectedGateway === gw.id
+                            ? 'bg-gradient-primary border-transparent text-white shadow-glow-sm'
+                            : 'bg-card border-border text-foreground hover:border-primary/50 hover:-translate-y-0.5'
+                        }`}
+                      >
+                        <gw.icon className="w-4 h-4" />
+                        <span>{gw.label}</span>
+                        {selectedGateway === gw.id && <Check className="w-4 h-4" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between bg-secondary/30 p-4 rounded-xl">
+                  <span className="font-medium">Tickets</span>
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      disabled={quantity <= 1}
+                      className="w-9 h-9 rounded-full bg-background border border-border flex items-center justify-center hover:bg-muted hover:border-primary/40 transition-all active:scale-90 disabled:opacity-50 disabled:active:scale-100"
+                      aria-label="Decrease quantity"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <span className="font-bold w-4 text-center">{quantity}</span>
+                    <button
+                      onClick={() => setQuantity(Math.min(availableTickets, quantity + 1))}
+                      disabled={quantity >= availableTickets}
+                      className="w-9 h-9 rounded-full bg-background border border-border flex items-center justify-center hover:bg-muted hover:border-primary/40 transition-all active:scale-90 disabled:opacity-50 disabled:active:scale-100"
+                      aria-label="Increase quantity"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handleAddToCart}
+                  disabled={availableTickets === 0}
+                  variant="hero"
+                  size="lg"
+                  className="w-full"
+                >
+                  <Ticket className="w-5 h-5" />
+                  Add {quantity} Ticket{quantity > 1 ? 's' : ''} to Cart
+                </Button>
+
+                <p className="text-center text-xs text-muted-foreground">
+                  Secured checkout &middot; Spotlighticket
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Sticky Bar */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 glass border-t border-border lg:hidden z-50">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs text-muted-foreground uppercase font-bold">Total</p>
+            <p className="text-xl font-black text-gradient">{formatNaira(event.price * quantity)}</p>
+          </div>
+          <Button
+            onClick={() => document.getElementById('booking-section')?.scrollIntoView({ behavior: 'smooth' })}
+            variant="hero"
+          >
+            Get Tickets
+          </Button>
+        </div>
+      </div>
+
+      <Footer />
+    </div>
+  );
+}
