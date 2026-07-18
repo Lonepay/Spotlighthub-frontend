@@ -7,6 +7,7 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { useAuth } from '@/components/AuthProvider';
 import { admin, AdminDashboard } from '@/lib/admin';
 import { payments } from '@/lib/payments';
+import { tickets } from '@/lib/tickets';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,11 +19,12 @@ import { NairaSign } from '@/components/icons/NairaSign';
 import { SettingsTab } from '@/components/admin/SettingsTab';
 import { RichTextEditor } from '@/components/RichTextEditor';
 import { KycReviewTab } from '@/components/admin/KycReviewTab';
+import { WithdrawalsTab } from '@/components/admin/WithdrawalsTab';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import Link from 'next/link';
 
-type AdminTab = 'overview' | 'users' | 'events' | 'kyc' | 'tickets' | 'payments' | 'blog' | 'settings';
-const VALID_TABS: AdminTab[] = ['overview', 'users', 'events', 'kyc', 'tickets', 'payments', 'blog', 'settings'];
+type AdminTab = 'overview' | 'users' | 'events' | 'kyc' | 'withdrawals' | 'tickets' | 'payments' | 'blog' | 'settings';
+const VALID_TABS: AdminTab[] = ['overview', 'users', 'events', 'kyc', 'withdrawals', 'tickets', 'payments', 'blog', 'settings'];
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -562,6 +564,11 @@ export default function AdminDashboardPage() {
             <KycReviewTab />
           </TabsContent>
 
+          {/* Withdrawals */}
+          <TabsContent value="withdrawals">
+            <WithdrawalsTab />
+          </TabsContent>
+
           {/* Tickets */}
           <TabsContent value="tickets">
             <Card>
@@ -607,19 +614,25 @@ export default function AdminDashboardPage() {
                         <TableCell className="text-muted-foreground">{ticket.user?.name || ticket.attendee_name}</TableCell>
                         <TableCell className="font-mono text-xs">{ticket.code}</TableCell>
                         <TableCell>
-                          <Badge variant={ticket.status === 'checked_in' ? 'success' : ticket.status === 'revoked' ? 'destructive' : 'outline'}>
+                          <Badge variant={ticket.status === 'checked_in' ? 'success' : (ticket.status === 'revoked' || ticket.status === 'invalid') ? 'destructive' : 'outline'}>
                             {ticket.status || 'valid'}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={async()=>{ if(confirm('Revoke this ticket?')) { try{ await admin.revokeTicket(ticket.id); await refreshTickets(); } catch(e){ alert('Failed to revoke'); } } }}
+                          <select
+                            className="h-9 rounded-lg border border-input bg-background px-2 text-sm"
+                            value={ticket.status || 'valid'}
+                            onChange={async (e) => {
+                              const status = e.target.value as 'valid' | 'checked_in' | 'invalid' | 'revoked';
+                              const reason = (status === 'invalid' || status === 'revoked') ? window.prompt(`Reason for marking this ticket ${status}?`) || undefined : undefined;
+                              try { await tickets.updateStatus(ticket.id, status, reason); await refreshTickets(); } catch (e) { alert('Failed to update ticket status'); }
+                            }}
                           >
-                            <Trash className="w-4 h-4"/> Revoke
-                          </Button>
+                            <option value="valid">Valid</option>
+                            <option value="checked_in">Checked</option>
+                            <option value="invalid">Invalid</option>
+                            <option value="revoked">Revoked</option>
+                          </select>
                         </TableCell>
                       </TableRow>
                     ))}

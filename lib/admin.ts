@@ -116,11 +116,6 @@ export const admin = {
     return data;
   },
 
-  async revokeTicket(ticketId: number) {
-    const { data } = await api.put(`/admin/tickets/${ticketId}/revoke`);
-    return data;
-  },
-
   async updatePaymentStatus(paymentId: number, status: 'pending'|'success'|'failed'|'refunded') {
     const { data } = await api.put(`/admin/payments/${paymentId}/status`, { status });
     return data;

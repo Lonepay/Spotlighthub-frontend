@@ -77,6 +77,7 @@ const NAV_BY_ROLE: Record<string, NavEntry[]> = {
         { label: 'Users', href: '/admin?tab=users', icon: Users },
         { label: 'Events', href: '/admin?tab=events', icon: Calendar },
         { label: 'KYC Review', href: '/admin?tab=kyc', icon: BadgeCheck },
+        { label: 'Withdrawals', href: '/admin?tab=withdrawals', icon: Wallet },
         { label: 'Tickets', href: '/admin?tab=tickets', icon: Ticket },
         { label: 'Payments', href: '/admin?tab=payments', icon: Receipt },
         { label: 'Blog', href: '/admin?tab=blog', icon: Newspaper },

@@ -35,5 +35,10 @@ export const tickets = {
     const { data } = await api.get(`/tickets/${id}`);
     return data;
   },
+
+  async updateStatus(ticketId: number, status: 'valid' | 'checked_in' | 'invalid' | 'revoked', reason?: string) {
+    const { data } = await api.put(`/tickets/${ticketId}/status`, { status, reason });
+    return data;
+  },
 };
 
