@@ -154,12 +154,12 @@ export const admin = {
   },
 
   async updateSettings(payload: Partial<{
-    platform_fee_percentage: number;
-    site_title: string;
-    site_description: string;
-    site_keywords: string;
-    og_image_url: string;
-    flutterwave_webhook_secret_hash: string;
+    platform_fee_percentage: number | null;
+    site_title: string | null;
+    site_description: string | null;
+    site_keywords: string | null;
+    og_image_url: string | null;
+    flutterwave_webhook_secret_hash: string | null;
   }>): Promise<AdminSettings> {
     const { data } = await api.put('/admin/settings', payload);
     return data;

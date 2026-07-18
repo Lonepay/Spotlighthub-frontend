@@ -93,8 +93,8 @@ export default function AdminDashboardPage() {
     setTicketsList(data.data || data);
   };
 
-  const refreshPayments = async () => {
-    const data = await admin.getPayments({ search: paymentSearch, status: paymentStatusFilter, sort_by: sortBy, sort_dir: sortDir });
+  const refreshPayments = async (statusOverride?: string) => {
+    const data = await admin.getPayments({ search: paymentSearch, status: statusOverride ?? paymentStatusFilter, sort_by: sortBy, sort_dir: sortDir });
     setPaymentsList(data.data || data);
   };
 
@@ -480,7 +480,7 @@ export default function AdminDashboardPage() {
                   <Button variant="outline" size="icon" onClick={()=>setSortDir(sortDir==='asc'?'desc':'asc')}>
                     {sortDir==='asc'? <ChevronUp className="w-4 h-4"/> : <ChevronDown className="w-4 h-4"/>}
                   </Button>
-                  <Button variant="outline" onClick={refreshEvents}>Refresh</Button>
+                  <Button variant="outline" onClick={() => refreshEvents()}>Refresh</Button>
                 </div>
 
                 <div className="space-y-3">
@@ -605,7 +605,31 @@ export default function AdminDashboardPage() {
           <TabsContent value="payments">
             <Card>
               <CardContent className="p-6">
-                <h2 className="font-display font-bold text-lg mb-4">All Payments</h2>
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                  <h2 className="font-display font-bold text-lg">All Payments</h2>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Search reference/transaction #..."
+                      value={paymentSearch}
+                      onChange={(e) => setPaymentSearch(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && refreshPayments()}
+                      className="w-56"
+                    />
+                    <select
+                      className="h-10 rounded-lg border border-input bg-background px-2 text-sm"
+                      value={paymentStatusFilter}
+                      onChange={async (e) => { setPaymentStatusFilter(e.target.value); await refreshPayments(e.target.value); }}
+                    >
+                      <option value="">All statuses</option>
+                      <option value="pending">Pending</option>
+                      <option value="success">Success</option>
+                      <option value="failed">Failed</option>
+                      <option value="refunded">Refunded</option>
+                    </select>
+                    <Button variant="outline" size="icon" onClick={() => refreshPayments()}><Search className="w-4 h-4" /></Button>
+                    {exportButtons('payments', { search: paymentSearch, status: paymentStatusFilter })}
+                  </div>
+                </div>
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -666,7 +690,8 @@ export default function AdminDashboardPage() {
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                   <h2 className="font-display font-bold text-lg">Blog Posts</h2>
                   <div className="flex items-center gap-2">
-                    <Input placeholder="Search posts..." value={search} onChange={(e)=>setSearch(e.target.value)} className="w-48" />
+                    <Input placeholder="Search posts..." value={search} onChange={(e)=>setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && refreshBlogPosts()} className="w-48" />
+                    <Button variant="outline" size="icon" onClick={refreshBlogPosts}><Search className="w-4 h-4" /></Button>
                     <Button onClick={()=>setCreatingBlogPost((v)=>!v)}>
                       <Plus className="w-4 h-4"/> Add Post
                     </Button>
