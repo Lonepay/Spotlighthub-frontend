@@ -42,6 +42,7 @@ import {
   Activity,
   AlertTriangle,
   BadgeCheck,
+  Wallet,
 } from 'lucide-react';
 
 type NavLink = { type: 'link'; label: string; href: string; icon: any };
@@ -62,6 +63,7 @@ const NAV_BY_ROLE: Record<string, NavEntry[]> = {
     link('Create Event', '/create-event', PlusCircle),
     link('Scan Tickets', '/organizer/scan', QrCode),
     link('Verification', '/organizer/verification', BadgeCheck),
+    link('Wallet', '/organizer/wallet', Wallet),
     link('Explore', '/events', Compass),
     link('Settings', '/profile', Settings),
   ],
