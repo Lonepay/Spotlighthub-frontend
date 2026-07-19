@@ -108,7 +108,7 @@ export default function OrganizerDashboardPage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
-              <h2 className="font-display font-bold text-lg">Your Events</h2>
+              <h2 className="font-display font-bold text-lg">{user && isAdminLevelRole(user.role) ? 'All Events' : 'Your Events'}</h2>
               <Button asChild size="sm">
                 <Link href="/create-event">
                   Create event <ArrowRight className="w-4 h-4" />
@@ -118,20 +118,23 @@ export default function OrganizerDashboardPage() {
 
             {dashboard.events.length > 0 ? (
               <div className="space-y-2">
-                {dashboard.events.map((event) => (
+                {dashboard.events.map((event: any) => (
                   <Link
                     key={event.id}
                     href={`/organizer/events/${event.id}`}
                     className="block p-4 rounded-xl border border-border hover:bg-muted/40 transition-colors"
                   >
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <h3 className="font-medium">{event.title}</h3>
+                    <div className="flex justify-between items-center gap-3">
+                      <div className="min-w-0">
+                        <h3 className="font-medium truncate">{event.title}</h3>
                         <p className="text-sm text-muted-foreground">
                           {event.tickets_count} bookings &middot; {new Date(event.date).toLocaleDateString()}
+                          {event.user && (
+                            <> &middot; by {event.user.name || event.user.email}</>
+                          )}
                         </p>
                       </div>
-                      <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                      <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
                     </div>
                   </Link>
                 ))}
