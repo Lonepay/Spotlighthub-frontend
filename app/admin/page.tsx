@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { StatCard } from '@/components/dashboard/StatCard';
@@ -30,6 +30,16 @@ type AdminTab = 'overview' | 'users' | 'events' | 'kyc' | 'withdrawals' | 'ticke
 const VALID_TABS: AdminTab[] = ['overview', 'users', 'events', 'kyc', 'withdrawals', 'tickets', 'payments', 'blog', 'settings'];
 
 export default function AdminDashboardPage() {
+  // useSearchParams() below requires a Suspense ancestor for Next.js's
+  // production build (static generation) — without it the build fails.
+  return (
+    <Suspense fallback={null}>
+      <AdminDashboardPageInner />
+    </Suspense>
+  );
+}
+
+function AdminDashboardPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user: authUser, loading: authLoading } = useAuth();

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useSearchParams } from 'next/navigation';
@@ -113,7 +113,23 @@ function buildAdminNav(role: string): NavEntry[] {
   ];
 }
 
-export function DashboardShell({
+export function DashboardShell(props: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  // useSearchParams() below opts this whole subtree into client-only
+  // rendering, which Next.js requires a Suspense boundary for during static
+  // generation — without it the production build fails outright on every
+  // page that renders this shell.
+  return (
+    <Suspense fallback={null}>
+      <DashboardShellInner {...props} />
+    </Suspense>
+  );
+}
+
+function DashboardShellInner({
   title,
   description,
   children,
