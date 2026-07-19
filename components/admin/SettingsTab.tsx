@@ -699,7 +699,7 @@ export function SettingsTab() {
               {staffList.map((u) => {
                 const locked = !canChangeRoleOf(u);
                 return (
-                  <div key={u.id} className="flex items-center justify-between gap-3 border-b border-border pb-3 last:border-0">
+                  <div key={u.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3 last:border-0">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-9 h-9 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-sm shrink-0">
                         {u.name?.charAt(0)?.toUpperCase()}
@@ -714,7 +714,7 @@ export function SettingsTab() {
                         <div className="text-xs text-muted-foreground truncate">{u.email}</div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2 flex-wrap shrink-0">
                       <select
                         className="h-9 rounded-none border border-input bg-background px-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         value={u.role}

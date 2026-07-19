@@ -398,7 +398,7 @@ function AdminDashboardPageInner() {
               <CardContent className="p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                   <h2 className="font-display font-bold text-lg">Users</h2>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Input placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && refreshUsers()} className="w-48" />
                     <select
                       className="h-10 rounded-none border border-input bg-background px-2 text-sm"
@@ -533,7 +533,7 @@ function AdminDashboardPageInner() {
               <CardContent className="p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                   <h2 className="font-display font-bold text-lg">Events</h2>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Input placeholder="Search events..." value={search} onChange={(e)=>setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && refreshEvents()} className="w-48" />
                     <select
                       className="h-10 rounded-none border border-input bg-background px-2 text-sm"
@@ -654,7 +654,7 @@ function AdminDashboardPageInner() {
               <CardContent className="p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                   <h2 className="font-display font-bold text-lg">Tickets</h2>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Input
                       placeholder="Search by ticket code..."
                       value={search}
@@ -743,7 +743,7 @@ function AdminDashboardPageInner() {
               <CardContent className="p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                   <h2 className="font-display font-bold text-lg">All Payments</h2>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Input
                       placeholder="Search reference/transaction #..."
                       value={paymentSearch}
@@ -827,7 +827,7 @@ function AdminDashboardPageInner() {
               <CardContent className="p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                   <h2 className="font-display font-bold text-lg">Blog Posts</h2>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Input placeholder="Search posts..." value={search} onChange={(e)=>setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && refreshBlogPosts()} className="w-48" />
                     <Button variant="outline" size="icon" onClick={() => refreshBlogPosts()}><Search className="w-4 h-4" /></Button>
                     <Button onClick={()=>setCreatingBlogPost((v)=>!v)}>
