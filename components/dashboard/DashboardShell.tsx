@@ -43,6 +43,7 @@ import {
   AlertTriangle,
   BadgeCheck,
   Wallet,
+  ShieldCheck,
 } from 'lucide-react';
 
 type NavLink = { type: 'link'; label: string; href: string; icon: any };
@@ -67,33 +68,44 @@ const NAV_BY_ROLE: Record<string, NavEntry[]> = {
     link('Explore', '/events', Compass),
     link('Settings', '/profile', Settings),
   ],
-  admin: [
+};
+
+const ELEVATED_ROLES = ['super-admin', 'developer'];
+
+function buildAdminNav(role: string): NavEntry[] {
+  const isElevated = ELEVATED_ROLES.includes(role);
+
+  const adminToolsItems = [
+    { label: 'Users', href: '/admin?tab=users', icon: Users },
+    { label: 'Events', href: '/admin?tab=events', icon: Calendar },
+    { label: 'KYC Review', href: '/admin?tab=kyc', icon: BadgeCheck },
+    { label: 'Withdrawals', href: '/admin?tab=withdrawals', icon: Wallet },
+    { label: 'Tickets', href: '/admin?tab=tickets', icon: Ticket },
+    { label: 'Payments', href: '/admin?tab=payments', icon: Receipt },
+    { label: 'Blog', href: '/admin?tab=blog', icon: Newspaper },
+  ];
+
+  // Admin Settings and Roles & Staff Management are super-admin/developer only.
+  if (isElevated) {
+    adminToolsItems.push(
+      { label: 'Roles & Staff', href: '/admin?tab=settings&sub=staff', icon: ShieldCheck },
+      { label: 'General & Fees', href: '/admin?tab=settings&sub=general', icon: Percent },
+      { label: 'SEO', href: '/admin?tab=settings&sub=seo', icon: Globe },
+      { label: 'Webhooks', href: '/admin?tab=settings&sub=webhooks', icon: Webhook },
+      { label: 'Cache', href: '/admin?tab=settings&sub=cache', icon: Trash2 },
+      { label: 'Activity Logs', href: '/admin?tab=settings&sub=activity', icon: Activity },
+      { label: 'Error Logs', href: '/admin?tab=settings&sub=errors', icon: AlertTriangle }
+    );
+  }
+
+  return [
     link('Overview', '/admin?tab=overview', LayoutDashboard),
-    {
-      type: 'group',
-      label: 'Admin Tools',
-      icon: Wrench,
-      items: [
-        { label: 'Users', href: '/admin?tab=users', icon: Users },
-        { label: 'Events', href: '/admin?tab=events', icon: Calendar },
-        { label: 'KYC Review', href: '/admin?tab=kyc', icon: BadgeCheck },
-        { label: 'Withdrawals', href: '/admin?tab=withdrawals', icon: Wallet },
-        { label: 'Tickets', href: '/admin?tab=tickets', icon: Ticket },
-        { label: 'Payments', href: '/admin?tab=payments', icon: Receipt },
-        { label: 'Blog', href: '/admin?tab=blog', icon: Newspaper },
-        { label: 'General & Fees', href: '/admin?tab=settings&sub=general', icon: Percent },
-        { label: 'SEO', href: '/admin?tab=settings&sub=seo', icon: Globe },
-        { label: 'Webhooks', href: '/admin?tab=settings&sub=webhooks', icon: Webhook },
-        { label: 'Cache', href: '/admin?tab=settings&sub=cache', icon: Trash2 },
-        { label: 'Activity Logs', href: '/admin?tab=settings&sub=activity', icon: Activity },
-        { label: 'Error Logs', href: '/admin?tab=settings&sub=errors', icon: AlertTriangle },
-      ],
-    },
+    { type: 'group', label: 'Admin Tools', icon: Wrench, items: adminToolsItems },
     link('Scan Tickets', '/organizer/scan', QrCode),
     link('Explore', '/events', Compass),
     link('My Profile', '/profile', UserCircle),
-  ],
-};
+  ];
+}
 
 export function DashboardShell({
   title,

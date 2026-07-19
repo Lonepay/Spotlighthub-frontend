@@ -39,8 +39,9 @@ export default function CartPage() {
     );
   }
 
-  const { event, quantity, selectedDate, selectedTime } = item;
-  const total = event.price * quantity;
+  const { event, quantity, selectedDate, selectedTime, variation } = item;
+  const unitPrice = variation ? variation.price : event.price;
+  const total = unitPrice * quantity;
 
   return (
     <div className="min-h-screen">
@@ -65,6 +66,9 @@ export default function CartPage() {
             </div>
             <div className="min-w-0 flex-1">
               <h3 className="font-display font-semibold text-lg truncate">{event.title}</h3>
+              {variation && (
+                <p className="text-xs text-primary-glow mt-0.5">{variation.name}</p>
+              )}
               <div className="mt-1 text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span className="inline-flex items-center gap-1">
                   <Calendar className="h-3 w-3" /> {selectedDate} &middot; {selectedTime}
@@ -85,7 +89,7 @@ export default function CartPage() {
 
           <div className="flex items-center justify-between text-sm border-t border-border/50 pt-4">
             <span className="text-muted-foreground">
-              {quantity} &times; {event.price === 0 ? 'Free' : formatNaira(event.price)}
+              {quantity} &times; {unitPrice === 0 ? 'Free' : formatNaira(unitPrice)}
             </span>
             <span className="font-display font-bold text-xl">
               {total === 0 ? 'Free' : formatNaira(total)}

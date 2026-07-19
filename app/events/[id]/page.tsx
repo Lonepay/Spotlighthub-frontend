@@ -7,14 +7,15 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/lib/cart';
-import { events, Event } from '@/lib/events';
-import { Calendar, MapPin, Ticket, ArrowLeft, Check, CreditCard, Clock, Star, Info, Minus, Plus, Zap, Wallet } from 'lucide-react';
+import { events, Event, TicketVariation } from '@/lib/events';
+import { Calendar, MapPin, Ticket, ArrowLeft, Check, CreditCard, Clock, Star, Info, Minus, Plus, Zap, Wallet, Layers } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import DOMPurify from 'isomorphic-dompurify';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { CountdownTimer } from '@/components/CountdownTimer';
 import { VenueMap } from '@/components/VenueMap';
+import { gateway, GatewayStatus } from '@/lib/gateway';
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -27,6 +28,15 @@ export default function EventDetailPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedGateway, setSelectedGateway] = useState<'flutterwave' | 'paystack'>('flutterwave');
+  const [gatewayStatus, setGatewayStatus] = useState<GatewayStatus>({ flutterwave_enabled: true, paystack_enabled: true });
+  const [variations, setVariations] = useState<TicketVariation[]>([]);
+  const [selectedVariation, setSelectedVariation] = useState<TicketVariation | null>(null);
+
+  const isMovie = event?.category === 'Movie';
+
+  const eventStarted = event
+    ? new Date(`${format(new Date(event.date), 'yyyy-MM-dd')}T${(event.time || '00:00').slice(0, 5)}`) <= new Date()
+    : false;
 
   const formatNaira = (value: number) =>
     new Intl.NumberFormat('en-NG', {
@@ -38,6 +48,17 @@ export default function EventDetailPage() {
   useEffect(() => {
     loadEvent();
   }, [params.id]);
+
+  useEffect(() => {
+    gateway.status().then((status) => {
+      setGatewayStatus(status);
+      if (!status.flutterwave_enabled && status.paystack_enabled) {
+        setSelectedGateway('paystack');
+      } else if (!status.paystack_enabled && status.flutterwave_enabled) {
+        setSelectedGateway('flutterwave');
+      }
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (event) {
@@ -55,10 +76,24 @@ export default function EventDetailPage() {
     } finally {
       setLoading(false);
     }
+
+    try {
+      const variationData = await events.getVariations(Number(params.id));
+      setVariations(variationData);
+      if (variationData.length > 0) {
+        setSelectedVariation(variationData[0]);
+      }
+    } catch (error) {
+      console.error('Failed to load ticket variations:', error);
+    }
   };
 
   const handleAddToCart = () => {
     if (!event) return;
+    if (eventStarted) {
+      toast.error('This event has already started — ticket sales are closed.');
+      return;
+    }
     if (!selectedDate || !selectedTime) {
       toast.error('Please select a date and time.');
       return;
@@ -66,9 +101,10 @@ export default function EventDetailPage() {
     setItem({
       event,
       quantity,
-      selectedDate: format(selectedDate, 'yyyy-MM-dd'),
-      selectedTime,
+      selectedDate: isMovie ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(event.date), 'yyyy-MM-dd'),
+      selectedTime: isMovie ? selectedTime : event.time,
       gateway: selectedGateway,
+      variation: selectedVariation,
     });
     toast.success('Added to cart');
     router.push('/cart');
@@ -102,7 +138,10 @@ export default function EventDetailPage() {
     );
   }
 
-  const availableTickets = event.available_tickets ?? event.total_tickets;
+  const unitPrice = selectedVariation ? selectedVariation.price : event.price;
+  const availableTickets = selectedVariation
+    ? selectedVariation.available_quantity
+    : event.available_tickets ?? event.total_tickets;
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary selection:text-primary-foreground">
@@ -230,7 +269,7 @@ export default function EventDetailPage() {
                   <div>
                     <p className="text-sm text-muted-foreground uppercase font-bold tracking-wider">Total Price</p>
                     <div className="text-3xl font-black text-gradient">
-                      {event.price === 0 ? 'FREE' : formatNaira(event.price * quantity)}
+                      {unitPrice === 0 ? 'FREE' : formatNaira(unitPrice * quantity)}
                     </div>
                   </div>
                   <div className="text-right">
@@ -238,37 +277,92 @@ export default function EventDetailPage() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground mb-3 flex items-center justify-between">
-                    <span>Select Date</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      min={new Date().toISOString().split('T')[0]}
-                      value={selectedDate ? format(selectedDate, 'yyyy-MM-dd') : ''}
-                      onChange={(e) => setSelectedDate(e.target.value ? new Date(e.target.value) : null)}
-                      className="w-full bg-secondary/30 border border-transparent focus:border-primary rounded-xl px-4 py-3 outline-none transition-all text-foreground appearance-none"
-                    />
-                    <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
+                {eventStarted && (
+                  <div className="rounded-xl bg-destructive/10 border border-destructive/30 px-4 py-3 text-sm text-destructive font-medium">
+                    This event has already started. Ticket sales are closed.
                   </div>
-                </div>
+                )}
 
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground mb-3 flex items-center">
-                    <Clock className="w-4 h-4 mr-2" />
-                    Select Showtime
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="time"
-                      value={selectedTime || ''}
-                      onChange={(e) => setSelectedTime(e.target.value)}
-                      className="w-full bg-secondary/30 border border-transparent focus:border-primary rounded-xl px-4 py-3 outline-none transition-all text-foreground appearance-none"
-                    />
-                    <Clock className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
+                {variations.length > 0 && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground mb-3 flex items-center">
+                      <Layers className="w-4 h-4 mr-2" />
+                      Select Ticket Type
+                    </label>
+                    <div className="space-y-2">
+                      {variations.map((v) => (
+                        <button
+                          key={v.id}
+                          type="button"
+                          onClick={() => { setSelectedVariation(v); setQuantity(1); }}
+                          disabled={v.available_quantity <= 0}
+                          className={`w-full flex items-center justify-between rounded-xl border-2 px-4 py-3 text-left transition-all ${
+                            selectedVariation?.id === v.id
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border hover:border-primary/40'
+                          } ${v.available_quantity <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          <div>
+                            <p className="font-medium text-foreground">{v.name}</p>
+                            {v.description && <p className="text-xs text-muted-foreground">{v.description}</p>}
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {v.available_quantity > 0 ? `${v.available_quantity} left` : 'Sold out'}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold">{v.price === 0 ? 'FREE' : formatNaira(v.price)}</span>
+                            {selectedVariation?.id === v.id && <Check className="w-4 h-4 text-primary" />}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {isMovie ? (
+                  <>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-3 flex items-center justify-between">
+                        <span>Select Date</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="date"
+                          min={new Date().toISOString().split('T')[0]}
+                          value={selectedDate ? format(selectedDate, 'yyyy-MM-dd') : ''}
+                          onChange={(e) => setSelectedDate(e.target.value ? new Date(e.target.value) : null)}
+                          className="w-full bg-secondary/30 border border-transparent focus:border-primary rounded-xl px-4 py-3 outline-none transition-all text-foreground appearance-none"
+                        />
+                        <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-3 flex items-center">
+                        <Clock className="w-4 h-4 mr-2" />
+                        Select Showtime
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="time"
+                          value={selectedTime || ''}
+                          onChange={(e) => setSelectedTime(e.target.value)}
+                          className="w-full bg-secondary/30 border border-transparent focus:border-primary rounded-xl px-4 py-3 outline-none transition-all text-foreground appearance-none"
+                        />
+                        <Clock className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded-xl bg-secondary/30 px-4 py-3">
+                    <p className="text-sm font-medium text-muted-foreground mb-2">Event Date & Time</p>
+                    <div className="flex items-center gap-4 text-sm text-foreground mb-3">
+                      <span className="flex items-center"><Calendar className="w-4 h-4 mr-1.5 text-primary-glow" />{new Date(event.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                      <span className="flex items-center"><Clock className="w-4 h-4 mr-1.5 text-primary-glow" />{event.time}</span>
+                    </div>
+                    <CountdownTimer date={event.date} time={event.time} />
+                  </div>
+                )}
 
                 <div>
                   <label className="text-sm font-medium text-muted-foreground mb-3 flex items-center">
@@ -277,9 +371,9 @@ export default function EventDetailPage() {
                   </label>
                   <div className="grid grid-cols-2 gap-3">
                     {([
-                      { id: 'flutterwave', label: 'Flutterwave', icon: Zap },
-                      { id: 'paystack', label: 'Paystack', icon: Wallet },
-                    ] as const).map((gw) => (
+                      { id: 'flutterwave', label: 'Flutterwave', icon: Zap, enabled: gatewayStatus.flutterwave_enabled },
+                      { id: 'paystack', label: 'Paystack', icon: Wallet, enabled: gatewayStatus.paystack_enabled },
+                    ] as const).filter((gw) => gw.enabled).map((gw) => (
                       <button
                         key={gw.id}
                         onClick={() => setSelectedGateway(gw.id)}
@@ -322,13 +416,13 @@ export default function EventDetailPage() {
 
                 <Button
                   onClick={handleAddToCart}
-                  disabled={availableTickets === 0}
+                  disabled={availableTickets === 0 || eventStarted}
                   variant="hero"
                   size="lg"
                   className="w-full"
                 >
                   <Ticket className="w-5 h-5" />
-                  Add {quantity} Ticket{quantity > 1 ? 's' : ''} to Cart
+                  {eventStarted ? 'Sales Closed' : `Add ${quantity} Ticket${quantity > 1 ? 's' : ''} to Cart`}
                 </Button>
 
                 <p className="text-center text-xs text-muted-foreground">
@@ -345,7 +439,7 @@ export default function EventDetailPage() {
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-xs text-muted-foreground uppercase font-bold">Total</p>
-            <p className="text-xl font-black text-gradient">{formatNaira(event.price * quantity)}</p>
+            <p className="text-xl font-black text-gradient">{formatNaira(unitPrice * quantity)}</p>
           </div>
           <Button
             onClick={() => document.getElementById('booking-section')?.scrollIntoView({ behavior: 'smooth' })}

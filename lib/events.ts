@@ -33,6 +33,16 @@ export interface EventFilters {
   page?: number;
 }
 
+export interface TicketVariation {
+  id: number;
+  event_id: number;
+  name: string;
+  description?: string | null;
+  price: number;
+  quantity: number;
+  available_quantity: number;
+}
+
 export const events = {
   async getAll(filters?: EventFilters) {
     const params: any = {};
@@ -73,6 +83,11 @@ export const events = {
 
   async delete(id: number) {
     await api.delete(`/events/${id}`);
+  },
+
+  async getVariations(id: number): Promise<TicketVariation[]> {
+    const { data } = await api.get(`/events/${id}/variations`);
+    return data.data || data;
   },
 };
 

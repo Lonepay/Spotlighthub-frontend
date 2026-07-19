@@ -108,6 +108,7 @@ export default function CreateEventPage() {
                   className="w-full h-11 rounded-xl border border-input bg-background/50 px-4 text-sm"
                 >
                   <option value="">Select category</option>
+                  <option value="Movie">Movie</option>
                   <option value="Concert">Concert</option>
                   <option value="Conference">Conference</option>
                   <option value="Workshop">Workshop</option>

@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { Event } from '@/lib/events';
+import { Event, TicketVariation } from '@/lib/events';
 
 export interface CartItem {
   event: Event;
@@ -9,6 +9,7 @@ export interface CartItem {
   selectedDate: string;
   selectedTime: string;
   gateway: 'flutterwave' | 'paystack';
+  variation?: TicketVariation | null;
 }
 
 interface CartContextType {

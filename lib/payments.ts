@@ -18,14 +18,15 @@ export interface Payment {
 
 export const payments = {
   async initialize(
-    eventId: number, 
-    quantity: number, 
-    email: string, 
-    attendeeName: string, 
-    attendeePhone: string, 
+    eventId: number,
+    quantity: number,
+    email: string,
+    attendeeName: string,
+    attendeePhone: string,
     gateway: 'flutterwave' | 'paystack' = 'flutterwave',
     bookingDate?: string,
-    bookingTime?: string
+    bookingTime?: string,
+    variationId?: number | null
   ) {
     const { data } = await api.post(`/events/${eventId}/payments/initialize`, {
       quantity,
@@ -35,6 +36,7 @@ export const payments = {
       gateway,
       booking_date: bookingDate,
       booking_time: bookingTime,
+      variation_id: variationId ?? undefined,
     });
     return data;
   },

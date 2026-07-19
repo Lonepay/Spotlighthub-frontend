@@ -26,6 +26,8 @@ export interface AdminSettings {
   low_balance_threshold: number | null;
   auto_withdrawal_minimum: number | null;
   auto_withdrawals_enabled: boolean;
+  flutterwave_enabled: boolean;
+  paystack_enabled: boolean;
 }
 
 export interface AdminDashboard {
@@ -162,6 +164,8 @@ export const admin = {
     low_balance_threshold: number | null;
     auto_withdrawal_minimum: number | null;
     auto_withdrawals_enabled: boolean;
+    flutterwave_enabled: boolean;
+    paystack_enabled: boolean;
   }>): Promise<AdminSettings> {
     const { data } = await api.put('/admin/settings', payload);
     return data;

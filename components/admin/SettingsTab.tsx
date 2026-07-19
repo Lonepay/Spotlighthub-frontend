@@ -322,6 +322,49 @@ export function SettingsTab() {
 
       <TabsContent value="webhooks" className="space-y-6">
         <h2 className="font-display font-bold text-lg">Webhooks</h2>
+
+        <Card>
+          <CardContent className="pt-6 space-y-4 max-w-lg">
+            <h3 className="font-display font-semibold">Payment Gateways</h3>
+            <p className="text-xs text-muted-foreground -mt-2">
+              Turn a gateway off to hide it from checkout and reject any attempt to use it. At least one must stay on.
+            </p>
+            <div className="flex items-center justify-between py-2 border-t border-border">
+              <div>
+                <p className="text-sm font-medium">Flutterwave</p>
+                <p className="text-xs text-muted-foreground">{form.flutterwave_enabled ?? true ? 'Available at checkout' : 'Hidden from checkout'}</p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={form.flutterwave_enabled ?? true}
+                onClick={() => setForm({ ...form, flutterwave_enabled: !(form.flutterwave_enabled ?? true) })}
+                className={`relative w-12 h-7 rounded-full transition-colors ${(form.flutterwave_enabled ?? true) ? 'bg-primary' : 'bg-muted'}`}
+              >
+                <span className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white transition-transform ${(form.flutterwave_enabled ?? true) ? 'translate-x-5' : ''}`} />
+              </button>
+            </div>
+            <div className="flex items-center justify-between py-2 border-t border-border">
+              <div>
+                <p className="text-sm font-medium">Paystack</p>
+                <p className="text-xs text-muted-foreground">{form.paystack_enabled ?? true ? 'Available at checkout' : 'Hidden from checkout'}</p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={form.paystack_enabled ?? true}
+                onClick={() => setForm({ ...form, paystack_enabled: !(form.paystack_enabled ?? true) })}
+                className={`relative w-12 h-7 rounded-full transition-colors ${(form.paystack_enabled ?? true) ? 'bg-primary' : 'bg-muted'}`}
+              >
+                <span className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white transition-transform ${(form.paystack_enabled ?? true) ? 'translate-x-5' : ''}`} />
+              </button>
+            </div>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? 'Saving...' : saved ? 'Saved' : 'Save changes'}
+            </Button>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardContent className="pt-6 space-y-4 max-w-lg">
             <div className="flex items-center justify-between">

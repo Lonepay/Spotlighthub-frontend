@@ -125,8 +125,9 @@ export default function CheckoutPage() {
     );
   }
 
-  const { event, quantity, selectedDate, selectedTime, gateway } = item;
-  const total = event.price * quantity;
+  const { event, quantity, selectedDate, selectedTime, gateway, variation } = item;
+  const unitPrice = variation ? variation.price : event.price;
+  const total = unitPrice * quantity;
   const isFree = total <= 0;
 
   const handleSubmit = async () => {
@@ -145,7 +146,8 @@ export default function CheckoutPage() {
         attendeePhone,
         gateway,
         selectedDate,
-        selectedTime
+        selectedTime,
+        variation?.id
       );
 
       if (response.is_free) {
@@ -188,9 +190,11 @@ export default function CheckoutPage() {
           <div className="pb-6 border-b border-border/50">
             <div className="flex gap-3 items-center">
               <div className="min-w-0 flex-1">
-                <div className="font-display font-semibold truncate">{event.title}</div>
+                <div className="font-display font-semibold truncate">
+                  {event.title}{variation ? ` — ${variation.name}` : ''}
+                </div>
                 <div className="text-xs text-muted-foreground truncate">
-                  {quantity} &times; {event.price === 0 ? 'Free' : formatNaira(event.price)} &middot; {selectedDate} {selectedTime}
+                  {quantity} &times; {unitPrice === 0 ? 'Free' : formatNaira(unitPrice)} &middot; {selectedDate} {selectedTime}
                 </div>
               </div>
               <div className="font-display font-semibold">{total === 0 ? 'Free' : formatNaira(total)}</div>
