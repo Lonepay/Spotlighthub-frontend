@@ -45,5 +45,9 @@ export const tickets = {
     const { data } = await api.get(`/organizer/events/${eventId}/tickets`, { params: { page } });
     return data;
   },
+
+  async deleteTicket(ticketId: number) {
+    await api.delete(`/organizer/tickets/${ticketId}`);
+  },
 };
 

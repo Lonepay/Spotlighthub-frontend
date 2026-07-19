@@ -107,7 +107,7 @@ export default function OrganizerDashboardPage() {
         {/* Events List */}
         <Card>
           <CardContent className="p-6">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
               <h2 className="font-display font-bold text-lg">Your Events</h2>
               <Button asChild size="sm">
                 <Link href="/create-event">
@@ -170,7 +170,7 @@ export default function OrganizerDashboardPage() {
                   {dashboard.recent_payments.map((payment: any) => (
                     <TableRow key={payment.id}>
                       <TableCell>{payment.event?.title}</TableCell>
-                      <TableCell className="text-muted-foreground">{payment.user?.name || payment.guest_name || payment.user?.email}</TableCell>
+                      <TableCell className="font-medium">{payment.user?.name || payment.guest_name || payment.user?.email}</TableCell>
                       <TableCell className="font-semibold text-emerald-600 dark:text-emerald-400">
                         ₦{payment.amount.toLocaleString('en-NG', { maximumFractionDigits: 0 })}
                       </TableCell>

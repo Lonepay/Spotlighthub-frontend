@@ -156,6 +156,16 @@ export default function OrganizerEventDetailPage() {
     }
   };
 
+  const handleDeleteTicket = async (ticketId: number) => {
+    if (!confirm('Delete this ticket? This cannot be undone.')) return;
+    try {
+      await ticketsApi.deleteTicket(ticketId);
+      await loadTickets(ticketsPage.current_page);
+    } catch (error) {
+      alert('Failed to delete ticket');
+    }
+  };
+
   const loadEvent = async () => {
     try {
       const data = await events.getOne(Number(params.id));
@@ -300,7 +310,7 @@ export default function OrganizerEventDetailPage() {
         {/* Ticket Variations */}
         <Card>
           <CardContent className="p-6">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
               <div>
                 <h2 className="font-display font-bold text-lg">Ticket Types</h2>
                 <p className="text-sm text-muted-foreground mt-1">Create different ticket tiers (VIP, General, etc.) with unique pricing</p>
@@ -382,7 +392,7 @@ export default function OrganizerEventDetailPage() {
               <div className="space-y-3">
                 {variations.map((variation) => (
                   <div key={variation.id} className="p-4 rounded-xl border border-border">
-                    <div className="flex justify-between items-start">
+                    <div className="flex flex-wrap justify-between items-start gap-3">
                       <div>
                         <h3 className="font-medium">{variation.name}</h3>
                         <p className="text-sm text-muted-foreground mb-2">{variation.description}</p>
@@ -419,7 +429,7 @@ export default function OrganizerEventDetailPage() {
         {/* Coupons */}
         <Card>
           <CardContent className="p-6">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
               <div>
                 <h2 className="font-display font-bold text-lg">Coupons</h2>
                 <p className="text-sm text-muted-foreground mt-1">Create discount codes buyers can apply at checkout</p>
@@ -517,7 +527,7 @@ export default function OrganizerEventDetailPage() {
               <div className="space-y-3">
                 {coupons.map((coupon) => (
                   <div key={coupon.id} className="p-4 rounded-xl border border-border">
-                    <div className="flex justify-between items-start">
+                    <div className="flex flex-wrap justify-between items-start gap-3">
                       <div>
                         <h3 className="font-medium flex items-center gap-1.5">
                           <Tag className="w-4 h-4 text-primary" /> {coupon.code}
@@ -580,7 +590,7 @@ export default function OrganizerEventDetailPage() {
                 {soldTickets.map((ticket: any) => (
                   <TableRow key={ticket.id}>
                     <TableCell className="font-mono text-xs">{ticket.code}</TableCell>
-                    <TableCell className="text-muted-foreground">{ticket.user?.name || ticket.attendee_name}</TableCell>
+                    <TableCell className="font-medium">{ticket.user?.name || ticket.attendee_name || '—'}</TableCell>
                     <TableCell className="text-muted-foreground">{ticket.variation?.name || 'General'}</TableCell>
                     <TableCell>
                       <Badge variant={ticket.status === 'checked_in' ? 'success' : (ticket.status === 'revoked' || ticket.status === 'invalid') ? 'destructive' : 'outline'}>
@@ -588,16 +598,26 @@ export default function OrganizerEventDetailPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <select
-                        className="h-9 rounded-none border border-input bg-background px-2 text-sm"
-                        value={ticket.status || 'valid'}
-                        onChange={(e) => handleTicketStatusChange(ticket.id, e.target.value as any)}
-                      >
-                        <option value="valid">Valid</option>
-                        <option value="checked_in">Checked</option>
-                        <option value="invalid">Invalid</option>
-                        <option value="revoked">Revoked</option>
-                      </select>
+                      <div className="flex items-center justify-end gap-2 flex-wrap">
+                        <select
+                          className="h-9 rounded-none border border-input bg-background px-2 text-sm"
+                          value={ticket.status || 'valid'}
+                          onChange={(e) => handleTicketStatusChange(ticket.id, e.target.value as any)}
+                        >
+                          <option value="valid">Valid</option>
+                          <option value="checked_in">Checked</option>
+                          <option value="invalid">Invalid</option>
+                          <option value="revoked">Revoked</option>
+                        </select>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDeleteTicket(ticket.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -605,7 +625,7 @@ export default function OrganizerEventDetailPage() {
             </Table>
             {soldTickets.length === 0 && <p className="text-muted-foreground text-center py-8">No tickets sold yet.</p>}
             {ticketsPage.last_page > 1 && (
-              <div className="flex items-center justify-between pt-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-4">
                 <span className="text-xs text-muted-foreground">Page {ticketsPage.current_page} of {ticketsPage.last_page}</span>
                 <div className="flex gap-1">
                   <Button variant="outline" size="sm" disabled={ticketsPage.current_page <= 1} onClick={() => loadTickets(ticketsPage.current_page - 1)}>Previous</Button>

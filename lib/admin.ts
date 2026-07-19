@@ -86,6 +86,10 @@ export const admin = {
     await api.delete(`/admin/users/${userId}`);
   },
 
+  async deleteTicket(ticketId: number) {
+    await api.delete(`/admin/tickets/${ticketId}`);
+  },
+
   async createEvent(payload: {
     title: string;
     description: string;

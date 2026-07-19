@@ -91,6 +91,8 @@ function AdminDashboardPageInner() {
     setActiveTabState(tab);
     setSortBy('created_at');
     setSortDir('desc');
+    setSearch('');
+    setPaymentSearch('');
     router.replace(`/admin?tab=${tab}`, { scroll: false });
   };
 
@@ -99,6 +101,8 @@ function AdminDashboardPageInner() {
       setActiveTabState(tabParam);
       setSortBy('created_at');
       setSortDir('desc');
+      setSearch('');
+      setPaymentSearch('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabParam]);
@@ -589,7 +593,7 @@ function AdminDashboardPageInner() {
                 </div>
 
                 <div className="space-y-3">
-                  {(eventsList.length? eventsList : (dashboard.recent_events || [])).map((event: any) => (
+                  {eventsList.map((event: any) => (
                     <div key={event.id} className="p-4 rounded-xl border border-border">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="flex-1 min-w-0">
@@ -710,20 +714,33 @@ function AdminDashboardPageInner() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <select
-                            className="h-9 rounded-none border border-input bg-background px-2 text-sm"
-                            value={ticket.status || 'valid'}
-                            onChange={async (e) => {
-                              const status = e.target.value as 'valid' | 'checked_in' | 'invalid' | 'revoked';
-                              const reason = (status === 'invalid' || status === 'revoked') ? window.prompt(`Reason for marking this ticket ${status}?`) || undefined : undefined;
-                              try { await tickets.updateStatus(ticket.id, status, reason); await refreshTickets(); } catch (e) { alert('Failed to update ticket status'); }
-                            }}
-                          >
-                            <option value="valid">Valid</option>
-                            <option value="checked_in">Checked</option>
-                            <option value="invalid">Invalid</option>
-                            <option value="revoked">Revoked</option>
-                          </select>
+                          <div className="flex items-center justify-end gap-2 flex-wrap">
+                            <select
+                              className="h-9 rounded-none border border-input bg-background px-2 text-sm"
+                              value={ticket.status || 'valid'}
+                              onChange={async (e) => {
+                                const status = e.target.value as 'valid' | 'checked_in' | 'invalid' | 'revoked';
+                                const reason = (status === 'invalid' || status === 'revoked') ? window.prompt(`Reason for marking this ticket ${status}?`) || undefined : undefined;
+                                try { await tickets.updateStatus(ticket.id, status, reason); await refreshTickets(); } catch (e) { alert('Failed to update ticket status'); }
+                              }}
+                            >
+                              <option value="valid">Valid</option>
+                              <option value="checked_in">Checked</option>
+                              <option value="invalid">Invalid</option>
+                              <option value="revoked">Revoked</option>
+                            </select>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={async () => {
+                                if (!confirm('Delete this ticket? This cannot be undone.')) return;
+                                try { await admin.deleteTicket(ticket.id); await refreshTickets(); } catch (e) { alert('Failed to delete ticket'); }
+                              }}
+                            >
+                              <Trash className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}

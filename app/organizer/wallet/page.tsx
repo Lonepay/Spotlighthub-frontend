@@ -104,7 +104,7 @@ export default function OrganizerWalletPage() {
 
         <Card className="shadow-none">
           <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               <h2 className="font-display font-bold text-lg">Request Withdrawal</h2>
               <Button onClick={() => setShowForm((v) => !v)}>{showForm ? 'Cancel' : 'New Withdrawal'}</Button>
             </div>
