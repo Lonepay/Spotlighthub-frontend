@@ -19,7 +19,7 @@ export default function TermsPage() {
             </div>
             <h1 className="text-5xl font-display font-bold tracking-tight mb-6">Terms and Conditions</h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+              Effective: January 1, 2024
             </p>
           </div>
         </div>

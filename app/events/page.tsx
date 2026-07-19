@@ -154,8 +154,12 @@ export default function EventsPage() {
                       </h3>
                       <div className="flex items-center text-white/80 text-xs space-x-2">
                         <span>{new Date(event.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
-                        <span>&middot;</span>
-                        <span>{event.time}</span>
+                        {event.time && (
+                          <>
+                            <span>&middot;</span>
+                            <span>{event.time}</span>
+                          </>
+                        )}
                       </div>
                       <div className="mt-3 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <span className="text-white font-bold">{event.price === 0 ? 'Free' : formatNaira(event.price)}</span>

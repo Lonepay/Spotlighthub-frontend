@@ -2,16 +2,15 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import api from '@/lib/api';
-import { Save, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Save, Loader2 } from 'lucide-react';
 
 export default function SecurityPage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newPasswordConfirmation, setNewPasswordConfirmation] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
@@ -68,29 +67,17 @@ export default function SecurityPage() {
         <div className="grid grid-cols-1 gap-6">
           <div>
             <Label htmlFor="currentPassword">Current password</Label>
-            <div className="relative">
-              <Input
-                type={showPassword ? 'text' : 'password'}
-                id="currentPassword"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                className="pr-10"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
+            <PasswordInput
+              id="currentPassword"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              required
+            />
           </div>
 
           <div>
             <Label htmlFor="newPassword">New password</Label>
-            <Input
-              type={showPassword ? 'text' : 'password'}
+            <PasswordInput
               id="newPassword"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
@@ -101,8 +88,7 @@ export default function SecurityPage() {
 
           <div>
             <Label htmlFor="newPasswordConfirmation">Confirm new password</Label>
-            <Input
-              type={showPassword ? 'text' : 'password'}
+            <PasswordInput
               id="newPasswordConfirmation"
               value={newPasswordConfirmation}
               onChange={(e) => setNewPasswordConfirmation(e.target.value)}

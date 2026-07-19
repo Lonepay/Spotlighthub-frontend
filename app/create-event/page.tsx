@@ -167,11 +167,10 @@ export default function CreateEventPage() {
               </div>
 
               <div>
-                <Label htmlFor="event-time">Time *</Label>
+                <Label htmlFor="event-time">Time (optional)</Label>
                 <Input
                   id="event-time"
                   type="time"
-                  required
                   value={formData.time}
                   onChange={(e) => setFormData({ ...formData, time: e.target.value })}
                 />

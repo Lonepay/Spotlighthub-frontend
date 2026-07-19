@@ -11,6 +11,7 @@ import { payments } from '@/lib/payments';
 import { tickets } from '@/lib/tickets';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -427,7 +428,7 @@ export default function AdminDashboardPage() {
                         {isElevatedActor && <option value="super-admin">Super Admin</option>}
                         {isDeveloperActor && <option value="developer">Developer</option>}
                       </select>
-                      <Input type="password" placeholder="Password" value={newUser.password} onChange={(e)=>setNewUser({...newUser, password:e.target.value})} />
+                      <PasswordInput placeholder="Password" value={newUser.password} onChange={(e)=>setNewUser({...newUser, password:e.target.value})} />
                     </div>
                     <div className="flex justify-end space-x-2 mt-4">
                       <Button variant="outline" onClick={()=>setCreatingUser(false)}>Cancel</Button>
@@ -492,7 +493,10 @@ export default function AdminDashboardPage() {
                             <option value="organizer">Organizer</option>
                             <option value="admin">Admin</option>
                             <option value="super-admin">Super Admin</option>
-                            <option value="developer">Developer</option>
+                            {/* Only the developer can see/assign the developer role — this option is rendered for a
+                                non-developer viewer only when it's the row's own current value, so the <select>
+                                still displays "Developer" correctly for a protected (disabled) row. */}
+                            {(isDeveloperActor || u.role === 'developer') && <option value="developer">Developer</option>}
                           </select>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">

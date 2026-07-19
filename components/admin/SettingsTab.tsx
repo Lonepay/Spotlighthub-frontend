@@ -6,6 +6,7 @@ import { admin, AdminSettings } from '@/lib/admin';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -459,9 +460,8 @@ export function SettingsTab() {
             </div>
             <div>
               <Label htmlFor="webhook_secret">Webhook secret hash</Label>
-              <Input
+              <PasswordInput
                 id="webhook_secret"
-                type="password"
                 placeholder={settings.has_flutterwave_webhook_secret ? '•••••••• set — enter a new value to replace' : 'Not set — falls back to FLW_SECRET_KEY'}
                 value={form.flutterwave_webhook_secret_hash ?? ''}
                 onChange={(e) => setForm({ ...form, flutterwave_webhook_secret_hash: e.target.value })}
@@ -695,7 +695,7 @@ export function SettingsTab() {
                   <option value="super-admin">Super Admin</option>
                   {isDeveloperActor && <option value="developer">Developer</option>}
                 </select>
-                <Input type="password" placeholder="Password" value={newStaff.password} onChange={(e) => setNewStaff({ ...newStaff, password: e.target.value })} />
+                <PasswordInput placeholder="Password" value={newStaff.password} onChange={(e) => setNewStaff({ ...newStaff, password: e.target.value })} />
                 <div className="md:col-span-2 flex justify-end">
                   <Button
                     onClick={async () => {
@@ -755,7 +755,7 @@ export function SettingsTab() {
                       >
                         <option value="admin">Admin</option>
                         <option value="super-admin">Super Admin</option>
-                        <option value="developer">Developer</option>
+                        {(isDeveloperActor || u.role === 'developer') && <option value="developer">Developer</option>}
                       </select>
                       <Badge variant="outline" className="hidden sm:inline-flex">
                         <ShieldCheck className="w-3 h-3 mr-1" /> {ROLE_LABELS[u.role] ?? u.role}

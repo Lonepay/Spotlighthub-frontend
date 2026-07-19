@@ -7,6 +7,7 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import api from '@/lib/api';
 import { Mail, ArrowLeft, Lock, Key } from 'lucide-react';
@@ -223,9 +224,8 @@ export default function ForgotPasswordPage() {
               <form onSubmit={handleResetPassword} className="space-y-6">
                 <div>
                   <Label htmlFor="fp-new-password">New password</Label>
-                  <Input
+                  <PasswordInput
                     id="fp-new-password"
-                    type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -236,9 +236,8 @@ export default function ForgotPasswordPage() {
 
                 <div>
                   <Label htmlFor="fp-confirm-password">Confirm password</Label>
-                  <Input
+                  <PasswordInput
                     id="fp-confirm-password"
-                    type="password"
                     value={passwordConfirmation}
                     onChange={(e) => setPasswordConfirmation(e.target.value)}
                     required

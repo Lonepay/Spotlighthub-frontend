@@ -8,6 +8,7 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/components/AuthProvider';
 import { Mail, Lock, User, Phone, ArrowRight, Users, Calendar } from 'lucide-react';
@@ -175,10 +176,9 @@ export default function RegisterPage() {
               <div>
                 <Label htmlFor="reg-password">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
+                  <PasswordInput
                     id="reg-password"
-                    type="password"
                     required
                     minLength={8}
                     value={formData.password}
@@ -192,10 +192,9 @@ export default function RegisterPage() {
               <div>
                 <Label htmlFor="reg-password-confirm">Confirm password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
+                  <PasswordInput
                     id="reg-password-confirm"
-                    type="password"
                     required
                     value={formData.password_confirmation}
                     onChange={(e) => setFormData({ ...formData, password_confirmation: e.target.value })}

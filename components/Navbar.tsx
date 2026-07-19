@@ -84,7 +84,7 @@ export function Navbar() {
               <>
                 {isAdminLevelRole(user.role) ? (
                   <Link href="/admin" className="text-muted-foreground hover:text-foreground font-medium text-sm transition-colors">
-                    Admin
+                    Dashboard
                   </Link>
                 ) : user.role === 'organizer' ? (
                   <>
