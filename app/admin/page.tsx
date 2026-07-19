@@ -19,6 +19,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Users, Calendar, Ticket, Award, Plus, Edit, Trash, ChevronUp, ChevronDown, Newspaper, Receipt, Search, Download, Crown } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { SettingsTab } from '@/components/admin/SettingsTab';
+import { DashboardCharts } from '@/components/admin/DashboardCharts';
 import { RichTextEditor } from '@/components/RichTextEditor';
 import { KycReviewTab } from '@/components/admin/KycReviewTab';
 import { WithdrawalsTab } from '@/components/admin/WithdrawalsTab';
@@ -329,19 +330,11 @@ export default function AdminDashboardPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardContent className="p-6">
-                <h2 className="font-display font-bold text-lg mb-4">Events by Category</h2>
-                <div className="grid sm:grid-cols-3 gap-3">
-                  {dashboard.events_by_category.map((cat: any) => (
-                    <div key={cat.category} className="p-4 rounded-lg border border-border">
-                      <div className="text-sm font-medium mb-1">{cat.category}</div>
-                      <div className="text-xl font-display font-bold">{cat.count}</div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <DashboardCharts
+              eventsByCategory={dashboard.events_by_category}
+              revenueTrends={dashboard.revenue_trends}
+              topOrganizers={dashboard.top_organizers}
+            />
 
             <div className="grid md:grid-cols-2 gap-6">
               <Card>

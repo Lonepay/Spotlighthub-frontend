@@ -8,11 +8,24 @@ export interface User {
   role?: 'attendee' | 'organizer' | 'admin' | 'super-admin' | 'developer';
   bio?: string;
   avatar_url?: string | null;
+  two_factor_enabled?: boolean;
 }
 
 export interface AuthResponse {
   user: User;
   token: string;
+}
+
+export interface TwoFactorChallenge {
+  requires_2fa: true;
+  email: string;
+  message: string;
+}
+
+export type LoginResult = AuthResponse | TwoFactorChallenge;
+
+export function requiresTwoFactor(result: LoginResult): result is TwoFactorChallenge {
+  return (result as TwoFactorChallenge).requires_2fa === true;
 }
 
 /** True for admin, super-admin, and developer — anyone who belongs in /admin. */
@@ -36,7 +49,7 @@ export const auth = {
     return data;
   },
 
-  async login(email: string, password: string): Promise<AuthResponse> {
+  async login(email: string, password: string): Promise<LoginResult> {
     try {
       const { data } = await api.post('/login', { email, password });
       if (data.token) {
@@ -48,6 +61,19 @@ export const auth = {
       const message = error.response?.data?.message || error.message || 'Invalid credentials';
       throw new Error(message);
     }
+  },
+
+  async verifyLoginOtp(email: string, otp: string): Promise<AuthResponse> {
+    const { data } = await api.post('/login/verify-2fa', { email, otp });
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+    }
+    return data;
+  },
+
+  async toggleTwoFactor(enabled: boolean, password: string): Promise<User> {
+    const { data } = await api.put('/user/2fa', { enabled, password });
+    return data.user;
   },
 
   async logout(): Promise<void> {

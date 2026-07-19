@@ -8,6 +8,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import {
   Avatar,
+  AvatarImage,
   AvatarFallback,
 } from '@/components/ui/avatar';
 import {
@@ -46,6 +47,7 @@ import {
   ShieldCheck,
   Crown,
 } from 'lucide-react';
+import { NairaSign } from '@/components/icons/NairaSign';
 
 type NavLink = { type: 'link'; label: string; href: string; icon: any };
 type NavGroup = { type: 'group'; label: string; icon: any; items: { label: string; href: string; icon: any }[] };
@@ -58,6 +60,7 @@ const NAV_BY_ROLE: Record<string, NavEntry[]> = {
     link('Overview', '/dashboard', LayoutDashboard),
     link('My Tickets', '/my-tickets', Ticket),
     link('Explore', '/events', Compass),
+    link('Pricing', '/pricing', NairaSign),
     link('Settings', '/profile', Settings),
   ],
   organizer: [
@@ -66,6 +69,7 @@ const NAV_BY_ROLE: Record<string, NavEntry[]> = {
     link('Scan Tickets', '/organizer/scan', QrCode),
     link('Verification', '/organizer/verification', BadgeCheck),
     link('Wallet', '/organizer/wallet', Wallet),
+    link('Pricing', '/pricing', NairaSign),
     link('Explore', '/events', Compass),
     link('Settings', '/profile', Settings),
   ],
@@ -103,6 +107,7 @@ function buildAdminNav(role: string): NavEntry[] {
     link('Overview', '/admin?tab=overview', LayoutDashboard),
     { type: 'group', label: 'Admin Tools', icon: Wrench, items: adminToolsItems },
     link('Scan Tickets', '/organizer/scan', QrCode),
+    link('Pricing', '/pricing', NairaSign),
     link('Explore', '/events', Compass),
     link('My Profile', '/profile', UserCircle),
   ];
@@ -211,6 +216,7 @@ export function DashboardShell({
           <DropdownMenuTrigger asChild>
             <button className="w-full flex items-center gap-3 px-2 py-2 rounded-none hover:bg-secondary transition-colors text-left">
               <Avatar>
+                {user?.avatar_url && <AvatarImage src={user.avatar_url} alt={user.name} />}
                 <AvatarFallback>{user?.name?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">

@@ -12,7 +12,8 @@ import { payments } from '@/lib/payments';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Ticket, Calendar, ArrowRight, Receipt } from 'lucide-react';
+import { DonutBreakdown } from '@/components/charts/DonutBreakdown';
+import { Ticket, Calendar, ArrowRight, Receipt, PieChart } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 
 export default function OrganizerDashboardPage() {
@@ -82,6 +83,26 @@ export default function OrganizerDashboardPage() {
           <StatCard icon={Ticket} label="Tickets Sold" value={String(dashboard.stats.total_tickets_sold)} />
           <StatCard icon={Calendar} label="Total Events" value={String(dashboard.stats.total_events)} />
         </div>
+
+        {/* Revenue Breakdown */}
+        {dashboard.earnings_by_event.length > 0 && (
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-display font-bold text-lg">Revenue by Event</h2>
+                <PieChart className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <DonutBreakdown
+                data={dashboard.earnings_by_event.map((e: any) => ({
+                  name: e.event?.title || `Event #${e.event_id}`,
+                  value: Number(e.total_earnings),
+                }))}
+                formatter={(v) => `₦${v.toLocaleString('en-NG', { maximumFractionDigits: 0 })}`}
+                emptyLabel="No revenue yet."
+              />
+            </CardContent>
+          </Card>
+        )}
 
         {/* Events List */}
         <Card>

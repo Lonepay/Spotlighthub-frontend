@@ -213,33 +213,32 @@ export default function CreateEventPage() {
               </div>
             </div>
 
-            {Number(formData.price) > 0 && (
-              <div>
-                <Label>Who covers the platform fee?</Label>
-                <div className="grid md:grid-cols-2 gap-2 mt-1">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, fee_payer: 'organizer' })}
-                    className={`rounded-xl border-2 px-4 py-3 text-sm font-medium text-left transition-colors ${
-                      formData.fee_payer === 'organizer' ? 'border-primary bg-primary/5' : 'border-border'
-                    }`}
-                  >
-                    You (the organizer)
-                    <p className="text-xs text-muted-foreground font-normal mt-0.5">Deducted from your payout. Buyers pay exactly the price above.</p>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, fee_payer: 'attendee' })}
-                    className={`rounded-xl border-2 px-4 py-3 text-sm font-medium text-left transition-colors ${
-                      formData.fee_payer === 'attendee' ? 'border-primary bg-primary/5' : 'border-border'
-                    }`}
-                  >
-                    Attendees
-                    <p className="text-xs text-muted-foreground font-normal mt-0.5">Added on top at checkout. You receive the full price above.</p>
-                  </button>
-                </div>
+            <div>
+              <Label>Who covers the platform fee?</Label>
+              <p className="text-xs text-muted-foreground mb-2">Only applies if you charge for tickets — free events are never charged.</p>
+              <div className="grid md:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, fee_payer: 'organizer' })}
+                  className={`rounded-xl border-2 px-4 py-3 text-sm font-medium text-left transition-colors ${
+                    formData.fee_payer === 'organizer' ? 'border-primary bg-primary/5' : 'border-border'
+                  }`}
+                >
+                  You (the organizer)
+                  <p className="text-xs text-muted-foreground font-normal mt-0.5">Deducted from your payout. Buyers pay exactly the price above.</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, fee_payer: 'attendee' })}
+                  className={`rounded-xl border-2 px-4 py-3 text-sm font-medium text-left transition-colors ${
+                    formData.fee_payer === 'attendee' ? 'border-primary bg-primary/5' : 'border-border'
+                  }`}
+                >
+                  Attendees
+                  <p className="text-xs text-muted-foreground font-normal mt-0.5">Added on top at checkout. You receive the full price above.</p>
+                </button>
               </div>
-            )}
+            </div>
 
             <div>
               <Label>Event image</Label>

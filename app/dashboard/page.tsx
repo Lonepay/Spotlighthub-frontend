@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { DonutBreakdown } from '@/components/charts/DonutBreakdown';
 import { Ticket, Calendar, TrendingUp, ArrowRight, Clock, Heart, Receipt } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 
@@ -146,14 +147,10 @@ export default function UserDashboardPage() {
                 <Heart className="w-5 h-5 text-muted-foreground" />
               </div>
               {dashboard.favorite_categories.length > 0 ? (
-                <div className="space-y-2">
-                  {dashboard.favorite_categories.map((cat: any, idx: number) => (
-                    <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-muted/40">
-                      <span className="font-medium text-sm">{cat.category}</span>
-                      <Badge variant="outline">{cat.count} events</Badge>
-                    </div>
-                  ))}
-                </div>
+                <DonutBreakdown
+                  data={dashboard.favorite_categories.map((cat: any) => ({ name: cat.category, value: Number(cat.count) }))}
+                  height={220}
+                />
               ) : (
                 <div className="text-center py-10">
                   <TrendingUp className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />

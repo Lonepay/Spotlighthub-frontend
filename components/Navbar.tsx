@@ -24,15 +24,15 @@ import {
   PlusCircle,
   Shield,
   ShoppingCart,
-  Calculator,
 } from 'lucide-react';
+import { NairaSign } from '@/components/icons/NairaSign';
 import { useState } from 'react';
 
 const NAV_LINKS = [
   { href: '/events', label: 'Explore', icon: Compass },
   { href: '/organizers', label: 'Organizers', icon: Building2 },
   { href: '/vendors', label: 'Vendors', icon: Store },
-  { href: '/pricing', label: 'Pricing', icon: Calculator },
+  { href: '/pricing', label: 'Pricing', icon: NairaSign },
   { href: '/blog', label: 'Blog', icon: Newspaper },
   { href: '/contact', label: 'Contact', icon: Mail },
 ];
@@ -106,7 +106,12 @@ export function Navbar() {
                   My Tickets
                 </Link>
                 <Link href="/profile" className="flex items-center space-x-2 text-foreground hover:text-primary-glow transition-colors">
-                  <User className="w-4 h-4" />
+                  {user.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={user.avatar_url} alt={user.name} className="w-6 h-6 rounded-full object-cover" />
+                  ) : (
+                    <User className="w-4 h-4" />
+                  )}
                   <span className="text-sm font-medium">{user.name}</span>
                 </Link>
                 <Button variant="ghost" size="icon" onClick={logout} title="Log out">

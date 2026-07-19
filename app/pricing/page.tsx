@@ -6,7 +6,7 @@ import { Footer } from '@/components/Footer';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { gateway, GatewayStatus } from '@/lib/gateway';
-import { Calculator, User, Users } from 'lucide-react';
+import { User, Users } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 
 export default function PricingCalculatorPage() {
@@ -39,7 +39,7 @@ export default function PricingCalculatorPage() {
       <section className="pt-28 pb-20 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-10">
           <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-            <Calculator className="w-7 h-7 text-primary" />
+            <NairaSign className="w-7 h-7 text-primary" />
           </div>
           <h1 className="font-display font-bold text-4xl md:text-5xl mb-3">Pricing Calculator</h1>
           <p className="text-muted-foreground max-w-xl mx-auto">
