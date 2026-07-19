@@ -26,7 +26,8 @@ export const payments = {
     gateway: 'flutterwave' | 'paystack' = 'flutterwave',
     bookingDate?: string,
     bookingTime?: string,
-    variationId?: number | null
+    variationId?: number | null,
+    couponCode?: string | null
   ) {
     const { data } = await api.post(`/events/${eventId}/payments/initialize`, {
       quantity,
@@ -37,6 +38,7 @@ export const payments = {
       booking_date: bookingDate,
       booking_time: bookingTime,
       variation_id: variationId ?? undefined,
+      coupon_code: couponCode ?? undefined,
     });
     return data;
   },

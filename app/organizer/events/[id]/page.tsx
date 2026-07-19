@@ -10,11 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Trash2, Edit2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, Tag } from 'lucide-react';
 import DOMPurify from 'isomorphic-dompurify';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { tickets as ticketsApi } from '@/lib/tickets';
+import { coupons as couponsApi, Coupon } from '@/lib/coupons';
 
 interface TicketVariation {
   id?: number;
@@ -43,6 +44,17 @@ export default function OrganizerEventDetailPage() {
     quantity: 0,
   });
 
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [showCouponForm, setShowCouponForm] = useState(false);
+  const [editingCouponId, setEditingCouponId] = useState<number | null>(null);
+  const [couponForm, setCouponForm] = useState({
+    code: '',
+    discount_type: 'percentage' as 'percentage' | 'fixed',
+    discount_value: 0,
+    max_uses: '' as number | '',
+    expires_at: '',
+  });
+
   useEffect(() => {
     if (!user || (user.role !== 'organizer' && !isAdminLevelRole(user.role))) {
       router.push('/login');
@@ -50,8 +62,79 @@ export default function OrganizerEventDetailPage() {
       loadEvent();
       loadVariations();
       loadTickets(1);
+      loadCoupons();
     }
   }, [params.id, user]);
+
+  const loadCoupons = async () => {
+    try {
+      setCoupons(await couponsApi.list(Number(params.id)));
+    } catch (error) {
+      console.error('Failed to load coupons:', error);
+    }
+  };
+
+  const resetCouponForm = () => {
+    setCouponForm({ code: '', discount_type: 'percentage', discount_value: 0, max_uses: '', expires_at: '' });
+    setEditingCouponId(null);
+  };
+
+  const handleSaveCoupon = async () => {
+    if (!couponForm.code.trim() || couponForm.discount_value <= 0) {
+      alert('Enter a code and a discount value greater than 0');
+      return;
+    }
+    try {
+      const payload = {
+        code: couponForm.code.trim().toUpperCase(),
+        discount_type: couponForm.discount_type,
+        discount_value: couponForm.discount_value,
+        max_uses: couponForm.max_uses === '' ? null : Number(couponForm.max_uses),
+        expires_at: couponForm.expires_at || null,
+      };
+      if (editingCouponId) {
+        await couponsApi.update(Number(params.id), editingCouponId, payload);
+      } else {
+        await couponsApi.create(Number(params.id), payload);
+      }
+      resetCouponForm();
+      setShowCouponForm(false);
+      await loadCoupons();
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to save coupon');
+    }
+  };
+
+  const handleEditCoupon = (coupon: Coupon) => {
+    setCouponForm({
+      code: coupon.code,
+      discount_type: coupon.discount_type,
+      discount_value: coupon.discount_value,
+      max_uses: coupon.max_uses ?? '',
+      expires_at: coupon.expires_at ? coupon.expires_at.slice(0, 10) : '',
+    });
+    setEditingCouponId(coupon.id);
+    setShowCouponForm(true);
+  };
+
+  const handleDeleteCoupon = async (id: number) => {
+    if (!confirm('Delete this coupon?')) return;
+    try {
+      await couponsApi.delete(Number(params.id), id);
+      await loadCoupons();
+    } catch (error) {
+      alert('Failed to delete coupon');
+    }
+  };
+
+  const handleToggleCouponActive = async (coupon: Coupon) => {
+    try {
+      await couponsApi.update(Number(params.id), coupon.id, { is_active: !coupon.is_active });
+      await loadCoupons();
+    } catch (error) {
+      alert('Failed to update coupon');
+    }
+  };
 
   const loadTickets = async (page: number) => {
     try {
@@ -328,6 +411,153 @@ export default function OrganizerEventDetailPage() {
             ) : (
               <div className="text-center py-10">
                 <p className="text-muted-foreground">No ticket types yet. Create one to get started!</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Coupons */}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="font-display font-bold text-lg">Coupons</h2>
+                <p className="text-sm text-muted-foreground mt-1">Create discount codes buyers can apply at checkout</p>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setShowCouponForm(!showCouponForm);
+                  resetCouponForm();
+                }}
+              >
+                <Plus className="w-4 h-4" /> Add Coupon
+              </Button>
+            </div>
+
+            {showCouponForm && (
+              <div className="p-5 mb-6 rounded-xl border border-border bg-muted/30">
+                <div className="grid md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <Label htmlFor="coupon-code-input">Code</Label>
+                    <Input
+                      id="coupon-code-input"
+                      placeholder="e.g., EARLYBIRD"
+                      value={couponForm.code}
+                      onChange={(e) => setCouponForm({ ...couponForm, code: e.target.value.toUpperCase() })}
+                      className="uppercase"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="coupon-type">Discount type</Label>
+                    <select
+                      id="coupon-type"
+                      className="w-full h-11 rounded-xl border border-input bg-background px-4 text-sm"
+                      value={couponForm.discount_type}
+                      onChange={(e) => setCouponForm({ ...couponForm, discount_type: e.target.value as 'percentage' | 'fixed' })}
+                    >
+                      <option value="percentage">Percentage (%)</option>
+                      <option value="fixed">Fixed amount (₦)</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="grid md:grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <Label htmlFor="coupon-value">
+                      {couponForm.discount_type === 'percentage' ? 'Discount %' : 'Discount ₦'}
+                    </Label>
+                    <Input
+                      id="coupon-value"
+                      type="number"
+                      min={0}
+                      max={couponForm.discount_type === 'percentage' ? 100 : undefined}
+                      value={couponForm.discount_value}
+                      onChange={(e) => setCouponForm({ ...couponForm, discount_value: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="coupon-max-uses">Max uses (optional)</Label>
+                    <Input
+                      id="coupon-max-uses"
+                      type="number"
+                      min={1}
+                      placeholder="Unlimited"
+                      value={couponForm.max_uses}
+                      onChange={(e) => setCouponForm({ ...couponForm, max_uses: e.target.value === '' ? '' : Number(e.target.value) })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="coupon-expires">Expires (optional)</Label>
+                    <Input
+                      id="coupon-expires"
+                      type="date"
+                      value={couponForm.expires_at}
+                      onChange={(e) => setCouponForm({ ...couponForm, expires_at: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowCouponForm(false);
+                      resetCouponForm();
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSaveCoupon}>
+                    {editingCouponId ? 'Update' : 'Create'} Coupon
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {coupons.length > 0 ? (
+              <div className="space-y-3">
+                {coupons.map((coupon) => (
+                  <div key={coupon.id} className="p-4 rounded-xl border border-border">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-medium flex items-center gap-1.5">
+                          <Tag className="w-4 h-4 text-primary" /> {coupon.code}
+                          {!coupon.is_active && <Badge variant="outline">Disabled</Badge>}
+                        </h3>
+                        <div className="flex gap-4 text-sm mt-1">
+                          <span className="font-semibold">
+                            {coupon.discount_type === 'percentage' ? `${coupon.discount_value}% off` : `₦${Number(coupon.discount_value).toLocaleString('en-NG')} off`}
+                          </span>
+                          <span className="text-muted-foreground">
+                            {coupon.used_count} used{coupon.max_uses ? ` / ${coupon.max_uses}` : ''}
+                          </span>
+                          {coupon.expires_at && (
+                            <span className="text-muted-foreground">Expires {new Date(coupon.expires_at).toLocaleDateString()}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => handleToggleCouponActive(coupon)}>
+                          {coupon.is_active ? 'Disable' : 'Enable'}
+                        </Button>
+                        <Button variant="outline" size="icon" onClick={() => handleEditCoupon(coupon)}>
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDeleteCoupon(coupon.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-10">
+                <p className="text-muted-foreground">No coupons yet. Create one to offer a discount!</p>
               </div>
             )}
           </CardContent>
