@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { useAuth } from '@/components/AuthProvider';
+import { isAdminLevelRole } from '@/lib/auth';
 import { admin, AdminDashboard } from '@/lib/admin';
 import { payments } from '@/lib/payments';
 import { tickets } from '@/lib/tickets';
@@ -14,7 +15,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Users, Calendar, Ticket, Award, Plus, Edit, Trash, ChevronUp, ChevronDown, Newspaper, Receipt, Search, Download } from 'lucide-react';
+import { Users, Calendar, Ticket, Award, Plus, Edit, Trash, ChevronUp, ChevronDown, Newspaper, Receipt, Search, Download, Crown } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { SettingsTab } from '@/components/admin/SettingsTab';
 import { RichTextEditor } from '@/components/RichTextEditor';
@@ -30,6 +31,23 @@ export default function AdminDashboardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user: authUser, loading: authLoading } = useAuth();
+  const isElevatedActor = !!authUser?.role && ['super-admin', 'developer'].includes(authUser.role);
+  const isDeveloperActor = authUser?.role === 'developer';
+  const canChangeRoleOf = (u: any) => {
+    if (u.role === 'developer') return false;
+    if (u.role === 'super-admin') return isDeveloperActor;
+    return true;
+  };
+  const canDeleteUser = (u: any) => {
+    if (u.role === 'developer') return false;
+    if (u.role === 'super-admin') return isDeveloperActor;
+    return true;
+  };
+  const roleCrown = (role: string) => {
+    if (role === 'developer') return <Crown className="w-3.5 h-3.5 text-amber-500" fill="currentColor" />;
+    if (role === 'super-admin') return <Crown className="w-3.5 h-3.5 text-slate-400" fill="currentColor" />;
+    return null;
+  };
   const [dashboard, setDashboard] = useState<AdminDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const tabParam = searchParams.get('tab') as AdminTab | null;
@@ -79,7 +97,7 @@ export default function AdminDashboardPage() {
   const [userRoleFilter, setUserRoleFilter] = useState<string>('');
   const [paymentSearch, setPaymentSearch] = useState<string>('');
 
-  const [newUser, setNewUser] = useState<{name:string; email:string; role:'attendee'|'organizer'|'admin'; password:string}>({
+  const [newUser, setNewUser] = useState<{name:string; email:string; role:'attendee'|'organizer'|'admin'|'super-admin'|'developer'; password:string}>({
     name: '', email: '', role: 'attendee', password: ''
   });
   const [creatingUser, setCreatingUser] = useState(false);
@@ -102,7 +120,7 @@ export default function AdminDashboardPage() {
     if (!authLoading) {
       if (!authUser) {
         router.push('/login');
-      } else if (authUser.role !== 'admin') {
+      } else if (!isAdminLevelRole(authUser.role)) {
         router.push('/dashboard');
       } else {
         loadDashboard();
@@ -387,6 +405,7 @@ export default function AdminDashboardPage() {
                       <option value="attendee">Attendees</option>
                       <option value="organizer">Organizers</option>
                       <option value="admin">Admins</option>
+                      {isElevatedActor && <option value="staff">Staff (Admin+)</option>}
                     </select>
                     <Button variant="outline" size="icon" onClick={() => refreshUsers()}><Search className="w-4 h-4" /></Button>
                     {exportButtons('users', { search, role: userRoleFilter })}
@@ -405,6 +424,8 @@ export default function AdminDashboardPage() {
                         <option value="attendee">Attendee</option>
                         <option value="organizer">Organizer</option>
                         <option value="admin">Admin</option>
+                        {isElevatedActor && <option value="super-admin">Super Admin</option>}
+                        {isDeveloperActor && <option value="developer">Developer</option>}
                       </select>
                       <Input type="password" placeholder="Password" value={newUser.password} onChange={(e)=>setNewUser({...newUser, password:e.target.value})} />
                     </div>
@@ -452,6 +473,7 @@ export default function AdminDashboardPage() {
                             <div>
                               <div className="font-medium text-sm flex items-center gap-1.5">
                                 {u.name}
+                                {roleCrown(u.role)}
                                 {u.is_verified && <VerifiedBadge />}
                               </div>
                               <div className="text-xs text-muted-foreground">{u.email}</div>
@@ -460,13 +482,17 @@ export default function AdminDashboardPage() {
                         </TableCell>
                         <TableCell>
                           <select
-                            className="h-9 rounded-none border border-input bg-background px-2 text-sm"
+                            className="h-9 rounded-none border border-input bg-background px-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             value={u.role}
-                            onChange={async(e)=>{ try { await admin.updateUserRole(u.id, e.target.value as any); await refreshUsers(); } catch(err){ alert('Failed to update role'); } }}
+                            disabled={!canChangeRoleOf(u)}
+                            title={!canChangeRoleOf(u) ? "This account's role is protected" : undefined}
+                            onChange={async(e)=>{ try { await admin.updateUserRole(u.id, e.target.value as any); await refreshUsers(); } catch(err: any){ alert(err?.response?.data?.message || 'Failed to update role'); } }}
                           >
                             <option value="attendee">Attendee</option>
                             <option value="organizer">Organizer</option>
                             <option value="admin">Admin</option>
+                            <option value="super-admin">Super Admin</option>
+                            <option value="developer">Developer</option>
                           </select>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
@@ -476,7 +502,9 @@ export default function AdminDashboardPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            disabled={!canDeleteUser(u)}
+                            title={!canDeleteUser(u) ? "This account is protected and can't be deleted" : undefined}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10 disabled:opacity-40 disabled:hover:bg-transparent"
                             onClick={async()=>{ if(confirm('Delete this user?')) { try{ await admin.deleteUser(u.id); await refreshUsers(); } catch(e){ alert('Failed to delete'); } } }}
                           >
                             <Trash className="w-4 h-4"/> Delete
@@ -915,7 +943,18 @@ export default function AdminDashboardPage() {
           </TabsContent>
 
           <TabsContent value="settings">
-            <SettingsTab />
+            {authUser?.role && ['super-admin', 'developer'].includes(authUser.role) ? (
+              <SettingsTab />
+            ) : (
+              <Card>
+                <CardContent className="p-10 text-center">
+                  <h2 className="font-display font-bold text-lg mb-1">Unauthorized</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Admin Settings and Roles &amp; Staff Management are restricted to super-admins.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </div>

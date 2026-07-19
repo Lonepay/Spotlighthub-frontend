@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { blog, BlogPost } from '@/lib/blog';
+import { storageUrl } from '@/lib/storage';
 import { Calendar } from 'lucide-react';
 
 export default function BlogPage() {
@@ -48,7 +49,7 @@ export default function BlogPage() {
                   <div className="relative h-48 overflow-hidden bg-muted">
                     {post.image ? (
                       <Image
-                        src={`${process.env.NEXT_PUBLIC_BACKEND_URL?.replace('/api', '')}/storage/${post.image}`}
+                        src={storageUrl(post.image)!}
                         alt={post.title}
                         fill
                         className="object-cover transition-transform duration-500 group-hover:scale-105"

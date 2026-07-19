@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { useAuth } from '@/components/AuthProvider';
+import { isAdminLevelRole } from '@/lib/auth';
 import { checkin, CheckInResponse } from '@/lib/checkin';
 import { QrScanner } from '@/components/QrScanner';
 import { Button } from '@/components/ui/button';
@@ -35,7 +36,7 @@ export default function ScanTicketsPage() {
     if (!authLoading) {
       if (!user) {
         router.push('/login');
-      } else if (user.role !== 'organizer' && user.role !== 'admin') {
+      } else if (user.role !== 'organizer' && !isAdminLevelRole(user.role)) {
         router.push('/dashboard');
       }
     }

@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { admin, AdminSettings } from '@/lib/admin';
+import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
-import { Percent, Search, Trash2, Activity, AlertTriangle, Copy, Check, Download, ChevronLeft, ChevronRight, User as UserIcon, CreditCard, Ticket as TicketIcon, ShieldAlert, SlidersHorizontal } from 'lucide-react';
+import { Percent, Search, Trash2, Activity, AlertTriangle, Copy, Check, Download, ChevronLeft, ChevronRight, User as UserIcon, CreditCard, Ticket as TicketIcon, ShieldAlert, SlidersHorizontal, ShieldCheck, Lock, Crown } from 'lucide-react';
 
 type SettingsForm = Partial<AdminSettings> & { flutterwave_webhook_secret_hash?: string };
 
@@ -21,12 +22,20 @@ const ACTIVITY_CATEGORY_META: Record<string, { label: string; icon: any }> = {
   settings: { label: 'Settings', icon: SlidersHorizontal },
 };
 
-type SubTab = 'general' | 'seo' | 'webhooks' | 'cache' | 'activity' | 'errors';
-const VALID_SUB_TABS: SubTab[] = ['general', 'seo', 'webhooks', 'cache', 'activity', 'errors'];
+type SubTab = 'general' | 'seo' | 'webhooks' | 'cache' | 'activity' | 'errors' | 'staff';
+const VALID_SUB_TABS: SubTab[] = ['general', 'seo', 'webhooks', 'cache', 'activity', 'errors', 'staff'];
+
+const ROLE_LABELS: Record<string, string> = {
+  admin: 'Admin',
+  'super-admin': 'Super Admin',
+  developer: 'Developer',
+};
 
 export function SettingsTab() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user: authUser } = useAuth();
+  const isDeveloperActor = authUser?.role === 'developer';
   const subParam = searchParams.get('sub') as SubTab | null;
   const [settings, setSettings] = useState<AdminSettings | null>(null);
   const [form, setForm] = useState<SettingsForm>({});
@@ -62,6 +71,10 @@ export function SettingsTab() {
   const [copied, setCopied] = useState(false);
   const [uploadingOgImage, setUploadingOgImage] = useState(false);
   const [clearingErrorLogs, setClearingErrorLogs] = useState(false);
+  const [staffList, setStaffList] = useState<any[]>([]);
+  const [loadingStaff, setLoadingStaff] = useState(false);
+  const [invitingStaff, setInvitingStaff] = useState(false);
+  const [newStaff, setNewStaff] = useState({ name: '', email: '', role: 'admin', password: '' });
 
   useEffect(() => {
     admin.getSettings().then((data) => {
@@ -76,8 +89,31 @@ export function SettingsTab() {
   useEffect(() => {
     if (subTab === 'activity') refreshActivity(1);
     if (subTab === 'errors') refreshErrors();
+    if (subTab === 'staff') refreshStaff();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subTab]);
+
+  const refreshStaff = async () => {
+    setLoadingStaff(true);
+    try {
+      const data = await admin.getUsers({ role: 'staff' });
+      setStaffList(data.data || data);
+    } finally {
+      setLoadingStaff(false);
+    }
+  };
+
+  const canChangeRoleOf = (u: any) => {
+    if (u.role === 'developer') return false;
+    if (u.role === 'super-admin') return isDeveloperActor;
+    return true;
+  };
+
+  const canDeleteStaff = (u: any) => {
+    if (u.role === 'developer') return false;
+    if (u.role === 'super-admin') return isDeveloperActor;
+    return true;
+  };
 
   const activityFilters = (page: number) => ({
     search: activitySearch || undefined,
@@ -201,9 +237,45 @@ export function SettingsTab() {
                 />
                 <Percent className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               </div>
+            </div>
+            <div>
+              <Label htmlFor="flat-fee">Flat fee per order (₦)</Label>
+              <Input
+                id="flat-fee"
+                type="number"
+                step="1"
+                min={0}
+                value={form.platform_flat_fee ?? ''}
+                onChange={(e) => setForm({ ...form, platform_flat_fee: parseFloat(e.target.value) })}
+              />
               <p className="text-xs text-muted-foreground mt-1">
-                Platform commission used in admin financial reporting (Overview revenue breakdown). Doesn&apos;t change what buyers pay at checkout.
+                Charged on every paid ticket order — percentage + this flat amount. Free events are never charged.
               </p>
+            </div>
+            <div>
+              <Label>Who covers the platform fee?</Label>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, fee_payer: 'organizer' })}
+                  className={`rounded-none border-2 px-3 py-2 text-sm font-medium text-left transition-colors ${
+                    (form.fee_payer ?? 'organizer') === 'organizer' ? 'border-primary bg-primary/5' : 'border-border'
+                  }`}
+                >
+                  Organizer
+                  <p className="text-xs text-muted-foreground font-normal mt-0.5">Deducted from the organizer&apos;s payout. Buyers pay the listed price.</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, fee_payer: 'attendee' })}
+                  className={`rounded-none border-2 px-3 py-2 text-sm font-medium text-left transition-colors ${
+                    form.fee_payer === 'attendee' ? 'border-primary bg-primary/5' : 'border-border'
+                  }`}
+                >
+                  Attendee
+                  <p className="text-xs text-muted-foreground font-normal mt-0.5">Added on top at checkout. Organizer gets the full listed price.</p>
+                </button>
+              </div>
             </div>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? 'Saving...' : saved ? 'Saved' : 'Save changes'}
@@ -589,6 +661,127 @@ export function SettingsTab() {
                   <pre className="whitespace-pre-wrap break-all">{entry}</pre>
                 </div>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="staff" className="space-y-4">
+        <h2 className="font-display font-bold text-lg">Roles &amp; Staff Management</h2>
+        <p className="text-sm text-muted-foreground -mt-2">
+          Hierarchy: Developer &gt; Super Admin &gt; Admin. The developer account can never be deleted or demoted by anyone.
+          The super-admin account can only be deleted or demoted by the developer.
+        </p>
+
+        <Card>
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-display font-semibold">Staff accounts</h3>
+              <Button size="sm" onClick={() => setInvitingStaff((v) => !v)}>
+                {invitingStaff ? 'Cancel' : 'Add staff'}
+              </Button>
+            </div>
+
+            {invitingStaff && (
+              <div className="p-4 rounded-xl border border-border bg-muted/30 grid md:grid-cols-2 gap-3">
+                <Input placeholder="Name" value={newStaff.name} onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })} />
+                <Input placeholder="Email" value={newStaff.email} onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })} />
+                <select
+                  className="h-11 rounded-none border border-input bg-background px-4 text-sm"
+                  value={newStaff.role}
+                  onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
+                >
+                  <option value="admin">Admin</option>
+                  <option value="super-admin">Super Admin</option>
+                  {isDeveloperActor && <option value="developer">Developer</option>}
+                </select>
+                <Input type="password" placeholder="Password" value={newStaff.password} onChange={(e) => setNewStaff({ ...newStaff, password: e.target.value })} />
+                <div className="md:col-span-2 flex justify-end">
+                  <Button
+                    onClick={async () => {
+                      try {
+                        await admin.createUser(newStaff as any);
+                        setNewStaff({ name: '', email: '', role: 'admin', password: '' });
+                        setInvitingStaff(false);
+                        await refreshStaff();
+                      } catch {
+                        alert('Failed to create staff account');
+                      }
+                    }}
+                  >
+                    Create
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              {loadingStaff && <p className="text-muted-foreground text-sm">Loading...</p>}
+              {!loadingStaff && staffList.length === 0 && (
+                <p className="text-muted-foreground text-sm text-center py-8">No staff accounts found.</p>
+              )}
+              {staffList.map((u) => {
+                const locked = !canChangeRoleOf(u);
+                return (
+                  <div key={u.id} className="flex items-center justify-between gap-3 border-b border-border pb-3 last:border-0">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-9 h-9 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-sm shrink-0">
+                        {u.name?.charAt(0)?.toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-medium text-sm flex items-center gap-1.5">
+                          {u.name}
+                          {u.role === 'developer' && <Crown className="w-3.5 h-3.5 text-amber-500" fill="currentColor" />}
+                          {u.role === 'super-admin' && <Crown className="w-3.5 h-3.5 text-slate-400" fill="currentColor" />}
+                          {locked && <Lock className="w-3 h-3 text-muted-foreground" />}
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate">{u.email}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <select
+                        className="h-9 rounded-none border border-input bg-background px-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        value={u.role}
+                        disabled={locked}
+                        title={locked ? "This account's role is protected" : undefined}
+                        onChange={async (e) => {
+                          try {
+                            await admin.updateUserRole(u.id, e.target.value as any);
+                            await refreshStaff();
+                          } catch (err: any) {
+                            alert(err?.response?.data?.message || 'Failed to update role');
+                          }
+                        }}
+                      >
+                        <option value="admin">Admin</option>
+                        <option value="super-admin">Super Admin</option>
+                        <option value="developer">Developer</option>
+                      </select>
+                      <Badge variant="outline" className="hidden sm:inline-flex">
+                        <ShieldCheck className="w-3 h-3 mr-1" /> {ROLE_LABELS[u.role] ?? u.role}
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={!canDeleteStaff(u)}
+                        title={!canDeleteStaff(u) ? "This account is protected and can't be deleted" : undefined}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 disabled:opacity-40 disabled:hover:bg-transparent"
+                        onClick={async () => {
+                          if (!confirm(`Delete ${u.name}?`)) return;
+                          try {
+                            await admin.deleteUser(u.id);
+                            await refreshStaff();
+                          } catch (e: any) {
+                            alert(e?.response?.data?.message || 'Failed to delete');
+                          }
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>

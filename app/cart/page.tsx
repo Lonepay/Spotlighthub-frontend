@@ -7,6 +7,7 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/lib/cart';
+import { storageUrl } from '@/lib/storage';
 import { ShoppingCart, Calendar, MapPin, ArrowRight, Trash2 } from 'lucide-react';
 
 export default function CartPage() {
@@ -55,7 +56,7 @@ export default function CartPage() {
             <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-muted shrink-0">
               {event.image ? (
                 <Image
-                  src={`${process.env.NEXT_PUBLIC_BACKEND_URL?.replace('/api', '')}/storage/${event.image}`}
+                  src={storageUrl(event.image)!}
                   alt={event.title}
                   fill
                   className="object-cover"

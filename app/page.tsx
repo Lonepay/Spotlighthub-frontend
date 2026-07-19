@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { events, Event } from '@/lib/events';
+import { storageUrl } from '@/lib/storage';
 
 const CATEGORIES = [
   {
@@ -186,7 +187,7 @@ export default function Home() {
                   <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-muted shadow-card transition-all duration-300 group-hover:shadow-glow-sm group-hover:scale-[1.02]">
                     {event.image ? (
                       <Image
-                        src={`${process.env.NEXT_PUBLIC_BACKEND_URL?.replace('/api', '')}/storage/${event.image}`}
+                        src={storageUrl(event.image)!}
                         alt={event.title}
                         fill
                         className="object-cover transition-transform duration-500 group-hover:scale-110"

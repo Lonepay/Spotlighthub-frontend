@@ -8,6 +8,7 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { blog, BlogPost } from '@/lib/blog';
+import { storageUrl } from '@/lib/storage';
 import { ArrowLeft, Calendar } from 'lucide-react';
 
 export default function BlogPostPage() {
@@ -91,7 +92,7 @@ export default function BlogPostPage() {
         {post.image && (
           <div className="relative h-64 md:h-96 rounded-2xl overflow-hidden mb-10 shadow-card">
             <Image
-              src={`${process.env.NEXT_PUBLIC_BACKEND_URL?.replace('/api', '')}/storage/${post.image}`}
+              src={storageUrl(post.image)!}
               alt={post.title}
               fill
               className="object-cover"

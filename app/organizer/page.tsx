@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { useAuth } from '@/components/AuthProvider';
+import { isAdminLevelRole } from '@/lib/auth';
 import { organizer, OrganizerDashboard } from '@/lib/organizer';
 import { payments } from '@/lib/payments';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,7 @@ export default function OrganizerDashboardPage() {
     if (!authLoading) {
       if (!user) {
         router.push('/login');
-      } else if (user.role !== 'organizer' && user.role !== 'admin') {
+      } else if (user.role !== 'organizer' && !isAdminLevelRole(user.role)) {
         router.push('/dashboard');
       } else {
         loadDashboard();

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { useAuth } from '@/components/AuthProvider';
+import { isAdminLevelRole } from '@/lib/auth';
 import { events, Event } from '@/lib/events';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,7 +44,7 @@ export default function OrganizerEventDetailPage() {
   });
 
   useEffect(() => {
-    if (!user || (user.role !== 'organizer' && user.role !== 'admin')) {
+    if (!user || (user.role !== 'organizer' && !isAdminLevelRole(user.role))) {
       router.push('/login');
     } else {
       loadEvent();

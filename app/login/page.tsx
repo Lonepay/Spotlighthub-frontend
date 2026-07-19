@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/components/AuthProvider';
+import { isAdminLevelRole } from '@/lib/auth';
 import { Mail, Lock, ArrowRight } from 'lucide-react';
 
 export default function LoginPage() {
@@ -40,7 +41,7 @@ function LoginForm() {
         router.push(next);
       } else if (loggedInUser.role === 'organizer') {
         router.push('/organizer');
-      } else if (loggedInUser.role === 'admin') {
+      } else if (isAdminLevelRole(loggedInUser.role)) {
         router.push('/admin');
       } else {
         router.push('/dashboard');

@@ -5,13 +5,18 @@ export interface User {
   name: string;
   email: string;
   phone?: string;
-  role?: 'attendee' | 'organizer' | 'admin';
+  role?: 'attendee' | 'organizer' | 'admin' | 'super-admin' | 'developer';
   bio?: string;
 }
 
 export interface AuthResponse {
   user: User;
   token: string;
+}
+
+/** True for admin, super-admin, and developer — anyone who belongs in /admin. */
+export function isAdminLevelRole(role?: string | null): boolean {
+  return role === 'admin' || role === 'super-admin' || role === 'developer';
 }
 
 export const auth = {

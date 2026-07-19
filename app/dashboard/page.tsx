@@ -7,7 +7,9 @@ import Image from 'next/image';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { useAuth } from '@/components/AuthProvider';
+import { isAdminLevelRole } from '@/lib/auth';
 import { user, UserDashboard } from '@/lib/user';
+import { storageUrl } from '@/lib/storage';
 import { payments } from '@/lib/payments';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -28,7 +30,7 @@ export default function UserDashboardPage() {
         router.push('/login');
       } else if (authUser.role === 'organizer') {
         router.push('/organizer');
-      } else if (authUser.role === 'admin') {
+      } else if (isAdminLevelRole(authUser.role)) {
         router.push('/admin');
       } else {
         loadDashboard();
@@ -105,7 +107,7 @@ export default function UserDashboardPage() {
                       {ticket.event?.image && (
                         <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
                           <Image
-                            src={`${process.env.NEXT_PUBLIC_BACKEND_URL?.replace('/api', '')}/storage/${ticket.event.image}`}
+                            src={storageUrl(ticket.event.image)!}
                             alt={ticket.event.title}
                             fill
                             className="object-cover"
@@ -179,7 +181,7 @@ export default function UserDashboardPage() {
                       {ticket.event?.image && (
                         <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
                           <Image
-                            src={`${process.env.NEXT_PUBLIC_BACKEND_URL?.replace('/api', '')}/storage/${ticket.event.image}`}
+                            src={storageUrl(ticket.event.image)!}
                             alt={ticket.event.title}
                             fill
                             className="object-cover"

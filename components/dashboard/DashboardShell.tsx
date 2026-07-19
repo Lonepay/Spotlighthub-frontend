@@ -44,6 +44,7 @@ import {
   BadgeCheck,
   Wallet,
   ShieldCheck,
+  Crown,
 } from 'lucide-react';
 
 type NavLink = { type: 'link'; label: string; href: string; icon: any };
@@ -122,7 +123,10 @@ export function DashboardShell({
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const navItems = NAV_BY_ROLE[user?.role || 'attendee'] || NAV_BY_ROLE.attendee;
+  const role = user?.role || 'attendee';
+  const navItems = ['admin', 'super-admin', 'developer'].includes(role)
+    ? buildAdminNav(role)
+    : NAV_BY_ROLE[role] || NAV_BY_ROLE.attendee;
 
   const isItemActive = (href: string) => {
     const [itemPath, itemQuery] = href.split('?');
@@ -211,7 +215,11 @@ export function DashboardShell({
               </Avatar>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold truncate">{user?.name}</p>
-                <p className="text-xs text-muted-foreground truncate capitalize">{user?.role}</p>
+                <p className="text-xs text-muted-foreground truncate capitalize flex items-center gap-1">
+                  {user?.role === 'developer' && <Crown className="w-3 h-3 text-amber-500 shrink-0" fill="currentColor" />}
+                  {user?.role === 'super-admin' && <Crown className="w-3 h-3 text-slate-400 shrink-0" fill="currentColor" />}
+                  {user?.role}
+                </p>
               </div>
               <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
             </button>

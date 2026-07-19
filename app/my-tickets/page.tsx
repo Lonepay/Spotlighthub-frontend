@@ -12,6 +12,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { tickets, Ticket } from '@/lib/tickets';
 import { payments } from '@/lib/payments';
 import api from '@/lib/api';
+import { storageUrl } from '@/lib/storage';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, MapPin, Ticket as TicketIcon, ArrowRight, Download, Receipt } from 'lucide-react';
 import { toast } from 'sonner';
@@ -127,7 +128,7 @@ export default function MyTicketsPage() {
                     {ticket.event?.image && (
                       <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
                         <Image
-                          src={`${process.env.NEXT_PUBLIC_BACKEND_URL?.replace('/api', '')}/storage/${ticket.event.image}`}
+                          src={storageUrl(ticket.event.image)!}
                           alt={ticket.event.title}
                           fill
                           className="object-cover"

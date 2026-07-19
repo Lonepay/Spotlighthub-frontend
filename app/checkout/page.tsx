@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/components/AuthProvider';
 import { useCart } from '@/lib/cart';
 import { payments } from '@/lib/payments';
+import { gateway as gatewayApi, GatewayStatus } from '@/lib/gateway';
 import { ArrowLeft, Mail, User as UserIcon, Phone, ShieldCheck, Loader2, CheckCircle2, Download, Receipt } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -25,6 +26,11 @@ export default function CheckoutPage() {
   const [attendeePhone, setAttendeePhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [freeSuccess, setFreeSuccess] = useState<{ tickets: any[]; paymentId: number; guestEmail: string } | null>(null);
+  const [feeInfo, setFeeInfo] = useState<GatewayStatus>({ flutterwave_enabled: true, paystack_enabled: true });
+
+  useEffect(() => {
+    gatewayApi.status().then(setFeeInfo).catch(() => {});
+  }, []);
 
   const formatNaira = (value: number) =>
     new Intl.NumberFormat('en-NG', {
@@ -127,7 +133,11 @@ export default function CheckoutPage() {
 
   const { event, quantity, selectedDate, selectedTime, gateway, variation } = item;
   const unitPrice = variation ? variation.price : event.price;
-  const total = unitPrice * quantity;
+  const subtotal = unitPrice * quantity;
+  const serviceFee = feeInfo.fee_payer === 'attendee' && subtotal > 0
+    ? Math.round((subtotal * (feeInfo.platform_fee_percentage ?? 0) / 100 + (feeInfo.platform_flat_fee ?? 0)) * 100) / 100
+    : 0;
+  const total = subtotal + serviceFee;
   const isFree = total <= 0;
 
   const handleSubmit = async () => {
@@ -262,6 +272,18 @@ export default function CheckoutPage() {
           </div>
 
           <div className="py-6 space-y-2 text-sm">
+            {serviceFee > 0 && (
+              <>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Subtotal</span>
+                  <span>{formatNaira(subtotal)}</span>
+                </div>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Service fee</span>
+                  <span>{formatNaira(serviceFee)}</span>
+                </div>
+              </>
+            )}
             <div className="flex justify-between font-display font-bold text-xl pt-2">
               <span>Total</span>
               <span className="text-gradient">{isFree ? 'Free' : formatNaira(total)}</span>

@@ -6,9 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
+import { storageUrl } from '@/lib/storage';
 import { FileText, Check, X } from 'lucide-react';
-
-const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_BACKEND_URL?.replace('/api', '') || '';
 
 export function KycReviewTab() {
   const [statusFilter, setStatusFilter] = useState('pending');
@@ -103,7 +102,7 @@ export function KycReviewTab() {
                 <div className="flex items-center gap-2">
                   {item.kyc_document_path && (
                     <a
-                      href={`${BACKEND_ORIGIN}/storage/${item.kyc_document_path}`}
+                      href={storageUrl(item.kyc_document_path)!}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"

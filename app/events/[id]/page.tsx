@@ -16,6 +16,7 @@ import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { CountdownTimer } from '@/components/CountdownTimer';
 import { VenueMap } from '@/components/VenueMap';
 import { gateway, GatewayStatus } from '@/lib/gateway';
+import { storageUrl } from '@/lib/storage';
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -143,6 +144,12 @@ export default function EventDetailPage() {
     ? selectedVariation.available_quantity
     : event.available_tickets ?? event.total_tickets;
 
+  const subtotal = unitPrice * quantity;
+  const serviceFee = gatewayStatus.fee_payer === 'attendee' && subtotal > 0
+    ? Math.round((subtotal * (gatewayStatus.platform_fee_percentage ?? 0) / 100 + (gatewayStatus.platform_flat_fee ?? 0)) * 100) / 100
+    : 0;
+  const totalDue = subtotal + serviceFee;
+
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary selection:text-primary-foreground">
       <Navbar />
@@ -152,7 +159,7 @@ export default function EventDetailPage() {
         <div className="absolute inset-0">
           {event.image ? (
             <Image
-              src={`${process.env.NEXT_PUBLIC_BACKEND_URL?.replace('/api', '')}/storage/${event.image}`}
+              src={storageUrl(event.image)!}
               alt={event.title}
               fill
               className="object-cover"
@@ -269,8 +276,11 @@ export default function EventDetailPage() {
                   <div>
                     <p className="text-sm text-muted-foreground uppercase font-bold tracking-wider">Total Price</p>
                     <div className="text-3xl font-black text-gradient">
-                      {unitPrice === 0 ? 'FREE' : formatNaira(unitPrice * quantity)}
+                      {totalDue === 0 ? 'FREE' : formatNaira(totalDue)}
                     </div>
+                    {serviceFee > 0 && (
+                      <p className="text-xs text-muted-foreground mt-0.5">Includes {formatNaira(serviceFee)} service fee</p>
+                    )}
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-muted-foreground">{availableTickets} seats left</p>
@@ -439,7 +449,7 @@ export default function EventDetailPage() {
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-xs text-muted-foreground uppercase font-bold">Total</p>
-            <p className="text-xl font-black text-gradient">{formatNaira(unitPrice * quantity)}</p>
+            <p className="text-xl font-black text-gradient">{formatNaira(totalDue)}</p>
           </div>
           <Button
             onClick={() => document.getElementById('booking-section')?.scrollIntoView({ behavior: 'smooth' })}

@@ -15,6 +15,8 @@ export interface AdminStats {
 
 export interface AdminSettings {
   platform_fee_percentage: number | null;
+  platform_flat_fee: number | null;
+  fee_payer: 'organizer' | 'attendee';
   site_title: string | null;
   site_description: string | null;
   site_keywords: string | null;
@@ -62,17 +64,17 @@ export const admin = {
     return data;
   },
 
-  async updateUserRole(userId: number, role: 'attendee' | 'organizer' | 'admin') {
+  async updateUserRole(userId: number, role: 'attendee' | 'organizer' | 'admin' | 'super-admin' | 'developer') {
     const { data } = await api.put(`/admin/users/${userId}/role`, { role });
     return data;
   },
 
-  async createUser(payload: { name: string; email: string; role: 'attendee'|'organizer'|'admin'; password: string }) {
+  async createUser(payload: { name: string; email: string; role: 'attendee'|'organizer'|'admin'|'super-admin'|'developer'; password: string }) {
     const { data } = await api.post('/admin/users', payload);
     return data;
   },
 
-  async updateUser(userId: number, payload: Partial<{ name: string; email: string; role: 'attendee'|'organizer'|'admin'; password: string }>) {
+  async updateUser(userId: number, payload: Partial<{ name: string; email: string; role: 'attendee'|'organizer'|'admin'|'super-admin'|'developer'; password: string }>) {
     const { data } = await api.put(`/admin/users/${userId}`, payload);
     return data;
   },
@@ -157,6 +159,8 @@ export const admin = {
 
   async updateSettings(payload: Partial<{
     platform_fee_percentage: number | null;
+    platform_flat_fee: number | null;
+    fee_payer: 'organizer' | 'attendee';
     site_title: string | null;
     site_description: string | null;
     site_keywords: string | null;
