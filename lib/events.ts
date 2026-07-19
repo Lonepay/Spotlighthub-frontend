@@ -23,6 +23,7 @@ export interface Event {
     is_verified?: boolean;
   };
   available_tickets?: number;
+  fee_payer?: 'organizer' | 'attendee';
   created_at: string;
   updated_at: string;
 }

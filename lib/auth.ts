@@ -7,6 +7,7 @@ export interface User {
   phone?: string;
   role?: 'attendee' | 'organizer' | 'admin' | 'super-admin' | 'developer';
   bio?: string;
+  avatar_url?: string | null;
 }
 
 export interface AuthResponse {
@@ -68,6 +69,20 @@ export const auth = {
 
   isAuthenticated(): boolean {
     return !!localStorage.getItem('token');
+  },
+
+  async uploadAvatar(file: File): Promise<User> {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    const { data } = await api.post('/user/avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data.user;
+  },
+
+  async deleteAvatar(): Promise<User> {
+    const { data } = await api.delete('/user/avatar');
+    return data.user;
   },
 };
 

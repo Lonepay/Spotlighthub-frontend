@@ -146,7 +146,7 @@ export default function MyTicketsPage() {
                           <>
                             <span className="inline-flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
-                              {new Date(ticket.event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} &middot; {ticket.event.time}
+                              {new Date(ticket.event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}{ticket.event.time ? ` · ${ticket.event.time}` : ''}
                             </span>
                             <span className="inline-flex items-center gap-1">
                               <MapPin className="h-3 w-3" /> {ticket.event.venue}

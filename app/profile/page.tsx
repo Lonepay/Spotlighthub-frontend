@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import api from '@/lib/api';
-import { Save, Loader2 } from 'lucide-react';
+import { auth } from '@/lib/auth';
+import { Save, Loader2, Camera, Trash2 } from 'lucide-react';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -18,6 +19,36 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAvatar(true);
+    setError('');
+    try {
+      await auth.uploadAvatar(file);
+      await refreshUser();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to upload profile picture');
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    setUploadingAvatar(true);
+    setError('');
+    try {
+      await auth.deleteAvatar();
+      await refreshUser();
+    } catch {
+      setError('Failed to remove profile picture');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -84,6 +115,35 @@ export default function ProfilePage() {
           {error}
         </div>
       )}
+
+      <div className="flex items-center gap-4 mb-8">
+        <div className="relative w-20 h-20 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center shrink-0">
+          {user?.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-2xl font-bold text-primary">{user?.name?.charAt(0)?.toUpperCase() || 'U'}</span>
+          )}
+          {uploadingAvatar && (
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+              <Loader2 className="w-5 h-5 text-white animate-spin" />
+            </div>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <label className="cursor-pointer">
+            <input type="file" accept="image/*" onChange={handleAvatarChange} disabled={uploadingAvatar} className="hidden" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-input text-sm font-medium hover:bg-secondary transition-colors">
+              <Camera className="w-4 h-4" /> {user?.avatar_url ? 'Change photo' : 'Upload photo'}
+            </span>
+          </label>
+          {user?.avatar_url && (
+            <Button type="button" variant="ghost" size="sm" onClick={handleRemoveAvatar} disabled={uploadingAvatar} className="text-destructive hover:text-destructive hover:bg-destructive/10">
+              <Trash2 className="w-4 h-4" /> Remove
+            </Button>
+          )}
+        </div>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 gap-6">

@@ -72,7 +72,7 @@ export default function CartPage() {
               )}
               <div className="mt-1 text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span className="inline-flex items-center gap-1">
-                  <Calendar className="h-3 w-3" /> {selectedDate} &middot; {selectedTime}
+                  <Calendar className="h-3 w-3" /> {selectedDate}{selectedTime ? ` · ${selectedTime}` : ''}
                 </span>
                 <span className="inline-flex items-center gap-1">
                   <MapPin className="h-3 w-3" /> {event.is_virtual ? 'Online' : event.venue}

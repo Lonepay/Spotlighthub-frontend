@@ -5,7 +5,6 @@ export interface GatewayStatus {
   paystack_enabled: boolean;
   platform_fee_percentage?: number;
   platform_flat_fee?: number;
-  fee_payer?: 'organizer' | 'attendee';
 }
 
 export const gateway = {

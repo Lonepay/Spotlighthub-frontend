@@ -16,7 +16,6 @@ export interface AdminStats {
 export interface AdminSettings {
   platform_fee_percentage: number | null;
   platform_flat_fee: number | null;
-  fee_payer: 'organizer' | 'attendee';
   site_title: string | null;
   site_description: string | null;
   site_keywords: string | null;
@@ -91,13 +90,14 @@ export const admin = {
     title: string;
     description: string;
     date: string;
-    time: string;
+    time?: string;
     venue: string;
     category: string;
     price: number;
     total_tickets: number;
     image?: string;
     user_id?: number;
+    fee_payer?: 'organizer' | 'attendee';
   }) {
     const { data } = await api.post('/admin/events', payload);
     return data;
@@ -113,6 +113,7 @@ export const admin = {
     price: number;
     total_tickets: number;
     image?: string;
+    fee_payer: 'organizer' | 'attendee';
   }>) {
     const { data } = await api.put(`/admin/events/${eventId}`, payload);
     return data;
@@ -160,7 +161,6 @@ export const admin = {
   async updateSettings(payload: Partial<{
     platform_fee_percentage: number | null;
     platform_flat_fee: number | null;
-    fee_payer: 'organizer' | 'attendee';
     site_title: string | null;
     site_description: string | null;
     site_keywords: string | null;

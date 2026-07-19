@@ -145,7 +145,7 @@ export default function EventDetailPage() {
     : event.available_tickets ?? event.total_tickets;
 
   const subtotal = unitPrice * quantity;
-  const serviceFee = gatewayStatus.fee_payer === 'attendee' && subtotal > 0
+  const serviceFee = event.fee_payer === 'attendee' && subtotal > 0
     ? Math.round((subtotal * (gatewayStatus.platform_fee_percentage ?? 0) / 100 + (gatewayStatus.platform_flat_fee ?? 0)) * 100) / 100
     : 0;
   const totalDue = subtotal + serviceFee;

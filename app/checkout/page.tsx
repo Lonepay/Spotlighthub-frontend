@@ -140,7 +140,7 @@ export default function CheckoutPage() {
   const subtotal = unitPrice * quantity;
   const discountAmount = appliedCoupon?.discount_amount ?? 0;
   const discountedSubtotal = Math.max(0, subtotal - discountAmount);
-  const serviceFee = feeInfo.fee_payer === 'attendee' && discountedSubtotal > 0
+  const serviceFee = event.fee_payer === 'attendee' && discountedSubtotal > 0
     ? Math.round((discountedSubtotal * (feeInfo.platform_fee_percentage ?? 0) / 100 + (feeInfo.platform_flat_fee ?? 0)) * 100) / 100
     : 0;
   const total = discountedSubtotal + serviceFee;
@@ -231,7 +231,7 @@ export default function CheckoutPage() {
                   {event.title}{variation ? ` — ${variation.name}` : ''}
                 </div>
                 <div className="text-xs text-muted-foreground truncate">
-                  {quantity} &times; {unitPrice === 0 ? 'Free' : formatNaira(unitPrice)} &middot; {selectedDate} {selectedTime}
+                  {quantity} &times; {unitPrice === 0 ? 'Free' : formatNaira(unitPrice)} &middot; {selectedDate}{selectedTime ? ` ${selectedTime}` : ''}
                 </div>
               </div>
               <div className="font-display font-semibold">{total === 0 ? 'Free' : formatNaira(total)}</div>

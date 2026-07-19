@@ -27,6 +27,7 @@ export default function CreateEventPage() {
     price: '',
     total_tickets: '',
     is_virtual: false,
+    fee_payer: 'organizer' as 'organizer' | 'attendee',
   });
   const [image, setImage] = useState<File | null>(null);
   const [error, setError] = useState('');
@@ -53,6 +54,7 @@ export default function CreateEventPage() {
       data.append('price', formData.price);
       data.append('total_tickets', formData.total_tickets);
       data.append('is_virtual', formData.is_virtual ? '1' : '0');
+      data.append('fee_payer', formData.fee_payer);
       if (image) {
         data.append('image', image);
       }
@@ -210,6 +212,34 @@ export default function CreateEventPage() {
                 />
               </div>
             </div>
+
+            {Number(formData.price) > 0 && (
+              <div>
+                <Label>Who covers the platform fee?</Label>
+                <div className="grid md:grid-cols-2 gap-2 mt-1">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, fee_payer: 'organizer' })}
+                    className={`rounded-xl border-2 px-4 py-3 text-sm font-medium text-left transition-colors ${
+                      formData.fee_payer === 'organizer' ? 'border-primary bg-primary/5' : 'border-border'
+                    }`}
+                  >
+                    You (the organizer)
+                    <p className="text-xs text-muted-foreground font-normal mt-0.5">Deducted from your payout. Buyers pay exactly the price above.</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, fee_payer: 'attendee' })}
+                    className={`rounded-xl border-2 px-4 py-3 text-sm font-medium text-left transition-colors ${
+                      formData.fee_payer === 'attendee' ? 'border-primary bg-primary/5' : 'border-border'
+                    }`}
+                  >
+                    Attendees
+                    <p className="text-xs text-muted-foreground font-normal mt-0.5">Added on top at checkout. You receive the full price above.</p>
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div>
               <Label>Event image</Label>

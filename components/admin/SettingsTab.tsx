@@ -251,32 +251,8 @@ export function SettingsTab() {
               />
               <p className="text-xs text-muted-foreground mt-1">
                 Charged on every paid ticket order — percentage + this flat amount. Free events are never charged.
+                Each organizer chooses per event whether they or their attendees cover it — that isn&apos;t set here.
               </p>
-            </div>
-            <div>
-              <Label>Who covers the platform fee?</Label>
-              <div className="grid grid-cols-2 gap-2 mt-1">
-                <button
-                  type="button"
-                  onClick={() => setForm({ ...form, fee_payer: 'organizer' })}
-                  className={`rounded-none border-2 px-3 py-2 text-sm font-medium text-left transition-colors ${
-                    (form.fee_payer ?? 'organizer') === 'organizer' ? 'border-primary bg-primary/5' : 'border-border'
-                  }`}
-                >
-                  Organizer
-                  <p className="text-xs text-muted-foreground font-normal mt-0.5">Deducted from the organizer&apos;s payout. Buyers pay the listed price.</p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setForm({ ...form, fee_payer: 'attendee' })}
-                  className={`rounded-none border-2 px-3 py-2 text-sm font-medium text-left transition-colors ${
-                    form.fee_payer === 'attendee' ? 'border-primary bg-primary/5' : 'border-border'
-                  }`}
-                >
-                  Attendee
-                  <p className="text-xs text-muted-foreground font-normal mt-0.5">Added on top at checkout. Organizer gets the full listed price.</p>
-                </button>
-              </div>
             </div>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? 'Saving...' : saved ? 'Saved' : 'Save changes'}
