@@ -49,6 +49,7 @@ import {
   Store,
 } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
+import { TopProgressBar } from '@/components/TopProgressBar';
 
 type NavLink = { type: 'link'; label: string; href: string; icon: any };
 type NavGroup = { type: 'group'; label: string; icon: any; items: { label: string; href: string; icon: any }[] };
@@ -267,6 +268,7 @@ function DashboardShellInner({
 
   return (
     <div className="min-h-screen bg-background">
+      <TopProgressBar />
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex lg:fixed lg:inset-y-0 lg:w-64 lg:flex-col border-r border-border bg-card">
         {SidebarContent}

@@ -12,6 +12,7 @@ import { tickets } from '@/lib/tickets';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -423,26 +424,44 @@ function AdminDashboardPageInner() {
                 </div>
 
                 {creatingUser && (
-                  <div className="p-4 mb-6 rounded-xl border border-border bg-muted/30">
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <Input placeholder="Name" value={newUser.name} onChange={(e)=>setNewUser({...newUser, name:e.target.value})} />
-                      <Input placeholder="Email" value={newUser.email} onChange={(e)=>setNewUser({...newUser, email:e.target.value})} />
-                      <select className="h-11 rounded-xl border border-input bg-background px-4 text-sm" value={newUser.role} onChange={(e)=>setNewUser({...newUser, role: e.target.value as any})}>
-                        <option value="attendee">Attendee</option>
-                        <option value="organizer">Organizer</option>
-                        <option value="admin">Admin</option>
-                        {isElevatedActor && <option value="super-admin">Super Admin</option>}
-                        {isDeveloperActor && <option value="developer">Developer</option>}
-                      </select>
-                      <PasswordInput placeholder="Password" value={newUser.password} onChange={(e)=>setNewUser({...newUser, password:e.target.value})} />
+                  <div className="p-5 mb-6 rounded-xl border border-primary/30 bg-muted/30">
+                    <div className="mb-4 pb-4 border-b border-border">
+                      <h3 className="font-display font-semibold">Add a user</h3>
+                      <p className="text-sm text-muted-foreground mt-0.5">Creates the account directly — they can log in immediately with this password.</p>
                     </div>
-                    <div className="flex justify-end space-x-2 mt-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="new-user-name">Full name</Label>
+                        <Input id="new-user-name" placeholder="Jane Doe" value={newUser.name} onChange={(e)=>setNewUser({...newUser, name:e.target.value})} />
+                      </div>
+                      <div>
+                        <Label htmlFor="new-user-email">Email</Label>
+                        <Input id="new-user-email" type="email" placeholder="jane@example.com" value={newUser.email} onChange={(e)=>setNewUser({...newUser, email:e.target.value})} />
+                      </div>
+                      <div>
+                        <Label htmlFor="new-user-role">Role</Label>
+                        <select id="new-user-role" className="w-full h-11 rounded-xl border border-input bg-background px-4 text-sm" value={newUser.role} onChange={(e)=>setNewUser({...newUser, role: e.target.value as any})}>
+                          <option value="attendee">Attendee</option>
+                          <option value="organizer">Organizer</option>
+                          <option value="admin">Admin</option>
+                          {isElevatedActor && <option value="super-admin">Super Admin</option>}
+                          {isDeveloperActor && <option value="developer">Developer</option>}
+                        </select>
+                        <p className="text-xs text-muted-foreground mt-1">Determines what they can access — admin and above reach the admin dashboard.</p>
+                      </div>
+                      <div>
+                        <Label htmlFor="new-user-password">Password</Label>
+                        <PasswordInput id="new-user-password" placeholder="At least 8 characters" value={newUser.password} onChange={(e)=>setNewUser({...newUser, password:e.target.value})} />
+                        <p className="text-xs text-muted-foreground mt-1">Share this with them directly — they can change it after logging in.</p>
+                      </div>
+                    </div>
+                    <div className="flex justify-end space-x-2 mt-5 pt-4 border-t border-border">
                       <Button variant="outline" onClick={()=>setCreatingUser(false)}>Cancel</Button>
                       <Button
                         onClick={async()=>{
                           try { await admin.createUser(newUser); setNewUser({name:'',email:'',role:'attendee',password:''}); setCreatingUser(false); await refreshUsers(); } catch(e){ alert('Failed to create user'); }
                         }}
-                      >Create</Button>
+                      >Create user</Button>
                     </div>
                   </div>
                 )}
@@ -557,22 +576,50 @@ function AdminDashboardPageInner() {
                 </div>
 
                 {creatingEvent && (
-                  <div className="p-4 mb-6 rounded-xl border border-border bg-muted/30">
+                  <div className="p-5 mb-6 rounded-xl border border-primary/30 bg-muted/30">
+                    <div className="mb-4 pb-4 border-b border-border">
+                      <h3 className="font-display font-semibold">Add an event</h3>
+                      <p className="text-sm text-muted-foreground mt-0.5">Quick-create on behalf of an organizer — ticket types, images and virtual-event links can be added afterward from the event's own page.</p>
+                    </div>
                     <div className="grid md:grid-cols-2 gap-4">
-                      <Input placeholder="Title" value={newEvent.title} onChange={(e)=>setNewEvent({...newEvent, title:e.target.value})}/>
-                      <Input placeholder="Venue" value={newEvent.venue} onChange={(e)=>setNewEvent({...newEvent, venue:e.target.value})}/>
-                      <Input type="date" value={newEvent.date} onChange={(e)=>setNewEvent({...newEvent, date:e.target.value})}/>
-                      <Input type="time" value={newEvent.time} onChange={(e)=>setNewEvent({...newEvent, time:e.target.value})}/>
-                      <Input type="number" placeholder="Price (NGN)" value={newEvent.price} onChange={(e)=>setNewEvent({...newEvent, price: Number(e.target.value)})}/>
-                      <Input type="number" placeholder="Total Tickets" value={newEvent.total_tickets} onChange={(e)=>setNewEvent({...newEvent, total_tickets: Number(e.target.value)})}/>
-                      <Input placeholder="Category" value={newEvent.category} onChange={(e)=>setNewEvent({...newEvent, category:e.target.value})}/>
+                      <div>
+                        <Label htmlFor="new-event-title">Title</Label>
+                        <Input id="new-event-title" placeholder="Amazing Concert 2026" value={newEvent.title} onChange={(e)=>setNewEvent({...newEvent, title:e.target.value})}/>
+                      </div>
+                      <div>
+                        <Label htmlFor="new-event-venue">Venue</Label>
+                        <Input id="new-event-venue" placeholder="Venue name" value={newEvent.venue} onChange={(e)=>setNewEvent({...newEvent, venue:e.target.value})}/>
+                      </div>
+                      <div>
+                        <Label htmlFor="new-event-date">Date</Label>
+                        <Input id="new-event-date" type="date" value={newEvent.date} onChange={(e)=>setNewEvent({...newEvent, date:e.target.value})}/>
+                      </div>
+                      <div>
+                        <Label htmlFor="new-event-time">Time</Label>
+                        <Input id="new-event-time" type="time" value={newEvent.time} onChange={(e)=>setNewEvent({...newEvent, time:e.target.value})}/>
+                      </div>
+                      <div>
+                        <Label htmlFor="new-event-price">Price (NGN)</Label>
+                        <Input id="new-event-price" type="number" min="0" placeholder="0" value={newEvent.price} onChange={(e)=>setNewEvent({...newEvent, price: Number(e.target.value)})}/>
+                        <p className="text-xs text-muted-foreground mt-1">0 for a free event.</p>
+                      </div>
+                      <div>
+                        <Label htmlFor="new-event-tickets">Total tickets</Label>
+                        <Input id="new-event-tickets" type="number" min="1" placeholder="100" value={newEvent.total_tickets} onChange={(e)=>setNewEvent({...newEvent, total_tickets: Number(e.target.value)})}/>
+                      </div>
+                      <div className="md:col-span-2">
+                        <Label htmlFor="new-event-category">Category</Label>
+                        <Input id="new-event-category" placeholder="e.g. Concert, Conference, Rave Party" value={newEvent.category} onChange={(e)=>setNewEvent({...newEvent, category:e.target.value})}/>
+                        <p className="text-xs text-muted-foreground mt-1">Freeform — controls where it shows up when people filter by category.</p>
+                      </div>
                     </div>
                     <div className="mt-4">
-                      <RichTextEditor value={newEvent.description} onChange={(html) => setNewEvent({ ...newEvent, description: html })} placeholder="Description" />
+                      <Label>Description</Label>
+                      <RichTextEditor value={newEvent.description} onChange={(html) => setNewEvent({ ...newEvent, description: html })} placeholder="Describe the event in detail..." />
                     </div>
-                    <div className="flex justify-end space-x-2 mt-4">
+                    <div className="flex justify-end space-x-2 mt-5 pt-4 border-t border-border">
                       <Button variant="outline" onClick={()=>setCreatingEvent(false)}>Cancel</Button>
-                      <Button onClick={async()=>{ try { await admin.createEvent(newEvent); setCreatingEvent(false); setNewEvent({title:'',description:'',date:'',time:'',venue:'',category:'Concert',price:0,total_tickets:1}); await refreshEvents(); } catch(e){ alert('Failed to create event'); } }}>Create</Button>
+                      <Button onClick={async()=>{ try { await admin.createEvent(newEvent); setCreatingEvent(false); setNewEvent({title:'',description:'',date:'',time:'',venue:'',category:'Concert',price:0,total_tickets:1}); await refreshEvents(); } catch(e){ alert('Failed to create event'); } }}>Create event</Button>
                     </div>
                   </div>
                 )}
@@ -839,15 +886,34 @@ function AdminDashboardPageInner() {
                 </div>
 
                 {creatingBlogPost && (
-                  <div className="p-4 mb-6 rounded-xl border border-border bg-muted/30">
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <Input placeholder="Title" value={newBlogPost.title} onChange={(e)=>setNewBlogPost({...newBlogPost, title:e.target.value})}/>
-                      <Input placeholder="Category" value={newBlogPost.category} onChange={(e)=>setNewBlogPost({...newBlogPost, category:e.target.value})}/>
-                      <Input className="md:col-span-2" placeholder="Excerpt" value={newBlogPost.excerpt} onChange={(e)=>setNewBlogPost({...newBlogPost, excerpt:e.target.value})}/>
-                      <input className="md:col-span-2 text-sm" type="file" accept="image/*" onChange={(e)=>setNewBlogPost({...newBlogPost, image: e.target.files?.[0] ?? null})}/>
+                  <div className="p-5 mb-6 rounded-xl border border-primary/30 bg-muted/30">
+                    <div className="mb-4 pb-4 border-b border-border">
+                      <h3 className="font-display font-semibold">Add a blog post</h3>
+                      <p className="text-sm text-muted-foreground mt-0.5">Publishes to the public /blog page — drafts aren't supported yet, so double-check before creating.</p>
                     </div>
-                    <textarea className="w-full mt-4 rounded-xl border border-input bg-background px-4 py-3 text-sm" rows={5} placeholder="Content" value={newBlogPost.content} onChange={(e)=>setNewBlogPost({...newBlogPost, content:e.target.value})}/>
-                    <div className="flex justify-end space-x-2 mt-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="new-post-title">Title</Label>
+                        <Input id="new-post-title" placeholder="Post title" value={newBlogPost.title} onChange={(e)=>setNewBlogPost({...newBlogPost, title:e.target.value})}/>
+                      </div>
+                      <div>
+                        <Label htmlFor="new-post-category">Category</Label>
+                        <Input id="new-post-category" placeholder="e.g. Announcements, Tips" value={newBlogPost.category} onChange={(e)=>setNewBlogPost({...newBlogPost, category:e.target.value})}/>
+                      </div>
+                      <div className="md:col-span-2">
+                        <Label htmlFor="new-post-excerpt">Excerpt</Label>
+                        <Input id="new-post-excerpt" placeholder="One or two sentences shown on the blog listing" value={newBlogPost.excerpt} onChange={(e)=>setNewBlogPost({...newBlogPost, excerpt:e.target.value})}/>
+                      </div>
+                      <div className="md:col-span-2">
+                        <Label htmlFor="new-post-image">Cover image</Label>
+                        <input id="new-post-image" className="md:col-span-2 text-sm" type="file" accept="image/*" onChange={(e)=>setNewBlogPost({...newBlogPost, image: e.target.files?.[0] ?? null})}/>
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <Label htmlFor="new-post-content">Content</Label>
+                      <textarea id="new-post-content" className="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm" rows={5} placeholder="Write the full post here..." value={newBlogPost.content} onChange={(e)=>setNewBlogPost({...newBlogPost, content:e.target.value})}/>
+                    </div>
+                    <div className="flex justify-end space-x-2 mt-5 pt-4 border-t border-border">
                       <Button variant="outline" onClick={()=>setCreatingBlogPost(false)}>Cancel</Button>
                       <Button onClick={async()=>{
                         try {
@@ -862,7 +928,7 @@ function AdminDashboardPageInner() {
                           setNewBlogPost({title:'',excerpt:'',content:'',category:'General',image:null});
                           await refreshBlogPosts();
                         } catch(e){ alert('Failed to create post'); }
-                      }}>Create</Button>
+                      }}>Publish post</Button>
                     </div>
                   </div>
                 )}

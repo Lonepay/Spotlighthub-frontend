@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Trash2, Edit2, Tag, Calendar, MapPin } from 'lucide-react';
+import { Plus, Trash2, Edit2, Tag, Calendar, MapPin, Ticket, Info } from 'lucide-react';
 import DOMPurify from 'isomorphic-dompurify';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -43,6 +43,8 @@ export default function OrganizerEventDetailPage() {
   const [showVariationForm, setShowVariationForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [customTierName, setCustomTierName] = useState(false);
+  const [savingVariation, setSavingVariation] = useState(false);
+  const [variationError, setVariationError] = useState('');
   const [formData, setFormData] = useState<TicketVariation>({
     name: '',
     description: '',
@@ -71,6 +73,8 @@ export default function OrganizerEventDetailPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [showCouponForm, setShowCouponForm] = useState(false);
   const [editingCouponId, setEditingCouponId] = useState<number | null>(null);
+  const [savingCoupon, setSavingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState('');
   const [couponForm, setCouponForm] = useState({
     code: '',
     discount_type: 'percentage' as 'percentage' | 'fixed',
@@ -101,13 +105,25 @@ export default function OrganizerEventDetailPage() {
   const resetCouponForm = () => {
     setCouponForm({ code: '', discount_type: 'percentage', discount_value: 0, max_uses: '', expires_at: '' });
     setEditingCouponId(null);
+    setCouponError('');
   };
 
   const handleSaveCoupon = async () => {
-    if (!couponForm.code.trim() || couponForm.discount_value <= 0) {
-      alert('Enter a code and a discount value greater than 0');
+    setCouponError('');
+    if (!couponForm.code.trim()) {
+      setCouponError('Enter a code buyers will type at checkout, e.g. EARLYBIRD.');
       return;
     }
+    if (couponForm.discount_value <= 0) {
+      setCouponError('Discount value must be greater than 0.');
+      return;
+    }
+    if (couponForm.discount_type === 'percentage' && couponForm.discount_value > 100) {
+      setCouponError("A percentage discount can't exceed 100%.");
+      return;
+    }
+
+    setSavingCoupon(true);
     try {
       const payload = {
         code: couponForm.code.trim().toUpperCase(),
@@ -125,7 +141,9 @@ export default function OrganizerEventDetailPage() {
       setShowCouponForm(false);
       await loadCoupons();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to save coupon');
+      setCouponError(error.response?.data?.message || 'Failed to save coupon');
+    } finally {
+      setSavingCoupon(false);
     }
   };
 
@@ -138,6 +156,7 @@ export default function OrganizerEventDetailPage() {
       expires_at: coupon.expires_at ? coupon.expires_at.slice(0, 10) : '',
     });
     setEditingCouponId(coupon.id);
+    setCouponError('');
     setShowCouponForm(true);
   };
 
@@ -275,6 +294,21 @@ export default function OrganizerEventDetailPage() {
   };
 
   const handleAddVariation = async () => {
+    setVariationError('');
+    if (!formData.name.trim()) {
+      setVariationError('Pick or type a ticket type name.');
+      return;
+    }
+    if (!formData.quantity || formData.quantity < 1) {
+      setVariationError('Enter how many of this ticket type you\'re making available (at least 1).');
+      return;
+    }
+    if (formData.price < 0) {
+      setVariationError('Price can\'t be negative — use 0 for a free ticket type.');
+      return;
+    }
+
+    setSavingVariation(true);
     try {
       const payload = { name: formData.name, description: formData.description, price: formData.price, quantity: formData.quantity };
       if (editingId) {
@@ -288,7 +322,9 @@ export default function OrganizerEventDetailPage() {
       setEditingId(null);
       await loadVariations();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to save variation');
+      setVariationError(error.response?.data?.message || 'Failed to save variation');
+    } finally {
+      setSavingVariation(false);
     }
   };
 
@@ -304,6 +340,7 @@ export default function OrganizerEventDetailPage() {
 
   const handleEditVariation = (variation: TicketVariation) => {
     setCustomTierName(!!variation.name && !TIER_PRESETS.includes(variation.name));
+    setVariationError('');
     setFormData({
       name: variation.name,
       description: variation.description,
@@ -547,6 +584,7 @@ export default function OrganizerEventDetailPage() {
                   setShowVariationForm(!showVariationForm);
                   setEditingId(null);
                   setCustomTierName(false);
+                  setVariationError('');
                   setFormData({ name: '', description: '', price: 0, quantity: 0 });
                 }}
               >
@@ -555,10 +593,28 @@ export default function OrganizerEventDetailPage() {
             </div>
 
             {showVariationForm && (
-              <div className="p-5 mb-6 rounded-xl border border-border bg-muted/30">
-                <div className="grid md:grid-cols-2 gap-4 mb-4">
+              <div className="p-5 sm:p-6 mb-6 rounded-xl border border-primary/30 bg-muted/30">
+                <div className="flex items-start gap-3 mb-5 pb-4 border-b border-border">
+                  <div className="w-9 h-9 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Ticket className="w-4 h-4 text-primary" />
+                  </div>
                   <div>
-                    <Label htmlFor="var-name">Ticket type</Label>
+                    <h3 className="font-display font-semibold">{editingId ? 'Edit ticket type' : 'Add a ticket type'}</h3>
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      Each type is sold separately with its own price and stock — e.g. Regular ₦5,000 and VIP ₦15,000 for the same event.
+                    </p>
+                  </div>
+                </div>
+
+                {variationError && (
+                  <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-xl text-destructive text-sm">
+                    {variationError}
+                  </div>
+                )}
+
+                <div className="grid md:grid-cols-2 gap-4 mb-1">
+                  <div>
+                    <Label htmlFor="var-name">Ticket type *</Label>
                     {customTierName ? (
                       <div className="flex gap-2">
                         <Input
@@ -593,51 +649,70 @@ export default function OrganizerEventDetailPage() {
                         <option value="__custom__">Other (type your own)…</option>
                       </select>
                     )}
+                    <p className="text-xs text-muted-foreground mt-1">What buyers will see and choose between at checkout.</p>
                   </div>
                   <div>
-                    <Label htmlFor="var-price">Price (NGN)</Label>
-                    <Input
-                      id="var-price"
-                      type="number"
-                      placeholder="0"
-                      value={formData.price}
-                      onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-                    />
+                    <Label htmlFor="var-price">Price *</Label>
+                    <div className="relative">
+                      <NairaSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="var-price"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={formData.price}
+                        onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+                        className="pl-10"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Per single ticket of this type. Use 0 for a free tier.</p>
                   </div>
                 </div>
-                <div className="mb-4">
-                  <Label htmlFor="var-quantity">Quantity</Label>
+
+                <div className="mb-1 mt-4">
+                  <Label htmlFor="var-quantity">Quantity available *</Label>
                   <Input
                     id="var-quantity"
                     type="number"
-                    placeholder="0"
+                    min="1"
+                    placeholder="e.g. 100"
                     value={formData.quantity}
                     onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) })}
                   />
+                  <p className="text-xs text-muted-foreground mt-1">How many of this specific ticket type you're releasing for sale.</p>
                 </div>
-                <div className="mb-4">
-                  <Label htmlFor="var-description">Description</Label>
+
+                <div className="mb-1 mt-4">
+                  <Label htmlFor="var-description">Description (optional)</Label>
                   <textarea
                     id="var-description"
+                    rows={3}
                     className="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm"
-                    placeholder="e.g., Includes early entry, free drinks"
+                    placeholder="e.g., Includes early entry, free drinks, front-row seating"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   />
+                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                    <Info className="w-3.5 h-3.5 shrink-0" /> Shown to buyers to help them pick the right tier — perks, seating, access, etc.
+                  </p>
                 </div>
-                <div className="flex justify-end space-x-2">
+
+                <div className="flex justify-end gap-2 mt-5 pt-4 border-t border-border">
                   <Button
                     variant="outline"
+                    disabled={savingVariation}
                     onClick={() => {
                       setShowVariationForm(false);
                       setEditingId(null);
+                      setVariationError('');
                       setFormData({ name: '', description: '', price: 0, quantity: 0 });
                     }}
                   >
                     Cancel
                   </Button>
-                  <Button onClick={handleAddVariation}>
-                    {editingId ? 'Update' : 'Create'} Type
+                  <Button onClick={handleAddVariation} disabled={savingVariation}>
+                    {savingVariation ? 'Saving…' : editingId ? 'Update ticket type' : 'Create ticket type'}
                   </Button>
                 </div>
               </div>
@@ -701,10 +776,26 @@ export default function OrganizerEventDetailPage() {
             </div>
 
             {showCouponForm && (
-              <div className="p-5 mb-6 rounded-xl border border-border bg-muted/30">
-                <div className="grid md:grid-cols-2 gap-4 mb-4">
+              <div className="p-5 sm:p-6 mb-6 rounded-xl border border-primary/30 bg-muted/30">
+                <div className="flex items-start gap-3 mb-5 pb-4 border-b border-border">
+                  <div className="w-9 h-9 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Tag className="w-4 h-4 text-primary" />
+                  </div>
                   <div>
-                    <Label htmlFor="coupon-code-input">Code</Label>
+                    <h3 className="font-display font-semibold">{editingCouponId ? 'Edit coupon' : 'Add a coupon'}</h3>
+                    <p className="text-sm text-muted-foreground mt-0.5">Buyers type this code at checkout to get the discount you set here.</p>
+                  </div>
+                </div>
+
+                {couponError && (
+                  <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-xl text-destructive text-sm">
+                    {couponError}
+                  </div>
+                )}
+
+                <div className="grid md:grid-cols-2 gap-4 mb-1">
+                  <div>
+                    <Label htmlFor="coupon-code-input">Code *</Label>
                     <Input
                       id="coupon-code-input"
                       placeholder="e.g., EARLYBIRD"
@@ -712,9 +803,10 @@ export default function OrganizerEventDetailPage() {
                       onChange={(e) => setCouponForm({ ...couponForm, code: e.target.value.toUpperCase() })}
                       className="uppercase"
                     />
+                    <p className="text-xs text-muted-foreground mt-1">Not case-sensitive at checkout — shown here in caps for clarity.</p>
                   </div>
                   <div>
-                    <Label htmlFor="coupon-type">Discount type</Label>
+                    <Label htmlFor="coupon-type">Discount type *</Label>
                     <select
                       id="coupon-type"
                       className="w-full h-11 rounded-xl border border-input bg-background px-4 text-sm"
@@ -724,12 +816,13 @@ export default function OrganizerEventDetailPage() {
                       <option value="percentage">Percentage (%)</option>
                       <option value="fixed">Fixed amount (₦)</option>
                     </select>
+                    <p className="text-xs text-muted-foreground mt-1">Percentage takes a cut off the price; fixed knocks off a flat Naira amount.</p>
                   </div>
                 </div>
-                <div className="grid md:grid-cols-3 gap-4 mb-4">
+                <div className="grid md:grid-cols-3 gap-4 mt-4 mb-1">
                   <div>
                     <Label htmlFor="coupon-value">
-                      {couponForm.discount_type === 'percentage' ? 'Discount %' : 'Discount ₦'}
+                      {couponForm.discount_type === 'percentage' ? 'Discount % *' : 'Discount ₦ *'}
                     </Label>
                     <Input
                       id="coupon-value"
@@ -741,7 +834,7 @@ export default function OrganizerEventDetailPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="coupon-max-uses">Max uses (optional)</Label>
+                    <Label htmlFor="coupon-max-uses">Max uses</Label>
                     <Input
                       id="coupon-max-uses"
                       type="number"
@@ -750,20 +843,23 @@ export default function OrganizerEventDetailPage() {
                       value={couponForm.max_uses}
                       onChange={(e) => setCouponForm({ ...couponForm, max_uses: e.target.value === '' ? '' : Number(e.target.value) })}
                     />
+                    <p className="text-xs text-muted-foreground mt-1">Leave blank for no cap.</p>
                   </div>
                   <div>
-                    <Label htmlFor="coupon-expires">Expires (optional)</Label>
+                    <Label htmlFor="coupon-expires">Expires</Label>
                     <Input
                       id="coupon-expires"
                       type="date"
                       value={couponForm.expires_at}
                       onChange={(e) => setCouponForm({ ...couponForm, expires_at: e.target.value })}
                     />
+                    <p className="text-xs text-muted-foreground mt-1">Leave blank to never expire.</p>
                   </div>
                 </div>
-                <div className="flex justify-end space-x-2">
+                <div className="flex justify-end space-x-2 mt-5 pt-4 border-t border-border">
                   <Button
                     variant="outline"
+                    disabled={savingCoupon}
                     onClick={() => {
                       setShowCouponForm(false);
                       resetCouponForm();
@@ -771,8 +867,8 @@ export default function OrganizerEventDetailPage() {
                   >
                     Cancel
                   </Button>
-                  <Button onClick={handleSaveCoupon}>
-                    {editingCouponId ? 'Update' : 'Create'} Coupon
+                  <Button onClick={handleSaveCoupon} disabled={savingCoupon}>
+                    {savingCoupon ? 'Saving…' : editingCouponId ? 'Update coupon' : 'Create coupon'}
                   </Button>
                 </div>
               </div>
