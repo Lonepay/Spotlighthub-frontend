@@ -120,11 +120,6 @@ function AdminDashboardPageInner() {
   });
   const [creatingUser, setCreatingUser] = useState(false);
 
-  const [newEvent, setNewEvent] = useState<{title:string; description:string; date:string; time:string; venue:string; category:string; price:number; total_tickets:number; image?:string}>({
-    title:'', description:'', date:'', time:'', venue:'', category:'Concert', price:0, total_tickets:1
-  });
-  const [creatingEvent, setCreatingEvent] = useState(false);
-
   const [newBlogPost, setNewBlogPost] = useState<{title:string; excerpt:string; content:string; category:string; image: File|null}>({
     title:'', excerpt:'', content:'', category:'General', image: null
   });
@@ -569,60 +564,13 @@ function AdminDashboardPageInner() {
                     </select>
                     <Button variant="outline" size="icon" onClick={()=>refreshEvents()}><Search className="w-4 h-4" /></Button>
                     {exportButtons('events', { search, category: eventCategoryFilter })}
-                    <Button onClick={()=>setCreatingEvent((v)=>!v)}>
-                      <Plus className="w-4 h-4"/> Add Event
+                    <Button asChild>
+                      <Link href="/create-event">
+                        <Plus className="w-4 h-4"/> Add Event
+                      </Link>
                     </Button>
                   </div>
                 </div>
-
-                {creatingEvent && (
-                  <div className="p-5 mb-6 rounded-xl border border-primary/30 bg-muted/30">
-                    <div className="mb-4 pb-4 border-b border-border">
-                      <h3 className="font-display font-semibold">Add an event</h3>
-                      <p className="text-sm text-muted-foreground mt-0.5">Quick-create on behalf of an organizer — ticket types, images and virtual-event links can be added afterward from the event's own page.</p>
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="new-event-title">Title</Label>
-                        <Input id="new-event-title" placeholder="Amazing Concert 2026" value={newEvent.title} onChange={(e)=>setNewEvent({...newEvent, title:e.target.value})}/>
-                      </div>
-                      <div>
-                        <Label htmlFor="new-event-venue">Venue</Label>
-                        <Input id="new-event-venue" placeholder="Venue name" value={newEvent.venue} onChange={(e)=>setNewEvent({...newEvent, venue:e.target.value})}/>
-                      </div>
-                      <div>
-                        <Label htmlFor="new-event-date">Date</Label>
-                        <Input id="new-event-date" type="date" value={newEvent.date} onChange={(e)=>setNewEvent({...newEvent, date:e.target.value})}/>
-                      </div>
-                      <div>
-                        <Label htmlFor="new-event-time">Time</Label>
-                        <Input id="new-event-time" type="time" value={newEvent.time} onChange={(e)=>setNewEvent({...newEvent, time:e.target.value})}/>
-                      </div>
-                      <div>
-                        <Label htmlFor="new-event-price">Price (NGN)</Label>
-                        <Input id="new-event-price" type="number" min="0" placeholder="0" value={newEvent.price} onChange={(e)=>setNewEvent({...newEvent, price: Number(e.target.value)})}/>
-                        <p className="text-xs text-muted-foreground mt-1">0 for a free event.</p>
-                      </div>
-                      <div>
-                        <Label htmlFor="new-event-tickets">Total tickets</Label>
-                        <Input id="new-event-tickets" type="number" min="1" placeholder="100" value={newEvent.total_tickets} onChange={(e)=>setNewEvent({...newEvent, total_tickets: Number(e.target.value)})}/>
-                      </div>
-                      <div className="md:col-span-2">
-                        <Label htmlFor="new-event-category">Category</Label>
-                        <Input id="new-event-category" placeholder="e.g. Concert, Conference, Rave Party" value={newEvent.category} onChange={(e)=>setNewEvent({...newEvent, category:e.target.value})}/>
-                        <p className="text-xs text-muted-foreground mt-1">Freeform — controls where it shows up when people filter by category.</p>
-                      </div>
-                    </div>
-                    <div className="mt-4">
-                      <Label>Description</Label>
-                      <RichTextEditor value={newEvent.description} onChange={(html) => setNewEvent({ ...newEvent, description: html })} placeholder="Describe the event in detail..." />
-                    </div>
-                    <div className="flex justify-end space-x-2 mt-5 pt-4 border-t border-border">
-                      <Button variant="outline" onClick={()=>setCreatingEvent(false)}>Cancel</Button>
-                      <Button onClick={async()=>{ try { await admin.createEvent(newEvent); setCreatingEvent(false); setNewEvent({title:'',description:'',date:'',time:'',venue:'',category:'Concert',price:0,total_tickets:1}); await refreshEvents(); } catch(e){ alert('Failed to create event'); } }}>Create event</Button>
-                    </div>
-                  </div>
-                )}
 
                 <div className="flex items-center gap-2 mb-4">
                   <span className="text-sm text-muted-foreground">Sort by:</span>
@@ -906,7 +854,7 @@ function AdminDashboardPageInner() {
                       </div>
                       <div className="md:col-span-2">
                         <Label htmlFor="new-post-image">Cover image</Label>
-                        <input id="new-post-image" className="md:col-span-2 text-sm" type="file" accept="image/*" onChange={(e)=>setNewBlogPost({...newBlogPost, image: e.target.files?.[0] ?? null})}/>
+                        <input id="new-post-image" className="w-full text-sm" type="file" accept="image/*" onChange={(e)=>setNewBlogPost({...newBlogPost, image: e.target.files?.[0] ?? null})}/>
                       </div>
                     </div>
                     <div className="mt-4">
@@ -974,21 +922,41 @@ function AdminDashboardPageInner() {
                         </div>
                       </div>
                       {editingBlogPostId===post.id && (
-                        <div className="mt-4 p-4 rounded-xl bg-muted/30">
+                        <div className="mt-4 p-5 rounded-xl border border-primary/30 bg-muted/30">
+                          <div className="mb-4 pb-4 border-b border-border">
+                            <h3 className="font-display font-semibold">Edit post</h3>
+                          </div>
                           <div className="grid md:grid-cols-2 gap-4">
-                            <Input placeholder="Title" value={editingBlogPost.title} onChange={(e)=>setEditingBlogPost({...editingBlogPost, title:e.target.value})}/>
-                            <Input placeholder="Category" value={editingBlogPost.category} onChange={(e)=>setEditingBlogPost({...editingBlogPost, category:e.target.value})}/>
-                            <Input className="md:col-span-2" placeholder="Excerpt" value={editingBlogPost.excerpt} onChange={(e)=>setEditingBlogPost({...editingBlogPost, excerpt:e.target.value})}/>
-                            <input className="md:col-span-2 text-sm" type="file" accept="image/*" onChange={(e)=>setEditingBlogPost({...editingBlogPost, image: e.target.files?.[0] ?? null})}/>
-                            <select className="h-11 rounded-xl border border-input bg-background px-4 text-sm" value={editingBlogPost.is_published ? '1' : '0'} onChange={(e)=>setEditingBlogPost({...editingBlogPost, is_published: e.target.value === '1'})}>
-                              <option value="1">Published</option>
-                              <option value="0">Draft</option>
-                            </select>
+                            <div>
+                              <Label htmlFor={`edit-post-title-${post.id}`}>Title</Label>
+                              <Input id={`edit-post-title-${post.id}`} placeholder="Post title" value={editingBlogPost.title} onChange={(e)=>setEditingBlogPost({...editingBlogPost, title:e.target.value})}/>
+                            </div>
+                            <div>
+                              <Label htmlFor={`edit-post-category-${post.id}`}>Category</Label>
+                              <Input id={`edit-post-category-${post.id}`} placeholder="e.g. Announcements, Tips" value={editingBlogPost.category} onChange={(e)=>setEditingBlogPost({...editingBlogPost, category:e.target.value})}/>
+                            </div>
+                            <div className="md:col-span-2">
+                              <Label htmlFor={`edit-post-excerpt-${post.id}`}>Excerpt</Label>
+                              <Input id={`edit-post-excerpt-${post.id}`} placeholder="One or two sentences shown on the blog listing" value={editingBlogPost.excerpt} onChange={(e)=>setEditingBlogPost({...editingBlogPost, excerpt:e.target.value})}/>
+                            </div>
+                            <div className="md:col-span-2">
+                              <Label htmlFor={`edit-post-image-${post.id}`}>Cover image</Label>
+                              <input id={`edit-post-image-${post.id}`} className="w-full text-sm" type="file" accept="image/*" onChange={(e)=>setEditingBlogPost({...editingBlogPost, image: e.target.files?.[0] ?? null})}/>
+                              <p className="text-xs text-muted-foreground mt-1">Leave empty to keep the current image.</p>
+                            </div>
+                            <div>
+                              <Label htmlFor={`edit-post-status-${post.id}`}>Status</Label>
+                              <select id={`edit-post-status-${post.id}`} className="w-full h-11 rounded-xl border border-input bg-background px-4 text-sm" value={editingBlogPost.is_published ? '1' : '0'} onChange={(e)=>setEditingBlogPost({...editingBlogPost, is_published: e.target.value === '1'})}>
+                                <option value="1">Published</option>
+                                <option value="0">Draft</option>
+                              </select>
+                            </div>
                           </div>
                           <div className="mt-4">
+                            <Label>Content</Label>
                             <RichTextEditor value={editingBlogPost.content} onChange={(html) => setEditingBlogPost({ ...editingBlogPost, content: html })} placeholder="Write the full post here..." />
                           </div>
-                          <div className="flex justify-end space-x-2 mt-4">
+                          <div className="flex justify-end space-x-2 mt-5 pt-4 border-t border-border">
                             <Button variant="outline" onClick={()=>{ setEditingBlogPostId(null); setEditingBlogPost(null); }}>Cancel</Button>
                             <Button onClick={async()=>{
                               try {
@@ -1004,7 +972,7 @@ function AdminDashboardPageInner() {
                                 setEditingBlogPost(null);
                                 await refreshBlogPosts();
                               } catch(e){ alert('Failed to update'); }
-                            }}>Save</Button>
+                            }}>Save changes</Button>
                           </div>
                         </div>
                       )}
