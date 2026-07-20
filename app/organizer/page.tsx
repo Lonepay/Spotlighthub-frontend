@@ -9,11 +9,12 @@ import { useAuth } from '@/components/AuthProvider';
 import { isAdminLevelRole } from '@/lib/auth';
 import { organizer, OrganizerDashboard } from '@/lib/organizer';
 import { payments } from '@/lib/payments';
+import { admin } from '@/lib/admin';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { DonutBreakdown } from '@/components/charts/DonutBreakdown';
-import { Ticket, Calendar, ArrowRight, Receipt, PieChart } from 'lucide-react';
+import { Ticket, Calendar, ArrowRight, Receipt, PieChart, Trash2 } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 
 export default function OrganizerDashboardPage() {
@@ -42,6 +43,18 @@ export default function OrganizerDashboardPage() {
       console.error('Failed to load dashboard:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteEvent = async (e: React.MouseEvent, eventId: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm('Delete this event? This cannot be undone.')) return;
+    try {
+      await admin.deleteEvent(eventId);
+      await loadDashboard();
+    } catch (err) {
+      alert('Failed to delete event');
     }
   };
 
@@ -134,7 +147,19 @@ export default function OrganizerDashboardPage() {
                           )}
                         </p>
                       </div>
-                      <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <div className="flex items-center gap-2 shrink-0">
+                        {user && isAdminLevelRole(user.role) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={(e) => handleDeleteEvent(e, event.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                        <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                      </div>
                     </div>
                   </Link>
                 ))}
