@@ -1,9 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
-import { Bold, Italic, List, ListOrdered, Link as LinkIcon, Heading2, Undo, Redo } from 'lucide-react';
+import { Bold, Italic, Strikethrough, Quote, List, ListOrdered, Link as LinkIcon, Heading2, Undo, Redo, Code2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function RichTextEditor({
@@ -15,6 +16,8 @@ export function RichTextEditor({
   onChange: (html: string) => void;
   placeholder?: string;
 }) {
+  const [htmlMode, setHtmlMode] = useState(false);
+
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -24,13 +27,22 @@ export function RichTextEditor({
     content: value,
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none min-h-[180px] px-4 py-3 focus:outline-none [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-primary [&_a]:underline',
+        class: 'prose prose-sm max-w-none min-h-[180px] px-4 py-3 focus:outline-none [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-primary [&_a]:underline [&_blockquote]:border-l-4 [&_blockquote]:border-primary/30 [&_blockquote]:pl-4 [&_blockquote]:italic',
       },
     },
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
   });
 
   if (!editor) return null;
+
+  const toggleHtmlMode = () => {
+    if (htmlMode) {
+      // Leaving source view — push whatever HTML was typed back into the editor.
+      editor.commands.setContent(value);
+      onChange(editor.getHTML());
+    }
+    setHtmlMode(!htmlMode);
+  };
 
   const ToolbarButton = ({
     onClick,
@@ -65,8 +77,14 @@ export function RichTextEditor({
         <ToolbarButton label="Italic" active={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()}>
           <Italic className="w-4 h-4" />
         </ToolbarButton>
+        <ToolbarButton label="Strikethrough" active={editor.isActive('strike')} onClick={() => editor.chain().focus().toggleStrike().run()}>
+          <Strikethrough className="w-4 h-4" />
+        </ToolbarButton>
         <ToolbarButton label="Heading" active={editor.isActive('heading', { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>
           <Heading2 className="w-4 h-4" />
+        </ToolbarButton>
+        <ToolbarButton label="Quote" active={editor.isActive('blockquote')} onClick={() => editor.chain().focus().toggleBlockquote().run()}>
+          <Quote className="w-4 h-4" />
         </ToolbarButton>
         <ToolbarButton label="Bullet list" active={editor.isActive('bulletList')} onClick={() => editor.chain().focus().toggleBulletList().run()}>
           <List className="w-4 h-4" />
@@ -92,8 +110,22 @@ export function RichTextEditor({
         <ToolbarButton label="Redo" onClick={() => editor.chain().focus().redo().run()}>
           <Redo className="w-4 h-4" />
         </ToolbarButton>
+        <div className="w-px h-5 bg-border mx-1" />
+        <ToolbarButton label="Edit HTML source" active={htmlMode} onClick={toggleHtmlMode}>
+          <Code2 className="w-4 h-4" />
+        </ToolbarButton>
       </div>
-      <EditorContent editor={editor} placeholder={placeholder} />
+      {htmlMode ? (
+        <textarea
+          autoFocus
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="<p>Paste or write raw HTML…</p>"
+          className="w-full min-h-[180px] px-4 py-3 font-mono text-xs bg-muted/30 focus:outline-none resize-y"
+        />
+      ) : (
+        <EditorContent editor={editor} placeholder={placeholder} />
+      )}
     </div>
   );
 }

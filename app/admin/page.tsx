@@ -910,8 +910,8 @@ function AdminDashboardPageInner() {
                       </div>
                     </div>
                     <div className="mt-4">
-                      <Label htmlFor="new-post-content">Content</Label>
-                      <textarea id="new-post-content" className="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm" rows={5} placeholder="Write the full post here..." value={newBlogPost.content} onChange={(e)=>setNewBlogPost({...newBlogPost, content:e.target.value})}/>
+                      <Label>Content</Label>
+                      <RichTextEditor value={newBlogPost.content} onChange={(html) => setNewBlogPost({ ...newBlogPost, content: html })} placeholder="Write the full post here..." />
                     </div>
                     <div className="flex justify-end space-x-2 mt-5 pt-4 border-t border-border">
                       <Button variant="outline" onClick={()=>setCreatingBlogPost(false)}>Cancel</Button>
@@ -985,7 +985,9 @@ function AdminDashboardPageInner() {
                               <option value="0">Draft</option>
                             </select>
                           </div>
-                          <textarea className="w-full mt-4 rounded-xl border border-input bg-background px-4 py-3 text-sm" rows={5} placeholder="Content" value={editingBlogPost.content} onChange={(e)=>setEditingBlogPost({...editingBlogPost, content:e.target.value})}/>
+                          <div className="mt-4">
+                            <RichTextEditor value={editingBlogPost.content} onChange={(html) => setEditingBlogPost({ ...editingBlogPost, content: html })} placeholder="Write the full post here..." />
+                          </div>
                           <div className="flex justify-end space-x-2 mt-4">
                             <Button variant="outline" onClick={()=>{ setEditingBlogPostId(null); setEditingBlogPost(null); }}>Cancel</Button>
                             <Button onClick={async()=>{

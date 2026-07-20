@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { useAuth } from '@/components/AuthProvider';
 import { events } from '@/lib/events';
+import { coupons as couponsApi } from '@/lib/coupons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { Calendar, MapPin, Upload, ArrowRight, Loader2, Info, FileText, Ticket, Image as ImageIcon, Trash2, Plus, X } from 'lucide-react';
+import { Calendar, MapPin, Upload, ArrowRight, Loader2, Info, FileText, Ticket, Image as ImageIcon, Trash2, Plus, X, Tag } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { RichTextEditor } from '@/components/RichTextEditor';
 
@@ -21,6 +22,14 @@ interface TierDraft {
   price: string;
   quantity: string;
   description: string;
+}
+
+interface CouponDraft {
+  code: string;
+  discount_type: 'percentage' | 'fixed';
+  discount_value: string;
+  max_uses: string;
+  expires_at: string;
 }
 
 function SectionHeader({ icon: Icon, title, subtitle }: { icon: any; title: string; subtitle: string }) {
@@ -67,6 +76,13 @@ export default function CreateEventPage() {
   const [tierDraft, setTierDraft] = useState<TierDraft>({ name: '', price: '', quantity: '', description: '' });
   const [tierError, setTierError] = useState('');
 
+  // Same deal as ticket tiers — coupons are built up locally and only sent
+  // once the event has actually been created.
+  const [coupons, setCoupons] = useState<CouponDraft[]>([]);
+  const [showCouponForm, setShowCouponForm] = useState(false);
+  const [couponDraft, setCouponDraft] = useState<CouponDraft>({ code: '', discount_type: 'percentage', discount_value: '', max_uses: '', expires_at: '' });
+  const [couponError, setCouponError] = useState('');
+
   useEffect(() => {
     events.getCategories().then((data) => {
       const merged = Array.from(new Set([...BASE_CATEGORIES, ...data.map((c) => c.category)])).sort();
@@ -111,6 +127,39 @@ export default function CreateEventPage() {
     setTiers(tiers.filter((_, i) => i !== index));
   };
 
+  const resetCouponForm = () => {
+    setCouponDraft({ code: '', discount_type: 'percentage', discount_value: '', max_uses: '', expires_at: '' });
+    setCouponError('');
+  };
+
+  const handleAddCoupon = () => {
+    setCouponError('');
+    if (!couponDraft.code.trim()) {
+      setCouponError('Enter a code buyers will type at checkout, e.g. EARLYBIRD.');
+      return;
+    }
+    const value = Number(couponDraft.discount_value);
+    if (!value || value <= 0) {
+      setCouponError('Discount value must be greater than 0.');
+      return;
+    }
+    if (couponDraft.discount_type === 'percentage' && value > 100) {
+      setCouponError("A percentage discount can't exceed 100%.");
+      return;
+    }
+    if (coupons.some((c) => c.code.toUpperCase() === couponDraft.code.trim().toUpperCase())) {
+      setCouponError('You already added a coupon with this code.');
+      return;
+    }
+    setCoupons([...coupons, { ...couponDraft, code: couponDraft.code.trim().toUpperCase(), discount_value: String(value) }]);
+    resetCouponForm();
+    setShowCouponForm(false);
+  };
+
+  const removeCoupon = (index: number) => {
+    setCoupons(coupons.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -134,6 +183,8 @@ export default function CreateEventPage() {
 
       const newEvent = await events.create(data);
 
+      const failures: string[] = [];
+
       if (tiers.length > 0) {
         const results = await Promise.allSettled(
           tiers.map((t) =>
@@ -146,11 +197,27 @@ export default function CreateEventPage() {
           )
         );
         const failed = results.filter((r) => r.status === 'rejected').length;
-        if (failed > 0) {
-          router.push(`/organizer/events/${newEvent.id}`);
-          alert(`Event created, but ${failed} of ${tiers.length} ticket type(s) failed to save. You can add them again from this page.`);
-          return;
-        }
+        if (failed > 0) failures.push(`${failed} of ${tiers.length} ticket type(s)`);
+      }
+
+      if (coupons.length > 0) {
+        const results = await Promise.allSettled(
+          coupons.map((c) =>
+            couponsApi.create(newEvent.id, {
+              code: c.code,
+              discount_type: c.discount_type,
+              discount_value: Number(c.discount_value),
+              max_uses: c.max_uses === '' ? null : Number(c.max_uses),
+              expires_at: c.expires_at || null,
+            })
+          )
+        );
+        const failed = results.filter((r) => r.status === 'rejected').length;
+        if (failed > 0) failures.push(`${failed} of ${coupons.length} coupon(s)`);
+      }
+
+      if (failures.length > 0) {
+        alert(`Event created, but ${failures.join(' and ')} failed to save. You can add them again from this page.`);
       }
 
       router.push(`/organizer/events/${newEvent.id}`);
@@ -502,6 +569,124 @@ export default function CreateEventPage() {
               {tiers.length === 0 && !showTierForm && (
                 <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                   <Info className="w-3.5 h-3.5 shrink-0" /> Skip this and your event just sells at the single price set above.
+                </p>
+              )}
+            </section>
+
+            {/* Coupons */}
+            <section className="pb-8 border-b border-border">
+              <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
+                <SectionHeader icon={Tag} title="Coupons (optional)" subtitle="Discount codes buyers can apply at checkout — set them up now or add them later from the event page." />
+                <Button type="button" size="sm" variant="outline" onClick={() => { resetCouponForm(); setShowCouponForm(!showCouponForm); }}>
+                  <Plus className="w-4 h-4" /> Add coupon
+                </Button>
+              </div>
+
+              {coupons.length > 0 && (
+                <div className="space-y-2 mb-4">
+                  {coupons.map((c, i) => (
+                    <div key={i} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-border bg-muted/30">
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate flex items-center gap-1.5">
+                          <Tag className="w-3.5 h-3.5 text-primary shrink-0" /> {c.code}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {c.discount_type === 'percentage' ? `${c.discount_value}% off` : `₦${Number(c.discount_value).toLocaleString('en-NG')} off`}
+                          {c.max_uses ? ` · max ${c.max_uses} uses` : ''}
+                          {c.expires_at ? ` · expires ${c.expires_at}` : ''}
+                        </p>
+                      </div>
+                      <button type="button" onClick={() => removeCoupon(i)} className="shrink-0 text-muted-foreground hover:text-destructive transition-colors">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {showCouponForm && (
+                <div className="p-5 rounded-xl border border-primary/30 bg-muted/30">
+                  {couponError && (
+                    <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-xl text-destructive text-sm">
+                      {couponError}
+                    </div>
+                  )}
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="coupon-code">Code *</Label>
+                      <Input
+                        id="coupon-code"
+                        placeholder="e.g., EARLYBIRD"
+                        value={couponDraft.code}
+                        onChange={(e) => setCouponDraft({ ...couponDraft, code: e.target.value.toUpperCase() })}
+                        className="uppercase"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Not case-sensitive at checkout.</p>
+                    </div>
+                    <div>
+                      <Label htmlFor="coupon-type">Discount type *</Label>
+                      <select
+                        id="coupon-type"
+                        className="w-full h-11 rounded-xl border border-input bg-background/50 px-4 text-sm"
+                        value={couponDraft.discount_type}
+                        onChange={(e) => setCouponDraft({ ...couponDraft, discount_type: e.target.value as 'percentage' | 'fixed' })}
+                      >
+                        <option value="percentage">Percentage (%)</option>
+                        <option value="fixed">Fixed amount (₦)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid md:grid-cols-3 gap-4 mt-4">
+                    <div>
+                      <Label htmlFor="coupon-value">
+                        {couponDraft.discount_type === 'percentage' ? 'Discount % *' : 'Discount ₦ *'}
+                      </Label>
+                      <Input
+                        id="coupon-value"
+                        type="number"
+                        min={0}
+                        max={couponDraft.discount_type === 'percentage' ? 100 : undefined}
+                        value={couponDraft.discount_value}
+                        onChange={(e) => setCouponDraft({ ...couponDraft, discount_value: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="coupon-max-uses">Max uses</Label>
+                      <Input
+                        id="coupon-max-uses"
+                        type="number"
+                        min={1}
+                        placeholder="Unlimited"
+                        value={couponDraft.max_uses}
+                        onChange={(e) => setCouponDraft({ ...couponDraft, max_uses: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Leave blank for no cap.</p>
+                    </div>
+                    <div>
+                      <Label htmlFor="coupon-expires">Expires</Label>
+                      <Input
+                        id="coupon-expires"
+                        type="date"
+                        value={couponDraft.expires_at}
+                        onChange={(e) => setCouponDraft({ ...couponDraft, expires_at: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Leave blank to never expire.</p>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 mt-4">
+                    <Button type="button" variant="outline" onClick={() => { setShowCouponForm(false); resetCouponForm(); }}>
+                      <X className="w-4 h-4" /> Cancel
+                    </Button>
+                    <Button type="button" onClick={handleAddCoupon}>
+                      Add to event
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {coupons.length === 0 && !showCouponForm && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <Info className="w-3.5 h-3.5 shrink-0" /> Skip this if you don't need discount codes yet.
                 </p>
               )}
             </section>
