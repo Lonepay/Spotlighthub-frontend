@@ -10,12 +10,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Trash2, Edit2, Tag } from 'lucide-react';
+import { Plus, Trash2, Edit2, Tag, Calendar, MapPin } from 'lucide-react';
 import DOMPurify from 'isomorphic-dompurify';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { tickets as ticketsApi } from '@/lib/tickets';
 import { coupons as couponsApi, Coupon } from '@/lib/coupons';
+import { NairaSign } from '@/components/icons/NairaSign';
+import { RichTextEditor } from '@/components/RichTextEditor';
 
 interface TicketVariation {
   id?: number;
@@ -42,6 +44,22 @@ export default function OrganizerEventDetailPage() {
     description: '',
     price: 0,
     quantity: 0,
+  });
+
+  const [showEditEvent, setShowEditEvent] = useState(false);
+  const [savingEvent, setSavingEvent] = useState(false);
+  const [eventImage, setEventImage] = useState<File | null>(null);
+  const [eventForm, setEventForm] = useState({
+    title: '',
+    description: '',
+    category: '',
+    venue: '',
+    date: '',
+    time: '',
+    price: '',
+    total_tickets: '',
+    is_virtual: false,
+    fee_payer: 'organizer' as 'organizer' | 'attendee',
   });
 
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -177,6 +195,62 @@ export default function OrganizerEventDetailPage() {
     }
   };
 
+  const handleOpenEditEvent = () => {
+    if (!event) return;
+    setEventForm({
+      title: event.title,
+      description: event.description,
+      category: event.category,
+      venue: event.venue,
+      date: event.date?.slice(0, 10) || '',
+      time: event.time || '',
+      price: String(event.price ?? ''),
+      total_tickets: String(event.total_tickets ?? ''),
+      is_virtual: !!event.is_virtual,
+      fee_payer: event.fee_payer || 'organizer',
+    });
+    setEventImage(null);
+    setShowEditEvent(true);
+  };
+
+  const handleSaveEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingEvent(true);
+    try {
+      const data = new FormData();
+      data.append('title', eventForm.title);
+      data.append('description', eventForm.description);
+      data.append('category', eventForm.category);
+      data.append('venue', eventForm.venue);
+      data.append('date', eventForm.date);
+      data.append('time', eventForm.time);
+      data.append('price', eventForm.price);
+      data.append('total_tickets', eventForm.total_tickets);
+      data.append('is_virtual', eventForm.is_virtual ? '1' : '0');
+      data.append('fee_payer', eventForm.fee_payer);
+      if (eventImage) {
+        data.append('image', eventImage);
+      }
+      await events.update(Number(params.id), data);
+      setShowEditEvent(false);
+      await loadEvent();
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to save event');
+    } finally {
+      setSavingEvent(false);
+    }
+  };
+
+  const handleDeleteEvent = async () => {
+    if (!confirm('Delete this event? This cannot be undone and will remove all its ticket types and coupons.')) return;
+    try {
+      await events.delete(Number(params.id));
+      router.push('/organizer');
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to delete event');
+    }
+  };
+
   const loadVariations = async () => {
     try {
       const response = await fetch(
@@ -281,29 +355,173 @@ export default function OrganizerEventDetailPage() {
         {/* Event Header */}
         <Card>
           <CardContent className="p-6">
-            <h2 className="font-display font-bold text-xl mb-2">{event.title}</h2>
-            <div
-              className="prose prose-sm max-w-none text-muted-foreground mb-6 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
-              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(event.description) }}
-            />
-            <div className="grid sm:grid-cols-4 gap-4">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Date</p>
-                <p className="font-medium text-sm">{new Date(event.date).toLocaleDateString()}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Time</p>
-                <p className="font-medium text-sm">{event.time}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Venue</p>
-                <p className="font-medium text-sm">{event.venue}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Category</p>
-                <p className="font-medium text-sm">{event.category}</p>
+            <div className="flex flex-wrap justify-between items-start gap-3 mb-2">
+              <h2 className="font-display font-bold text-xl">{event.title}</h2>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button variant="outline" size="sm" onClick={() => (showEditEvent ? setShowEditEvent(false) : handleOpenEditEvent())}>
+                  <Edit2 className="w-4 h-4" /> {showEditEvent ? 'Cancel' : 'Edit Event'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={handleDeleteEvent}
+                >
+                  <Trash2 className="w-4 h-4" /> Delete
+                </Button>
               </div>
             </div>
+
+            {showEditEvent ? (
+              <form onSubmit={handleSaveEvent} className="space-y-5 mt-4 p-4 rounded-xl border border-border bg-muted/30">
+                <div>
+                  <Label htmlFor="edit-title">Event title *</Label>
+                  <Input id="edit-title" required value={eventForm.title} onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })} />
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-description">Description *</Label>
+                  <RichTextEditor value={eventForm.description} onChange={(html) => setEventForm({ ...eventForm, description: html })} />
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-category">Category *</Label>
+                    <select
+                      id="edit-category"
+                      required
+                      value={eventForm.category}
+                      onChange={(e) => setEventForm({ ...eventForm, category: e.target.value })}
+                      className="w-full h-11 rounded-xl border border-input bg-background/50 px-4 text-sm"
+                    >
+                      <option value="">Select category</option>
+                      <option value="Movie">Movie</option>
+                      <option value="Concert">Concert</option>
+                      <option value="Conference">Conference</option>
+                      <option value="Workshop">Workshop</option>
+                      <option value="Sports">Sports</option>
+                      <option value="Theater">Theater</option>
+                      <option value="Festival">Festival</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-venue">Venue *</Label>
+                    <div className="relative">
+                      <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        id="edit-venue"
+                        required={!eventForm.is_virtual}
+                        value={eventForm.venue}
+                        onChange={(e) => setEventForm({ ...eventForm, venue: e.target.value })}
+                        className="pl-12"
+                        disabled={eventForm.is_virtual}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-3 p-3 bg-background rounded-xl">
+                  <input
+                    type="checkbox"
+                    id="edit-is-virtual"
+                    checked={eventForm.is_virtual}
+                    onChange={(e) => setEventForm({ ...eventForm, is_virtual: e.target.checked, venue: e.target.checked ? 'Virtual' : eventForm.venue })}
+                    className="w-4 h-4 accent-primary rounded"
+                  />
+                  <label htmlFor="edit-is-virtual" className="text-sm font-medium cursor-pointer">This is a virtual event (online)</label>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-date">Date *</Label>
+                    <div className="relative">
+                      <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input id="edit-date" type="date" required value={eventForm.date} onChange={(e) => setEventForm({ ...eventForm, date: e.target.value })} className="pl-12" />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-time">Time</Label>
+                    <Input id="edit-time" type="time" value={eventForm.time} onChange={(e) => setEventForm({ ...eventForm, time: e.target.value })} />
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-price">Price per ticket (NGN) *</Label>
+                    <div className="relative">
+                      <NairaSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input id="edit-price" type="number" required min="0" step="0.01" value={eventForm.price} onChange={(e) => setEventForm({ ...eventForm, price: e.target.value })} className="pl-12" />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-total-tickets">Total tickets *</Label>
+                    <Input id="edit-total-tickets" type="number" required min="1" value={eventForm.total_tickets} onChange={(e) => setEventForm({ ...eventForm, total_tickets: e.target.value })} />
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Who covers the platform fee?</Label>
+                  <div className="grid md:grid-cols-2 gap-2 mt-1">
+                    <button
+                      type="button"
+                      onClick={() => setEventForm({ ...eventForm, fee_payer: 'organizer' })}
+                      className={`rounded-xl border-2 px-4 py-3 text-sm font-medium text-left transition-colors ${eventForm.fee_payer === 'organizer' ? 'border-primary bg-primary/5' : 'border-border'}`}
+                    >
+                      You (the organizer)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEventForm({ ...eventForm, fee_payer: 'attendee' })}
+                      className={`rounded-xl border-2 px-4 py-3 text-sm font-medium text-left transition-colors ${eventForm.fee_payer === 'attendee' ? 'border-primary bg-primary/5' : 'border-border'}`}
+                    >
+                      Attendees
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-image">Replace event image (optional)</Label>
+                  <input
+                    id="edit-image"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setEventImage(e.target.files?.[0] || null)}
+                    className="w-full text-sm"
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button type="submit" disabled={savingEvent}>{savingEvent ? 'Saving...' : 'Save changes'}</Button>
+                  <Button type="button" variant="outline" onClick={() => setShowEditEvent(false)}>Cancel</Button>
+                </div>
+              </form>
+            ) : (
+              <>
+                <div
+                  className="prose prose-sm max-w-none text-muted-foreground mb-6 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(event.description) }}
+                />
+                <div className="grid sm:grid-cols-4 gap-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Date</p>
+                    <p className="font-medium text-sm">{new Date(event.date).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Time</p>
+                    <p className="font-medium text-sm">{event.time}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Venue</p>
+                    <p className="font-medium text-sm">{event.venue}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Category</p>
+                    <p className="font-medium text-sm">{event.category}</p>
+                  </div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
