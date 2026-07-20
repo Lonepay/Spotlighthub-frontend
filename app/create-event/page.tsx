@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { useAuth } from '@/components/AuthProvider';
@@ -12,6 +12,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, MapPin, Upload, ArrowRight, Loader2 } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { RichTextEditor } from '@/components/RichTextEditor';
+
+const BASE_CATEGORIES = ['Movie', 'Concert', 'Conference', 'Workshop', 'Sports', 'Theater', 'Festival'];
 
 export default function CreateEventPage() {
   const router = useRouter();
@@ -31,6 +33,15 @@ export default function CreateEventPage() {
   });
   const [image, setImage] = useState<File | null>(null);
   const [error, setError] = useState('');
+  const [categoryOptions, setCategoryOptions] = useState<string[]>(BASE_CATEGORIES);
+  const [customCategory, setCustomCategory] = useState(false);
+
+  useEffect(() => {
+    events.getCategories().then((data) => {
+      const merged = Array.from(new Set([...BASE_CATEGORIES, ...data.map((c) => c.category)])).sort();
+      setCategoryOptions(merged);
+    }).catch(() => {});
+  }, []);
 
   // Redirect if not authenticated
   if (typeof window !== 'undefined' && !user) {
@@ -102,37 +113,56 @@ export default function CreateEventPage() {
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <Label htmlFor="event-category">Category *</Label>
-                <select
-                  id="event-category"
-                  required
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full h-11 rounded-xl border border-input bg-background/50 px-4 text-sm"
-                >
-                  <option value="">Select category</option>
-                  <option value="Movie">Movie</option>
-                  <option value="Concert">Concert</option>
-                  <option value="Conference">Conference</option>
-                  <option value="Workshop">Workshop</option>
-                  <option value="Sports">Sports</option>
-                  <option value="Theater">Theater</option>
-                  <option value="Festival">Festival</option>
-                  <option value="Other">Other</option>
-                </select>
+                {customCategory ? (
+                  <div className="flex gap-2">
+                    <Input
+                      id="event-category"
+                      required
+                      autoFocus
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      placeholder="Type your category"
+                    />
+                    <Button type="button" variant="outline" onClick={() => { setCustomCategory(false); setFormData({ ...formData, category: '' }); }}>
+                      Choose from list
+                    </Button>
+                  </div>
+                ) : (
+                  <select
+                    id="event-category"
+                    required
+                    value={formData.category}
+                    onChange={(e) => {
+                      if (e.target.value === '__custom__') {
+                        setCustomCategory(true);
+                        setFormData({ ...formData, category: '' });
+                      } else {
+                        setFormData({ ...formData, category: e.target.value });
+                      }
+                    }}
+                    className="w-full h-11 rounded-xl border border-input bg-background/50 px-4 text-sm"
+                  >
+                    <option value="">Select category</option>
+                    {categoryOptions.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                    <option value="__custom__">Other (type your own)…</option>
+                  </select>
+                )}
               </div>
 
               <div>
-                <Label htmlFor="event-venue">Venue *</Label>
+                <Label htmlFor="event-venue">{formData.is_virtual ? 'Meeting link *' : 'Venue *'}</Label>
                 <div className="relative">
                   <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <Input
                     id="event-venue"
-                    required={!formData.is_virtual}
+                    required
+                    type={formData.is_virtual ? 'url' : 'text'}
                     value={formData.venue}
                     onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
                     className="pl-12"
-                    placeholder={formData.is_virtual ? "Virtual Event" : "Venue name"}
-                    disabled={formData.is_virtual}
+                    placeholder={formData.is_virtual ? "https://zoom.us/j/... or https://meet.google.com/..." : "Venue name"}
                   />
                 </div>
               </div>
@@ -143,11 +173,11 @@ export default function CreateEventPage() {
                 type="checkbox"
                 id="is_virtual"
                 checked={formData.is_virtual}
-                onChange={(e) => setFormData({ ...formData, is_virtual: e.target.checked, venue: e.target.checked ? 'Virtual' : '' })}
+                onChange={(e) => setFormData({ ...formData, is_virtual: e.target.checked, venue: '' })}
                 className="w-4 h-4 accent-primary rounded"
               />
               <label htmlFor="is_virtual" className="text-sm font-medium cursor-pointer">
-                This is a virtual event (online)
+                This is a virtual event (online) — attendees get a meeting link instead of a venue
               </label>
             </div>
 

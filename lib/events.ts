@@ -32,6 +32,8 @@ export interface EventFilters {
   search?: string;
   category?: string;
   page?: number;
+  when?: 'past';
+  sort?: 'trending';
 }
 
 export interface TicketVariation {
@@ -62,6 +64,8 @@ export const events = {
       if (filters.page) params.page = filters.page;
       if (filters.search && filters.search.trim()) params.search = filters.search.trim();
       if (filters.category) params.category = filters.category;
+      if (filters.when) params.when = filters.when;
+      if (filters.sort) params.sort = filters.sort;
     }
 
     const { data } = await api.get('/events', { params });

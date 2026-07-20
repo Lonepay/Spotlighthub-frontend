@@ -28,6 +28,8 @@ interface TicketVariation {
   sold?: number;
 }
 
+const BASE_CATEGORIES = ['Movie', 'Concert', 'Conference', 'Workshop', 'Sports', 'Theater', 'Festival'];
+
 export default function OrganizerEventDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -49,6 +51,8 @@ export default function OrganizerEventDetailPage() {
   const [showEditEvent, setShowEditEvent] = useState(false);
   const [savingEvent, setSavingEvent] = useState(false);
   const [eventImage, setEventImage] = useState<File | null>(null);
+  const [categoryOptions, setCategoryOptions] = useState<string[]>(BASE_CATEGORIES);
+  const [customCategory, setCustomCategory] = useState(false);
   const [eventForm, setEventForm] = useState({
     title: '',
     description: '',
@@ -195,8 +199,16 @@ export default function OrganizerEventDetailPage() {
     }
   };
 
+  useEffect(() => {
+    events.getCategories().then((data) => {
+      const merged = Array.from(new Set([...BASE_CATEGORIES, ...data.map((c) => c.category)])).sort();
+      setCategoryOptions(merged);
+    }).catch(() => {});
+  }, []);
+
   const handleOpenEditEvent = () => {
     if (!event) return;
+    setCustomCategory(!!event.category && !categoryOptions.includes(event.category));
     setEventForm({
       title: event.title,
       description: event.description,
@@ -387,35 +399,55 @@ export default function OrganizerEventDetailPage() {
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="edit-category">Category *</Label>
-                    <select
-                      id="edit-category"
-                      required
-                      value={eventForm.category}
-                      onChange={(e) => setEventForm({ ...eventForm, category: e.target.value })}
-                      className="w-full h-11 rounded-xl border border-input bg-background/50 px-4 text-sm"
-                    >
-                      <option value="">Select category</option>
-                      <option value="Movie">Movie</option>
-                      <option value="Concert">Concert</option>
-                      <option value="Conference">Conference</option>
-                      <option value="Workshop">Workshop</option>
-                      <option value="Sports">Sports</option>
-                      <option value="Theater">Theater</option>
-                      <option value="Festival">Festival</option>
-                      <option value="Other">Other</option>
-                    </select>
+                    {customCategory ? (
+                      <div className="flex gap-2">
+                        <Input
+                          id="edit-category"
+                          required
+                          autoFocus
+                          value={eventForm.category}
+                          onChange={(e) => setEventForm({ ...eventForm, category: e.target.value })}
+                          placeholder="Type your category"
+                        />
+                        <Button type="button" variant="outline" onClick={() => { setCustomCategory(false); setEventForm({ ...eventForm, category: '' }); }}>
+                          List
+                        </Button>
+                      </div>
+                    ) : (
+                      <select
+                        id="edit-category"
+                        required
+                        value={eventForm.category}
+                        onChange={(e) => {
+                          if (e.target.value === '__custom__') {
+                            setCustomCategory(true);
+                            setEventForm({ ...eventForm, category: '' });
+                          } else {
+                            setEventForm({ ...eventForm, category: e.target.value });
+                          }
+                        }}
+                        className="w-full h-11 rounded-xl border border-input bg-background/50 px-4 text-sm"
+                      >
+                        <option value="">Select category</option>
+                        {categoryOptions.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                        <option value="__custom__">Other (type your own)…</option>
+                      </select>
+                    )}
                   </div>
                   <div>
-                    <Label htmlFor="edit-venue">Venue *</Label>
+                    <Label htmlFor="edit-venue">{eventForm.is_virtual ? 'Meeting link *' : 'Venue *'}</Label>
                     <div className="relative">
                       <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                       <Input
                         id="edit-venue"
-                        required={!eventForm.is_virtual}
+                        required
+                        type={eventForm.is_virtual ? 'url' : 'text'}
                         value={eventForm.venue}
                         onChange={(e) => setEventForm({ ...eventForm, venue: e.target.value })}
                         className="pl-12"
-                        disabled={eventForm.is_virtual}
+                        placeholder={eventForm.is_virtual ? 'https://zoom.us/j/... or https://meet.google.com/...' : undefined}
                       />
                     </div>
                   </div>
@@ -426,10 +458,10 @@ export default function OrganizerEventDetailPage() {
                     type="checkbox"
                     id="edit-is-virtual"
                     checked={eventForm.is_virtual}
-                    onChange={(e) => setEventForm({ ...eventForm, is_virtual: e.target.checked, venue: e.target.checked ? 'Virtual' : eventForm.venue })}
+                    onChange={(e) => setEventForm({ ...eventForm, is_virtual: e.target.checked, venue: '' })}
                     className="w-4 h-4 accent-primary rounded"
                   />
-                  <label htmlFor="edit-is-virtual" className="text-sm font-medium cursor-pointer">This is a virtual event (online)</label>
+                  <label htmlFor="edit-is-virtual" className="text-sm font-medium cursor-pointer">This is a virtual event (online) — attendees get a meeting link instead of a venue</label>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4">

@@ -29,6 +29,7 @@ function EventsPageInner() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState(searchParams.get('category') || '');
+  const [when, setWhen] = useState<'' | 'past'>(searchParams.get('when') === 'past' ? 'past' : '');
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState<any>(null);
   const [categories, setCategories] = useState<CategoryCount[]>([]);
@@ -44,20 +45,35 @@ function EventsPageInner() {
     events.getCategories().then(setCategories).catch(() => setCategories([]));
   }, []);
 
-  // Stay in sync if the category changes via a link elsewhere (e.g. Home)
-  // without a full page reload.
+  // Stay in sync if the category/when changes via a link elsewhere (e.g.
+  // Home) without a full page reload.
   useEffect(() => {
     setCategory(searchParams.get('category') || '');
+    setWhen(searchParams.get('when') === 'past' ? 'past' : '');
   }, [searchParams]);
 
   useEffect(() => {
     loadEvents();
-  }, [search, category, page]);
+  }, [search, category, when, page]);
+
+  const buildUrl = (cat: string, w: '' | 'past') => {
+    const qs = new URLSearchParams();
+    if (cat) qs.set('category', cat);
+    if (w) qs.set('when', w);
+    const s = qs.toString();
+    return s ? `/events?${s}` : '/events';
+  };
 
   const selectCategory = (cat: string) => {
     setCategory(cat);
     setPage(1);
-    router.replace(cat ? `/events?category=${encodeURIComponent(cat)}` : '/events');
+    router.replace(buildUrl(cat, when));
+  };
+
+  const toggleWhen = (w: '' | 'past') => {
+    setWhen(w);
+    setPage(1);
+    router.replace(buildUrl(category, w));
   };
 
   const loadEvents = async () => {
@@ -69,6 +85,9 @@ function EventsPageInner() {
       }
       if (category) {
         params.category = category;
+      }
+      if (when) {
+        params.when = when;
       }
 
       const data = await events.getAll(params);
@@ -106,6 +125,29 @@ function EventsPageInner() {
               }}
               className="pl-12"
             />
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => toggleWhen('')}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                when === ''
+                  ? 'bg-gradient-primary text-primary-foreground shadow-glow-sm'
+                  : 'glass text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Upcoming
+            </button>
+            <button
+              onClick={() => toggleWhen('past')}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                when === 'past'
+                  ? 'bg-gradient-primary text-primary-foreground shadow-glow-sm'
+                  : 'glass text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Past
+            </button>
           </div>
 
           <div className="flex flex-wrap gap-2">

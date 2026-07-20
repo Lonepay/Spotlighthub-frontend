@@ -24,6 +24,7 @@ import {
   PlusCircle,
   Shield,
   ShoppingCart,
+  Info,
 } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { useState } from 'react';
@@ -34,6 +35,7 @@ const NAV_LINKS = [
   { href: '/vendors', label: 'Vendors', icon: Store },
   { href: '/pricing', label: 'Pricing', icon: NairaSign },
   { href: '/blog', label: 'Blog', icon: Newspaper },
+  { href: '/about', label: 'About Us', icon: Info },
   { href: '/contact', label: 'Contact', icon: Mail },
 ];
 

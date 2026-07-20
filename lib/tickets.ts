@@ -14,6 +14,7 @@ export interface Ticket {
     date: string;
     time: string;
     venue: string;
+    is_virtual?: boolean;
     image?: string;
   };
   created_at: string;

@@ -122,8 +122,6 @@ function AdminDashboardPageInner() {
     title:'', description:'', date:'', time:'', venue:'', category:'Concert', price:0, total_tickets:1
   });
   const [creatingEvent, setCreatingEvent] = useState(false);
-  const [editingEventId, setEditingEventId] = useState<number| null>(null);
-  const [editingEvent, setEditingEvent] = useState<any>(null);
 
   const [newBlogPost, setNewBlogPost] = useState<{title:string; excerpt:string; content:string; category:string; image: File|null}>({
     title:'', excerpt:'', content:'', category:'General', image: null
@@ -604,8 +602,10 @@ function AdminDashboardPageInner() {
                           <Button asChild variant="ghost" size="sm">
                             <Link href={`/events/${event.id}`}>View</Link>
                           </Button>
-                          <Button variant="outline" size="sm" onClick={()=>{ setEditingEventId(event.id); setEditingEvent({ title: event.title, price: event.price, date: event.date, time: event.time, venue: event.venue, category: event.category }); }}>
-                            <Edit className="w-4 h-4"/> Edit
+                          <Button asChild variant="outline" size="sm">
+                            <Link href={`/organizer/events/${event.id}`}>
+                              <Edit className="w-4 h-4"/> Manage
+                            </Link>
                           </Button>
                           <Button
                             variant="ghost"
@@ -617,22 +617,6 @@ function AdminDashboardPageInner() {
                           </Button>
                         </div>
                       </div>
-                      {editingEventId===event.id && (
-                        <div className="mt-4 p-4 rounded-xl bg-muted/30">
-                          <div className="grid md:grid-cols-2 gap-4">
-                            <Input placeholder="Title" value={editingEvent.title} onChange={(e)=>setEditingEvent({...editingEvent, title:e.target.value})}/>
-                            <Input type="number" placeholder="Price" value={editingEvent.price} onChange={(e)=>setEditingEvent({...editingEvent, price:Number(e.target.value)})}/>
-                            <Input type="date" value={editingEvent.date||''} onChange={(e)=>setEditingEvent({...editingEvent, date:e.target.value})}/>
-                            <Input type="time" value={editingEvent.time||''} onChange={(e)=>setEditingEvent({...editingEvent, time:e.target.value})}/>
-                            <Input placeholder="Venue" value={editingEvent.venue||''} onChange={(e)=>setEditingEvent({...editingEvent, venue:e.target.value})}/>
-                            <Input placeholder="Category" value={editingEvent.category||''} onChange={(e)=>setEditingEvent({...editingEvent, category:e.target.value})}/>
-                          </div>
-                          <div className="flex justify-end space-x-2 mt-4">
-                            <Button variant="outline" onClick={()=>{ setEditingEventId(null); setEditingEvent(null); }}>Cancel</Button>
-                            <Button onClick={async()=>{ try { await admin.updateEvent(event.id, editingEvent); setEditingEventId(null); setEditingEvent(null); await refreshEvents(); } catch(e){ alert('Failed to update'); } }}>Save</Button>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>

@@ -38,15 +38,20 @@ function formatNaira(value: number) {
 }
 
 export default function Home() {
-  const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
+  const [trendingEvents, setTrendingEvents] = useState<Event[]>([]);
+  const [pastEvents, setPastEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<CategoryCount[]>([]);
 
   useEffect(() => {
-    events.getAll({ page: 1 }).then((data) => {
-      setFeaturedEvents(data.data?.slice(0, 8) || []);
+    events.getAll({ page: 1, sort: 'trending' }).then((data) => {
+      setTrendingEvents(data.data?.slice(0, 8) || []);
       setLoading(false);
     }).catch(() => setLoading(false));
+
+    events.getAll({ page: 1, when: 'past' }).then((data) => {
+      setPastEvents(data.data?.slice(0, 4) || []);
+    }).catch(() => {});
 
     events.getCategories().then((data) => setCategories(data.slice(0, 6))).catch(() => setCategories([]));
   }, []);
@@ -159,11 +164,11 @@ export default function Home() {
           <Reveal className="flex justify-between items-center mb-12">
             <div>
               <h2 className="text-4xl font-bold mb-2">Trending now</h2>
-              <p className="text-lg text-muted-foreground">Can't-miss experiences this week</p>
+              <p className="text-lg text-muted-foreground">Ranked by ticket sales — the events everyone's going to</p>
             </div>
             <Button asChild variant="outline" className="hidden sm:inline-flex">
               <Link href="/events">
-                View all <ArrowRight className="w-5 h-5" />
+                See all events <ArrowRight className="w-5 h-5" />
               </Link>
             </Button>
           </Reveal>
@@ -178,9 +183,9 @@ export default function Home() {
                 </div>
               ))}
             </div>
-          ) : featuredEvents.length > 0 ? (
+          ) : trendingEvents.length > 0 ? (
             <RevealGroup className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {featuredEvents.map((event) => (
+              {trendingEvents.map((event) => (
                 <RevealItem key={event.id}>
                 <Link href={`/events/${event.id}`} className="group relative block">
                   <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-muted shadow-card transition-all duration-300 group-hover:shadow-glow-sm group-hover:scale-[1.02]">
@@ -218,11 +223,58 @@ export default function Home() {
             </RevealGroup>
           ) : (
             <div className="text-center py-12">
-              <p className="text-muted-foreground text-lg">No events available yet. Check back soon!</p>
+              <p className="text-muted-foreground text-lg">No upcoming events yet. Check back soon!</p>
             </div>
           )}
         </div>
       </section>
+
+      {/* Past events */}
+      {pastEvents.length > 0 && (
+        <section className="py-20 bg-muted/20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <Reveal className="flex justify-between items-center mb-12">
+              <div>
+                <h2 className="text-4xl font-bold mb-2">Past events</h2>
+                <p className="text-lg text-muted-foreground">A look back at what already happened</p>
+              </div>
+              <Button asChild variant="outline" className="hidden sm:inline-flex">
+                <Link href="/events?when=past">
+                  See all past events <ArrowRight className="w-5 h-5" />
+                </Link>
+              </Button>
+            </Reveal>
+
+            <RevealGroup className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {pastEvents.map((event) => (
+                <RevealItem key={event.id}>
+                  <Link href={`/events/${event.id}`} className="group relative block opacity-80 hover:opacity-100 transition-opacity">
+                    <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-muted shadow-card grayscale-[40%] group-hover:grayscale-0 transition-all duration-300">
+                      {event.image ? (
+                        <Image src={storageUrl(event.image)!} alt={event.title} fill className="object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-primary p-6 flex items-center justify-center text-center">
+                          <span className="text-xl font-bold text-white/50">{event.title}</span>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-70" />
+                      <div className="absolute bottom-0 left-0 right-0 p-4">
+                        <span className="inline-block px-2 py-1 mb-2 text-xs font-bold text-white bg-secondary/80 backdrop-blur-sm rounded-md">
+                          Ended
+                        </span>
+                        <h3 className="text-lg font-bold text-white leading-tight mb-1 line-clamp-2">{event.title}</h3>
+                        <span className="text-white/70 text-xs">
+                          {new Date(event.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                </RevealItem>
+              ))}
+            </RevealGroup>
+          </div>
+        </section>
+      )}
 
       {/* Smart event planning */}
       <section className="py-20">
