@@ -23,11 +23,12 @@ import { DashboardCharts } from '@/components/admin/DashboardCharts';
 import { RichTextEditor } from '@/components/RichTextEditor';
 import { KycReviewTab } from '@/components/admin/KycReviewTab';
 import { WithdrawalsTab } from '@/components/admin/WithdrawalsTab';
+import { VendorsTab } from '@/components/admin/VendorsTab';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import Link from 'next/link';
 
-type AdminTab = 'overview' | 'users' | 'events' | 'kyc' | 'withdrawals' | 'tickets' | 'payments' | 'blog' | 'settings';
-const VALID_TABS: AdminTab[] = ['overview', 'users', 'events', 'kyc', 'withdrawals', 'tickets', 'payments', 'blog', 'settings'];
+type AdminTab = 'overview' | 'users' | 'events' | 'kyc' | 'withdrawals' | 'tickets' | 'payments' | 'blog' | 'vendors' | 'settings';
+const VALID_TABS: AdminTab[] = ['overview', 'users', 'events', 'kyc', 'withdrawals', 'tickets', 'payments', 'blog', 'vendors', 'settings'];
 
 export default function AdminDashboardPage() {
   // useSearchParams() below requires a Suspense ancestor for Next.js's
@@ -948,6 +949,10 @@ function AdminDashboardPageInner() {
                 {paginationControls(blogPage, (page) => refreshBlogPosts(page))}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="vendors">
+            <VendorsTab />
           </TabsContent>
 
           <TabsContent value="settings">
