@@ -104,5 +104,19 @@ export const events = {
     const { data } = await api.get(`/events/${id}/variations`);
     return data.data || data;
   },
+
+  async createVariation(eventId: number, payload: { name: string; description?: string; price: number; quantity: number }): Promise<TicketVariation> {
+    const { data } = await api.post(`/events/${eventId}/variations`, payload);
+    return data.data || data;
+  },
+
+  async updateVariation(eventId: number, variationId: number, payload: Partial<{ name: string; description: string; price: number; quantity: number }>): Promise<TicketVariation> {
+    const { data } = await api.put(`/events/${eventId}/variations/${variationId}`, payload);
+    return data.data || data;
+  },
+
+  async deleteVariation(eventId: number, variationId: number): Promise<void> {
+    await api.delete(`/events/${eventId}/variations/${variationId}`);
+  },
 };
 

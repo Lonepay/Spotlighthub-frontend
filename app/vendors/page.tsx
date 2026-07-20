@@ -15,6 +15,14 @@ const BENEFITS = [
   { icon: TrendingUp, title: 'Track performance', desc: 'See how many people are viewing and booking your location over time.' },
 ];
 
+const NIGERIA_STATES = [
+  'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue', 'Borno',
+  'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu', 'FCT (Abuja)', 'Gombe',
+  'Imo', 'Jigawa', 'Kaduna', 'Kano', 'Katsina', 'Kebbi', 'Kogi', 'Kwara', 'Lagos',
+  'Nasarawa', 'Niger', 'Ogun', 'Ondo', 'Osun', 'Oyo', 'Plateau', 'Rivers', 'Sokoto',
+  'Taraba', 'Yobe', 'Zamfara', 'Outside Nigeria',
+];
+
 export default function VendorsPage() {
   const [form, setForm] = useState({ business_name: '', contact_name: '', email: '', phone: '', location: '', message: '' });
   const [submitting, setSubmitting] = useState(false);
@@ -116,8 +124,18 @@ export default function VendorsPage() {
                 </div>
               </div>
               <div>
-                <Label htmlFor="location">Location / city</Label>
-                <Input id="location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Lagos, Nigeria" />
+                <Label htmlFor="location">State</Label>
+                <select
+                  id="location"
+                  value={form.location}
+                  onChange={(e) => setForm({ ...form, location: e.target.value })}
+                  className="w-full h-11 rounded-xl border border-input bg-background/50 px-4 text-sm"
+                >
+                  <option value="">Select state</option>
+                  {NIGERIA_STATES.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <Label htmlFor="message">Tell us about your venue *</Label>

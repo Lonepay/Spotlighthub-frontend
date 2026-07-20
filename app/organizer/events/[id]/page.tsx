@@ -29,6 +29,7 @@ interface TicketVariation {
 }
 
 const BASE_CATEGORIES = ['Movie', 'Concert', 'Conference', 'Workshop', 'Sports', 'Theater', 'Festival'];
+const TIER_PRESETS = ['Regular', 'VIP', 'VVIP', 'Early Bird', 'Table', 'Group', 'Student', 'Season Pass'];
 
 export default function OrganizerEventDetailPage() {
   const params = useParams();
@@ -41,6 +42,7 @@ export default function OrganizerEventDetailPage() {
   const [ticketsPage, setTicketsPage] = useState({ current_page: 1, last_page: 1 });
   const [showVariationForm, setShowVariationForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [customTierName, setCustomTierName] = useState(false);
   const [formData, setFormData] = useState<TicketVariation>({
     name: '',
     description: '',
@@ -265,18 +267,8 @@ export default function OrganizerEventDetailPage() {
 
   const loadVariations = async () => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/events/${params.id}/variations`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setVariations(data.data || data);
-      }
+      const data = await events.getVariations(Number(params.id));
+      setVariations(data.map((v) => ({ ...v, description: v.description || '' })));
     } catch (error) {
       console.error('Failed to load variations:', error);
     }
@@ -284,43 +276,26 @@ export default function OrganizerEventDetailPage() {
 
   const handleAddVariation = async () => {
     try {
-      const method = editingId ? 'PUT' : 'POST';
-      const url = editingId
-        ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/events/${params.id}/variations/${editingId}`
-        : `${process.env.NEXT_PUBLIC_BACKEND_URL}/events/${params.id}/variations`;
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (response.ok) {
-        setFormData({ name: '', description: '', price: 0, quantity: 0 });
-        setShowVariationForm(false);
-        setEditingId(null);
-        await loadVariations();
+      const payload = { name: formData.name, description: formData.description, price: formData.price, quantity: formData.quantity };
+      if (editingId) {
+        await events.updateVariation(Number(params.id), editingId, payload);
+      } else {
+        await events.createVariation(Number(params.id), payload);
       }
-    } catch (error) {
-      alert('Failed to save variation');
+      setFormData({ name: '', description: '', price: 0, quantity: 0 });
+      setCustomTierName(false);
+      setShowVariationForm(false);
+      setEditingId(null);
+      await loadVariations();
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to save variation');
     }
   };
 
   const handleDeleteVariation = async (id: number) => {
     if (!confirm('Delete this ticket variation?')) return;
     try {
-      await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/events/${params.id}/variations/${id}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
-      );
+      await events.deleteVariation(Number(params.id), id);
       await loadVariations();
     } catch (error) {
       alert('Failed to delete variation');
@@ -328,6 +303,7 @@ export default function OrganizerEventDetailPage() {
   };
 
   const handleEditVariation = (variation: TicketVariation) => {
+    setCustomTierName(!!variation.name && !TIER_PRESETS.includes(variation.name));
     setFormData({
       name: variation.name,
       description: variation.description,
@@ -570,6 +546,7 @@ export default function OrganizerEventDetailPage() {
                 onClick={() => {
                   setShowVariationForm(!showVariationForm);
                   setEditingId(null);
+                  setCustomTierName(false);
                   setFormData({ name: '', description: '', price: 0, quantity: 0 });
                 }}
               >
@@ -582,12 +559,40 @@ export default function OrganizerEventDetailPage() {
                 <div className="grid md:grid-cols-2 gap-4 mb-4">
                   <div>
                     <Label htmlFor="var-name">Ticket type</Label>
-                    <Input
-                      id="var-name"
-                      placeholder="e.g., VIP, General Admission"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    />
+                    {customTierName ? (
+                      <div className="flex gap-2">
+                        <Input
+                          id="var-name"
+                          autoFocus
+                          placeholder="Type your ticket type"
+                          value={formData.name}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        />
+                        <Button type="button" variant="outline" onClick={() => { setCustomTierName(false); setFormData({ ...formData, name: '' }); }}>
+                          List
+                        </Button>
+                      </div>
+                    ) : (
+                      <select
+                        id="var-name"
+                        value={formData.name}
+                        onChange={(e) => {
+                          if (e.target.value === '__custom__') {
+                            setCustomTierName(true);
+                            setFormData({ ...formData, name: '' });
+                          } else {
+                            setFormData({ ...formData, name: e.target.value });
+                          }
+                        }}
+                        className="w-full h-11 rounded-xl border border-input bg-background/50 px-4 text-sm"
+                      >
+                        <option value="">Select ticket type</option>
+                        {TIER_PRESETS.map((t) => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                        <option value="__custom__">Other (type your own)…</option>
+                      </select>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="var-price">Price (NGN)</Label>
