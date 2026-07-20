@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
+import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
@@ -73,13 +73,7 @@ export default function RegisterPage() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center mb-4">
-              <Image
-                src="/storage/logo.png"
-                alt="Spotlighticket"
-                width={219}
-                height={99}
-                className="h-16 w-auto object-contain"
-              />
+              <Logo className="h-16 w-auto object-contain" />
             </div>
             <h1 className="text-4xl font-bold mb-2">Create account</h1>
             <p className="text-muted-foreground">Join Spotlighticket and start your journey</p>

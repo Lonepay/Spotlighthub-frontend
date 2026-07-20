@@ -2,10 +2,10 @@
 
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { Logo } from '@/components/Logo';
 import {
   Avatar,
   AvatarImage,
@@ -197,7 +197,7 @@ function DashboardShellInner({
     <div className="flex h-full flex-col">
       <div className="flex items-center h-16 px-5 border-b border-border shrink-0">
         <Link href="/" className="flex items-center">
-          <Image src="/storage/logo.png" alt="Spotlighticket" width={219} height={99} className="h-8 w-auto object-contain" />
+          <Logo className="h-8 w-auto object-contain" />
         </Link>
       </div>
 

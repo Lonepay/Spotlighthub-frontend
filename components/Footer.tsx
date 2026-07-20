@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { Instagram, Youtube, MessageCircle } from 'lucide-react';
+import { Logo } from './Logo';
 
 function TikTokIcon({ className }: { className?: string }) {
   return (
@@ -17,13 +17,7 @@ export function Footer() {
         <div className="grid md:grid-cols-4 gap-8 mb-8">
           <div>
             <div className="flex items-center space-x-2 mb-4">
-              <Image
-                src="/storage/logo.png"
-                alt="Spotlighticket"
-                width={219}
-                height={99}
-                className="h-8 w-auto object-contain"
-              />
+              <Logo className="h-8 w-auto object-contain" />
             </div>
             <p className="text-sm text-muted-foreground mb-4">
               Nigeria's home for booking events, movies, and visit-worthy locations.
