@@ -1,23 +1,37 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { events, Event } from '@/lib/events';
+import { events, Event, CategoryCount } from '@/lib/events';
 import { storageUrl } from '@/lib/storage';
 import { Search } from 'lucide-react';
 
 export default function EventsPage() {
+  // useSearchParams() below requires a Suspense ancestor for Next.js's
+  // production build (static generation) — without it the build fails.
+  return (
+    <Suspense fallback={null}>
+      <EventsPageInner />
+    </Suspense>
+  );
+}
+
+function EventsPageInner() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [eventsList, setEventsList] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState(searchParams.get('category') || '');
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState<any>(null);
+  const [categories, setCategories] = useState<CategoryCount[]>([]);
 
   const formatNaira = (value: number) =>
     new Intl.NumberFormat('en-NG', {
@@ -27,8 +41,24 @@ export default function EventsPage() {
     }).format(value);
 
   useEffect(() => {
+    events.getCategories().then(setCategories).catch(() => setCategories([]));
+  }, []);
+
+  // Stay in sync if the category changes via a link elsewhere (e.g. Home)
+  // without a full page reload.
+  useEffect(() => {
+    setCategory(searchParams.get('category') || '');
+  }, [searchParams]);
+
+  useEffect(() => {
     loadEvents();
   }, [search, category, page]);
+
+  const selectCategory = (cat: string) => {
+    setCategory(cat);
+    setPage(1);
+    router.replace(cat ? `/events?category=${encodeURIComponent(cat)}` : '/events');
+  };
 
   const loadEvents = async () => {
     setLoading(true);
@@ -43,15 +73,13 @@ export default function EventsPage() {
 
       const data = await events.getAll(params);
       setEventsList(data.data || []);
-      setMeta(data.meta);
+      setMeta({ current_page: data.current_page, last_page: data.last_page, total: data.total });
     } catch (error) {
       console.error('Failed to load events:', error);
     } finally {
       setLoading(false);
     }
   };
-
-  const categories = ['Action', 'Comedy', 'Drama', 'Horror', 'Sci-Fi', 'Romance', 'Documentary', 'Other'];
 
   return (
     <div className="min-h-screen">
@@ -82,10 +110,7 @@ export default function EventsPage() {
 
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => {
-                setCategory('');
-                setPage(1);
-              }}
+              onClick={() => selectCategory('')}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                 category === ''
                   ? 'bg-gradient-primary text-primary-foreground shadow-glow-sm'
@@ -94,20 +119,17 @@ export default function EventsPage() {
             >
               All
             </button>
-            {categories.map((cat) => (
+            {categories.map((c) => (
               <button
-                key={cat}
-                onClick={() => {
-                  setCategory(cat);
-                  setPage(1);
-                }}
+                key={c.category}
+                onClick={() => selectCategory(c.category)}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                  category === cat
+                  category === c.category
                     ? 'bg-gradient-primary text-primary-foreground shadow-glow-sm'
                     : 'glass text-muted-foreground hover:text-foreground'
                 }`}
               >
-                {cat}
+                {c.category} <span className="opacity-60">({c.event_count})</span>
               </button>
             ))}
           </div>

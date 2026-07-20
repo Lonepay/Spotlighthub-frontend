@@ -44,7 +44,17 @@ export interface TicketVariation {
   available_quantity: number;
 }
 
+export interface CategoryCount {
+  category: string;
+  event_count: number;
+}
+
 export const events = {
+  async getCategories(): Promise<CategoryCount[]> {
+    const { data } = await api.get('/events/categories');
+    return data;
+  },
+
   async getAll(filters?: EventFilters) {
     const params: any = {};
 

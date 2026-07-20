@@ -18,32 +18,11 @@ import {
   Building2,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { events, Event } from '@/lib/events';
+import { events, Event, CategoryCount } from '@/lib/events';
 import { storageUrl } from '@/lib/storage';
 
-const CATEGORIES = [
-  {
-    label: 'Events',
-    description: 'Concerts, festivals, parties',
-    href: '/events',
-    icon: Ticket,
-    image: '/images/feature-experience.jpg',
-  },
-  {
-    label: 'Movies',
-    description: 'Cinema listings and premieres',
-    href: '/events',
-    icon: Film,
-    image: '/images/feature-secure.jpg',
-  },
-  {
-    label: 'Locations',
-    description: 'Experiences and attractions',
-    href: '/events',
-    icon: MapPin,
-    image: '/images/feature-global.jpg',
-  },
-];
+const CATEGORY_ICONS = [Ticket, Film, MapPin, Calendar, Building2, ShieldCheck];
+const CATEGORY_IMAGES = ['/images/feature-experience.jpg', '/images/feature-secure.jpg', '/images/feature-global.jpg'];
 
 const VENUES = [
   { name: 'Eko Hotel & Suites', city: 'Lagos', capacity: '3,000 capacity' },
@@ -61,12 +40,15 @@ function formatNaira(value: number) {
 export default function Home() {
   const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<CategoryCount[]>([]);
 
   useEffect(() => {
     events.getAll({ page: 1 }).then((data) => {
       setFeaturedEvents(data.data?.slice(0, 8) || []);
       setLoading(false);
     }).catch(() => setLoading(false));
+
+    events.getCategories().then((data) => setCategories(data.slice(0, 6))).catch(() => setCategories([]));
   }, []);
 
   return (
@@ -127,32 +109,49 @@ export default function Home() {
       </section>
 
       {/* Browse by category */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Reveal className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4">Browse by category</h2>
-            <p className="text-lg text-muted-foreground">Everything worth going out for, in one place</p>
-          </Reveal>
-          <RevealGroup className="grid md:grid-cols-3 gap-6">
-            {CATEGORIES.map((cat) => (
-              <RevealItem key={cat.label}>
-                <Link
-                  href={cat.href}
-                  className="group relative h-72 rounded-2xl overflow-hidden shadow-card block transition-transform duration-300 hover:-translate-y-1 hover:shadow-glow-sm"
-                >
-                  <Image src={cat.image} alt={cat.label} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-6">
-                    <cat.icon className="w-8 h-8 text-primary-glow mb-2" />
-                    <h3 className="font-display font-bold text-2xl text-foreground mb-1">{cat.label}</h3>
-                    <p className="text-muted-foreground text-sm">{cat.description}</p>
-                  </div>
+      {categories.length > 0 && (
+        <section className="py-20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <Reveal className="flex justify-between items-center mb-12">
+              <div>
+                <h2 className="text-4xl font-bold mb-2">Browse by category</h2>
+                <p className="text-lg text-muted-foreground">Everything worth going out for, in one place</p>
+              </div>
+              <Button asChild variant="outline" className="hidden sm:inline-flex">
+                <Link href="/events">
+                  See all events <ArrowRight className="w-5 h-5" />
                 </Link>
-              </RevealItem>
-            ))}
-          </RevealGroup>
-        </div>
-      </section>
+              </Button>
+            </Reveal>
+            <RevealGroup className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {categories.map((cat, i) => {
+                const Icon = CATEGORY_ICONS[i % CATEGORY_ICONS.length];
+                return (
+                  <RevealItem key={cat.category}>
+                    <Link
+                      href={`/events?category=${encodeURIComponent(cat.category)}`}
+                      className="group relative h-72 rounded-2xl overflow-hidden shadow-card block transition-transform duration-300 hover:-translate-y-1 hover:shadow-glow-sm"
+                    >
+                      <Image
+                        src={CATEGORY_IMAGES[i % CATEGORY_IMAGES.length]}
+                        alt={cat.category}
+                        fill
+                        className="object-cover transition-transform duration-700 group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-6">
+                        <Icon className="w-8 h-8 text-primary-glow mb-2" />
+                        <h3 className="font-display font-bold text-2xl text-foreground mb-1">{cat.category}</h3>
+                        <p className="text-muted-foreground text-sm">{cat.event_count} event{cat.event_count === 1 ? '' : 's'}</p>
+                      </div>
+                    </Link>
+                  </RevealItem>
+                );
+              })}
+            </RevealGroup>
+          </div>
+        </section>
+      )}
 
       {/* Featured / trending */}
       <section className="py-20">
