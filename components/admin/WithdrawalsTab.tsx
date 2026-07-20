@@ -5,6 +5,7 @@ import { wallet, Withdrawal } from '@/lib/wallet';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Loader } from '@/components/Loader';
 import { Check, X, Banknote, Zap, AlertTriangle } from 'lucide-react';
 
 export function WithdrawalsTab() {
@@ -105,7 +106,7 @@ export function WithdrawalsTab() {
         <Button variant="outline" size="sm" onClick={refresh}>Refresh</Button>
       </div>
 
-      {loading && <p className="text-muted-foreground text-sm">Loading...</p>}
+      {loading && <div className="py-8 flex justify-center"><Loader size={28} /></div>}
       {!loading && list.length === 0 && (
         <p className="text-muted-foreground text-sm text-center py-12">No withdrawals in this status.</p>
       )}

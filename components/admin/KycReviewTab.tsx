@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { storageUrl } from '@/lib/storage';
+import { Loader } from '@/components/Loader';
 import { FileText, Check, X } from 'lucide-react';
 
 export function KycReviewTab() {
@@ -67,7 +68,7 @@ export function KycReviewTab() {
         <Button variant="outline" size="sm" onClick={refresh}>Refresh</Button>
       </div>
 
-      {loading && <p className="text-muted-foreground text-sm">Loading...</p>}
+      {loading && <div className="py-8 flex justify-center"><Loader size={28} /></div>}
       {!loading && list.length === 0 && (
         <p className="text-muted-foreground text-sm text-center py-12">No KYC submissions in this status.</p>
       )}

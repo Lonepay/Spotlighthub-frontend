@@ -5,6 +5,7 @@ import { vendorInquiries, VendorInquiry } from '@/lib/vendorInquiries';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Loader } from '@/components/Loader';
 import { Mail, Phone, MapPin } from 'lucide-react';
 
 export function VendorsTab() {
@@ -55,7 +56,7 @@ export function VendorsTab() {
         <Button variant="outline" size="sm" onClick={refresh}>Refresh</Button>
       </div>
 
-      {loading && <p className="text-muted-foreground text-sm">Loading...</p>}
+      {loading && <div className="py-8 flex justify-center"><Loader size={28} /></div>}
       {!loading && list.length === 0 && (
         <p className="text-muted-foreground text-sm text-center py-12">No vendor inquiries yet.</p>
       )}

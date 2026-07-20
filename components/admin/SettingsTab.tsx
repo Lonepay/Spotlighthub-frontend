@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { Loader } from '@/components/Loader';
 import { Percent, Search, Trash2, Activity, AlertTriangle, Copy, Check, Download, ChevronLeft, ChevronRight, User as UserIcon, CreditCard, Ticket as TicketIcon, ShieldAlert, SlidersHorizontal, ShieldCheck, Lock, Crown } from 'lucide-react';
 
 type SettingsForm = Partial<AdminSettings> & { flutterwave_webhook_secret_hash?: string };
@@ -554,7 +555,7 @@ export function SettingsTab() {
             </div>
 
             <div className="space-y-2 max-h-[500px] overflow-y-auto">
-              {loadingLogs && <p className="text-muted-foreground text-sm">Loading...</p>}
+              {loadingLogs && <div className="py-8 flex justify-center"><Loader size={28} /></div>}
               {!loadingLogs && activityLogs.length === 0 && (
                 <p className="text-muted-foreground text-sm text-center py-8">No activity matches these filters.</p>
               )}
@@ -627,7 +628,7 @@ export function SettingsTab() {
               </div>
             </div>
             <div className="space-y-2 max-h-[500px] overflow-y-auto font-mono text-xs">
-              {loadingLogs && <p className="text-muted-foreground">Loading...</p>}
+              {loadingLogs && <div className="py-8 flex justify-center"><Loader size={28} /></div>}
               {!loadingLogs && errorLogs.length === 0 && (
                 <p className="text-muted-foreground text-center py-8">No log entries found.</p>
               )}
@@ -692,7 +693,7 @@ export function SettingsTab() {
             )}
 
             <div className="space-y-2">
-              {loadingStaff && <p className="text-muted-foreground text-sm">Loading...</p>}
+              {loadingStaff && <div className="py-8 flex justify-center"><Loader size={28} /></div>}
               {!loadingStaff && staffList.length === 0 && (
                 <p className="text-muted-foreground text-sm text-center py-8">No staff accounts found.</p>
               )}
