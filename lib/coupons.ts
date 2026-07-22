@@ -57,11 +57,10 @@ export const coupons = {
     await api.delete(`/events/${eventId}/coupons/${couponId}`);
   },
 
-  async validate(eventId: number, code: string, quantity: number, variationId?: number | null): Promise<CouponValidation> {
+  async validate(eventId: number, code: string, items: { variationId?: number | null; quantity: number }[]): Promise<CouponValidation> {
     const { data } = await api.post(`/events/${eventId}/coupons/validate`, {
       code,
-      quantity,
-      variation_id: variationId ?? undefined,
+      items: items.map((i) => ({ variation_id: i.variationId ?? undefined, quantity: i.quantity })),
     });
     return data;
   },

@@ -16,28 +16,31 @@ export interface Payment {
   booking_time?: string;
 }
 
+export interface PaymentItem {
+  variationId?: number | null;
+  quantity: number;
+}
+
 export const payments = {
   async initialize(
     eventId: number,
-    quantity: number,
+    items: PaymentItem[],
     email: string,
     attendeeName: string,
     attendeePhone: string,
     gateway: 'flutterwave' | 'paystack' = 'flutterwave',
     bookingDate?: string,
     bookingTime?: string,
-    variationId?: number | null,
     couponCode?: string | null
   ) {
     const { data } = await api.post(`/events/${eventId}/payments/initialize`, {
-      quantity,
+      items: items.map((i) => ({ variation_id: i.variationId ?? undefined, quantity: i.quantity })),
       email,
       attendee_name: attendeeName,
       attendee_phone: attendeePhone,
       gateway,
       booking_date: bookingDate,
       booking_time: bookingTime,
-      variation_id: variationId ?? undefined,
       coupon_code: couponCode ?? undefined,
     });
     return data;

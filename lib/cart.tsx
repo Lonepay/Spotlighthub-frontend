@@ -3,13 +3,17 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Event, TicketVariation } from '@/lib/events';
 
+export interface CartLineItem {
+  variation: TicketVariation | null;
+  quantity: number;
+}
+
 export interface CartItem {
   event: Event;
-  quantity: number;
   selectedDate: string;
   selectedTime: string;
   gateway: 'flutterwave' | 'paystack';
-  variation?: TicketVariation | null;
+  items: CartLineItem[];
 }
 
 interface CartContextType {
@@ -45,8 +49,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(STORAGE_KEY);
   };
 
+  const itemCount = item ? item.items.reduce((sum, i) => sum + i.quantity, 0) : 0;
+
   return (
-    <CartContext.Provider value={{ item, itemCount: item ? 1 : 0, setItem, clear }}>
+    <CartContext.Provider value={{ item, itemCount, setItem, clear }}>
       {children}
     </CartContext.Provider>
   );

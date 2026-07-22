@@ -135,9 +135,9 @@ export default function CheckoutPage() {
     );
   }
 
-  const { event, quantity, selectedDate, selectedTime, gateway, variation } = item;
-  const unitPrice = variation ? variation.price : event.price;
-  const subtotal = unitPrice * quantity;
+  const { event, items, selectedDate, selectedTime, gateway } = item;
+  const quantity = items.reduce((sum, i) => sum + i.quantity, 0);
+  const subtotal = items.reduce((sum, i) => sum + (i.variation ? i.variation.price : event.price) * i.quantity, 0);
   const discountAmount = appliedCoupon?.discount_amount ?? 0;
   const discountedSubtotal = Math.max(0, subtotal - discountAmount);
   const serviceFee = event.fee_payer === 'attendee' && discountedSubtotal > 0
@@ -146,11 +146,13 @@ export default function CheckoutPage() {
   const total = discountedSubtotal + serviceFee;
   const isFree = total <= 0;
 
+  const itemsPayload = items.map((i) => ({ variationId: i.variation?.id, quantity: i.quantity }));
+
   const handleApplyCoupon = async () => {
     if (!couponInput.trim()) return;
     setApplyingCoupon(true);
     try {
-      const result = await coupons.validate(event.id, couponInput.trim(), quantity, variation?.id);
+      const result = await coupons.validate(event.id, couponInput.trim(), itemsPayload);
       setAppliedCoupon(result);
       toast.success(`Coupon applied — ${formatNaira(result.discount_amount)} off`);
     } catch (error: any) {
@@ -176,14 +178,13 @@ export default function CheckoutPage() {
     try {
       const response = await payments.initialize(
         event.id,
-        quantity,
+        itemsPayload,
         email,
         attendeeName,
         attendeePhone,
         gateway,
         selectedDate,
         selectedTime,
-        variation?.id,
         appliedCoupon?.code
       );
 
@@ -225,16 +226,25 @@ export default function CheckoutPage() {
 
         <div className="glass rounded-2xl p-6 md:p-8 shadow-card">
           <div className="pb-6 border-b border-border/50">
-            <div className="flex gap-3 items-center">
-              <div className="min-w-0 flex-1">
-                <div className="font-display font-semibold truncate">
-                  {event.title}{variation ? ` — ${variation.name}` : ''}
-                </div>
-                <div className="text-xs text-muted-foreground truncate">
-                  {quantity} &times; {unitPrice === 0 ? 'Free' : formatNaira(unitPrice)} &middot; {selectedDate}{selectedTime ? ` ${selectedTime}` : ''}
-                </div>
-              </div>
-              <div className="font-display font-semibold">{total === 0 ? 'Free' : formatNaira(total)}</div>
+            <div className="font-display font-semibold truncate mb-1">{event.title}</div>
+            <div className="text-xs text-muted-foreground mb-3">
+              {selectedDate}{selectedTime ? ` ${selectedTime}` : ''}
+            </div>
+            <div className="space-y-2">
+              {items.map((i, idx) => {
+                const price = i.variation ? i.variation.price : event.price;
+                return (
+                  <div key={idx} className="flex gap-3 items-center">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium truncate">{i.variation ? i.variation.name : 'General Admission'}</div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {i.quantity} &times; {price === 0 ? 'Free' : formatNaira(price)}
+                      </div>
+                    </div>
+                    <div className="text-sm font-semibold">{price * i.quantity === 0 ? 'Free' : formatNaira(price * i.quantity)}</div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

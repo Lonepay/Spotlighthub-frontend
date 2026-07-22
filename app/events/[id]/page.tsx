@@ -24,6 +24,8 @@ export default function EventDetailPage() {
   const { setItem } = useCart();
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
+  // Only used when the event has no ticket variations at all (a single,
+  // undifferentiated ticket at the event's base price).
   const [quantity, setQuantity] = useState(1);
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -31,7 +33,9 @@ export default function EventDetailPage() {
   const [selectedGateway, setSelectedGateway] = useState<'flutterwave' | 'paystack'>('flutterwave');
   const [gatewayStatus, setGatewayStatus] = useState<GatewayStatus>({ flutterwave_enabled: true, paystack_enabled: true });
   const [variations, setVariations] = useState<TicketVariation[]>([]);
-  const [selectedVariation, setSelectedVariation] = useState<TicketVariation | null>(null);
+  // One independent quantity per ticket type — buyers can mix Early Bird,
+  // VIP, etc. in the same purchase instead of picking just one.
+  const [variationQuantities, setVariationQuantities] = useState<Record<number, number>>({});
 
   const isMovie = event?.category === 'Movie';
 
@@ -81,13 +85,26 @@ export default function EventDetailPage() {
     try {
       const variationData = await events.getVariations(Number(params.id));
       setVariations(variationData);
-      if (variationData.length > 0) {
-        setSelectedVariation(variationData[0]);
-      }
     } catch (error) {
       console.error('Failed to load ticket variations:', error);
     }
   };
+
+  const setVariationQuantity = (variationId: number, qty: number, max: number) => {
+    setVariationQuantities((prev) => ({ ...prev, [variationId]: Math.max(0, Math.min(qty, max)) }));
+  };
+
+  // Normalized selection regardless of whether the event has ticket
+  // variations — each entry is one line item (a ticket type + how many).
+  const selectedItems = variations.length > 0
+    ? variations
+        .map((v) => ({ variation: v, quantity: variationQuantities[v.id] || 0 }))
+        .filter((i) => i.quantity > 0)
+    : quantity > 0
+    ? [{ variation: null as TicketVariation | null, quantity }]
+    : [];
+
+  const totalQuantity = selectedItems.reduce((sum, i) => sum + i.quantity, 0);
 
   const handleAddToCart = () => {
     if (!event) return;
@@ -99,13 +116,16 @@ export default function EventDetailPage() {
       toast.error('Please select a date and time.');
       return;
     }
+    if (selectedItems.length === 0) {
+      toast.error('Select at least one ticket.');
+      return;
+    }
     setItem({
       event,
-      quantity,
       selectedDate: isMovie ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(event.date), 'yyyy-MM-dd'),
       selectedTime: isMovie ? selectedTime : event.time,
       gateway: selectedGateway,
-      variation: selectedVariation,
+      items: selectedItems,
     });
     toast.success('Added to cart');
     router.push('/cart');
@@ -139,12 +159,10 @@ export default function EventDetailPage() {
     );
   }
 
-  const unitPrice = selectedVariation ? selectedVariation.price : event.price;
-  const availableTickets = selectedVariation
-    ? selectedVariation.available_quantity
-    : event.available_tickets ?? event.total_tickets;
+  // Only meaningful for the no-variations fallback UI below.
+  const availableTickets = event.available_tickets ?? event.total_tickets;
 
-  const subtotal = unitPrice * quantity;
+  const subtotal = selectedItems.reduce((sum, i) => sum + (i.variation ? i.variation.price : event.price) * i.quantity, 0);
   const serviceFee = event.fee_payer === 'attendee' && subtotal > 0
     ? Math.round((subtotal * (gatewayStatus.platform_fee_percentage ?? 0) / 100 + (gatewayStatus.platform_flat_fee ?? 0)) * 100) / 100
     : 0;
@@ -285,7 +303,12 @@ export default function EventDetailPage() {
                     )}
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-muted-foreground">{availableTickets} seats left</p>
+                    {variations.length === 0 && (
+                      <p className="text-xs text-muted-foreground">{availableTickets} seats left</p>
+                    )}
+                    {totalQuantity > 0 && (
+                      <p className="text-xs text-muted-foreground">{totalQuantity} ticket{totalQuantity > 1 ? 's' : ''} selected</p>
+                    )}
                   </div>
                 </div>
 
@@ -299,34 +322,51 @@ export default function EventDetailPage() {
                   <div>
                     <label className="text-sm font-medium text-muted-foreground mb-3 flex items-center">
                       <Layers className="w-4 h-4 mr-2" />
-                      Select Ticket Type
+                      Select Ticket Types
                     </label>
+                    <p className="text-xs text-muted-foreground -mt-2 mb-3">Mix and match — pick a quantity for as many types as you like.</p>
                     <div className="space-y-2">
-                      {variations.map((v) => (
-                        <button
-                          key={v.id}
-                          type="button"
-                          onClick={() => { setSelectedVariation(v); setQuantity(1); }}
-                          disabled={v.available_quantity <= 0}
-                          className={`w-full flex items-center justify-between rounded-xl border-2 px-4 py-3 text-left transition-all ${
-                            selectedVariation?.id === v.id
-                              ? 'border-primary bg-primary/5'
-                              : 'border-border hover:border-primary/40'
-                          } ${v.available_quantity <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                          <div>
-                            <p className="font-medium text-foreground">{v.name}</p>
-                            {v.description && <p className="text-xs text-muted-foreground">{v.description}</p>}
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {v.available_quantity > 0 ? `${v.available_quantity} left` : 'Sold out'}
-                            </p>
+                      {variations.map((v) => {
+                        const qty = variationQuantities[v.id] || 0;
+                        const soldOut = v.available_quantity <= 0;
+                        return (
+                          <div
+                            key={v.id}
+                            className={`w-full flex items-center justify-between gap-3 rounded-xl border-2 px-4 py-3 transition-all ${
+                              qty > 0 ? 'border-primary bg-primary/5' : 'border-border'
+                            } ${soldOut ? 'opacity-50' : ''}`}
+                          >
+                            <div className="min-w-0">
+                              <p className="font-medium text-foreground truncate">{v.name}</p>
+                              {v.description && <p className="text-xs text-muted-foreground truncate">{v.description}</p>}
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {soldOut ? 'Sold out' : `${v.available_quantity} left`} &middot; <span className="font-semibold text-foreground">{v.price === 0 ? 'FREE' : formatNaira(v.price)}</span>
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => setVariationQuantity(v.id, qty - 1, v.available_quantity)}
+                                disabled={qty <= 0}
+                                className="w-8 h-8 rounded-full bg-background border border-border flex items-center justify-center hover:bg-muted hover:border-primary/40 transition-all active:scale-90 disabled:opacity-50"
+                                aria-label={`Decrease ${v.name} quantity`}
+                              >
+                                <Minus className="w-3.5 h-3.5" />
+                              </button>
+                              <span className="font-bold w-4 text-center">{qty}</span>
+                              <button
+                                type="button"
+                                onClick={() => setVariationQuantity(v.id, qty + 1, v.available_quantity)}
+                                disabled={soldOut || qty >= v.available_quantity}
+                                className="w-8 h-8 rounded-full bg-background border border-border flex items-center justify-center hover:bg-muted hover:border-primary/40 transition-all active:scale-90 disabled:opacity-50"
+                                aria-label={`Increase ${v.name} quantity`}
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold">{v.price === 0 ? 'FREE' : formatNaira(v.price)}</span>
-                            {selectedVariation?.id === v.id && <Check className="w-4 h-4 text-primary" />}
-                          </div>
-                        </button>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -405,38 +445,44 @@ export default function EventDetailPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between bg-secondary/30 p-4 rounded-xl">
-                  <span className="font-medium">Tickets</span>
-                  <div className="flex items-center gap-4">
-                    <button
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      disabled={quantity <= 1}
-                      className="w-9 h-9 rounded-full bg-background border border-border flex items-center justify-center hover:bg-muted hover:border-primary/40 transition-all active:scale-90 disabled:opacity-50 disabled:active:scale-100"
-                      aria-label="Decrease quantity"
-                    >
-                      <Minus className="w-4 h-4" />
-                    </button>
-                    <span className="font-bold w-4 text-center">{quantity}</span>
-                    <button
-                      onClick={() => setQuantity(Math.min(availableTickets, quantity + 1))}
-                      disabled={quantity >= availableTickets}
-                      className="w-9 h-9 rounded-full bg-background border border-border flex items-center justify-center hover:bg-muted hover:border-primary/40 transition-all active:scale-90 disabled:opacity-50 disabled:active:scale-100"
-                      aria-label="Increase quantity"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
+                {variations.length === 0 && (
+                  <div className="flex items-center justify-between bg-secondary/30 p-4 rounded-xl">
+                    <span className="font-medium">Tickets</span>
+                    <div className="flex items-center gap-4">
+                      <button
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        disabled={quantity <= 1}
+                        className="w-9 h-9 rounded-full bg-background border border-border flex items-center justify-center hover:bg-muted hover:border-primary/40 transition-all active:scale-90 disabled:opacity-50 disabled:active:scale-100"
+                        aria-label="Decrease quantity"
+                      >
+                        <Minus className="w-4 h-4" />
+                      </button>
+                      <span className="font-bold w-4 text-center">{quantity}</span>
+                      <button
+                        onClick={() => setQuantity(Math.min(availableTickets, quantity + 1))}
+                        disabled={quantity >= availableTickets}
+                        className="w-9 h-9 rounded-full bg-background border border-border flex items-center justify-center hover:bg-muted hover:border-primary/40 transition-all active:scale-90 disabled:opacity-50 disabled:active:scale-100"
+                        aria-label="Increase quantity"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <Button
                   onClick={handleAddToCart}
-                  disabled={availableTickets === 0 || eventStarted}
+                  disabled={totalQuantity === 0 || eventStarted}
                   variant="hero"
                   size="lg"
                   className="w-full"
                 >
                   <Ticket className="w-5 h-5" />
-                  {eventStarted ? 'Sales Closed' : `Add ${quantity} Ticket${quantity > 1 ? 's' : ''} to Cart`}
+                  {eventStarted
+                    ? 'Sales Closed'
+                    : totalQuantity > 0
+                    ? `Add ${totalQuantity} Ticket${totalQuantity > 1 ? 's' : ''} to Cart`
+                    : 'Select tickets to continue'}
                 </Button>
 
                 <p className="text-center text-xs text-muted-foreground">

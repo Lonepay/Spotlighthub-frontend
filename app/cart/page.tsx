@@ -40,9 +40,8 @@ export default function CartPage() {
     );
   }
 
-  const { event, quantity, selectedDate, selectedTime, variation } = item;
-  const unitPrice = variation ? variation.price : event.price;
-  const total = unitPrice * quantity;
+  const { event, items, selectedDate, selectedTime } = item;
+  const total = items.reduce((sum, i) => sum + (i.variation ? i.variation.price : event.price) * i.quantity, 0);
 
   return (
     <div className="min-h-screen">
@@ -67,9 +66,6 @@ export default function CartPage() {
             </div>
             <div className="min-w-0 flex-1">
               <h3 className="font-display font-semibold text-lg truncate">{event.title}</h3>
-              {variation && (
-                <p className="text-xs text-primary-glow mt-0.5">{variation.name}</p>
-              )}
               <div className="mt-1 text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span className="inline-flex items-center gap-1">
                   <Calendar className="h-3 w-3" /> {selectedDate}{selectedTime ? ` · ${selectedTime}` : ''}
@@ -88,10 +84,22 @@ export default function CartPage() {
             </button>
           </div>
 
+          <div className="space-y-2 border-t border-border/50 pt-4">
+            {items.map((i, idx) => {
+              const price = i.variation ? i.variation.price : event.price;
+              return (
+                <div key={idx} className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    {i.variation ? `${i.variation.name} — ` : ''}{i.quantity} &times; {price === 0 ? 'Free' : formatNaira(price)}
+                  </span>
+                  <span className="font-medium">{price * i.quantity === 0 ? 'Free' : formatNaira(price * i.quantity)}</span>
+                </div>
+              );
+            })}
+          </div>
+
           <div className="flex items-center justify-between text-sm border-t border-border/50 pt-4">
-            <span className="text-muted-foreground">
-              {quantity} &times; {unitPrice === 0 ? 'Free' : formatNaira(unitPrice)}
-            </span>
+            <span className="font-medium">Total</span>
             <span className="font-display font-bold text-xl">
               {total === 0 ? 'Free' : formatNaira(total)}
             </span>
