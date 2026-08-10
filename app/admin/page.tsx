@@ -6,6 +6,7 @@ import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { useAuth } from '@/components/AuthProvider';
 import { isAdminLevelRole } from '@/lib/auth';
+import { getGreeting } from '@/lib/utils';
 import { admin, AdminDashboard } from '@/lib/admin';
 import { payments } from '@/lib/payments';
 import { tickets } from '@/lib/tickets';
@@ -259,7 +260,7 @@ function AdminDashboardPageInner() {
   };
 
   return (
-    <DashboardShell title="Admin Dashboard" description={`Welcome back, ${authUser?.name}`}>
+    <DashboardShell title="Admin Dashboard" description={`${getGreeting()}, ${authUser?.name}`}>
       <div className="space-y-6">
         {/* Stats */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">

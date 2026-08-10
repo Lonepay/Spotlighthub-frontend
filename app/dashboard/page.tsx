@@ -9,6 +9,7 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { useAuth } from '@/components/AuthProvider';
 import { isAdminLevelRole } from '@/lib/auth';
 import { user, UserDashboard } from '@/lib/user';
+import { getGreeting } from '@/lib/utils';
 import { storageUrl } from '@/lib/storage';
 import { payments } from '@/lib/payments';
 import { Button } from '@/components/ui/button';
@@ -76,7 +77,7 @@ export default function UserDashboardPage() {
   }
 
   return (
-    <DashboardShell title="My Dashboard" description={`Welcome back, ${authUser?.name}`}>
+    <DashboardShell title="My Dashboard" description={`${getGreeting()}, ${authUser?.name}`}>
       <div className="space-y-6">
         {/* Stats */}
         <div className="grid sm:grid-cols-3 gap-4">

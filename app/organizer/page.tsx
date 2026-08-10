@@ -7,6 +7,7 @@ import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { useAuth } from '@/components/AuthProvider';
 import { isAdminLevelRole } from '@/lib/auth';
+import { getGreeting } from '@/lib/utils';
 import { organizer, OrganizerDashboard } from '@/lib/organizer';
 import { payments } from '@/lib/payments';
 import { admin } from '@/lib/admin';
@@ -84,7 +85,7 @@ export default function OrganizerDashboardPage() {
   }
 
   return (
-    <DashboardShell title="Organizer Dashboard" description="Manage your events and track earnings">
+    <DashboardShell title="Organizer Dashboard" description={`${getGreeting()}, ${user?.name} — manage your events and track earnings`}>
       <div className="space-y-6">
         {/* Stats */}
         <div className="grid sm:grid-cols-3 gap-4">
