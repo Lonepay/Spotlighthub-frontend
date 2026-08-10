@@ -249,8 +249,11 @@ export default function EventDetailPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20 relative z-10 pb-20">
         <div className="grid lg:grid-cols-3 gap-12">
-          {/* Left Column: Details (padded below the hero's fade so text never sits over the image) */}
-          <div className="lg:col-span-2 space-y-12 pt-20">
+          {/* Left Column: Details (padded below the hero's fade so text never sits over the image).
+              min-w-0 is required here — grid items default to min-width:auto,
+              and the Google Maps iframe's intrinsic width would otherwise
+              force this column (and the whole page) wider than the viewport. */}
+          <div className="lg:col-span-2 space-y-12 pt-20 min-w-0">
             <section>
               <h2 className="text-2xl font-bold mb-4 flex items-center">
                 <Info className="w-6 h-6 mr-2 text-primary-glow" />
