@@ -109,7 +109,7 @@ export default function EventDetailPage() {
   const handleAddToCart = () => {
     if (!event) return;
     if (eventStarted) {
-      toast.error('This event has already started — ticket sales are closed.');
+      toast.error('This event has already started — ticket sales are closed!');
       return;
     }
     if (!selectedDate || !selectedTime) {
