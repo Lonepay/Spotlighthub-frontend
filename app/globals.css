@@ -110,10 +110,14 @@ html {
   /* Belt-and-suspenders against horizontal scroll: individual overflow
      sources (maps, tables, unwrapped flex rows) get fixed as they're found,
      but this guarantees the page itself can never shift left-right no
-     matter what still slips through — without constraining body's own
-     overflow-y, which would break position:sticky elements relying on the
-     viewport as their scroll container. */
+     matter what still slips through. overflow-x:hidden alone leaves two real
+     gaps on real phones: which element actually ends up as the scroll root
+     can vary, and iOS Safari's rubber-band overscroll bounce can still pan
+     the viewport horizontally even when CSS overflow says it shouldn't.
+     overscroll-behavior-x plugs the bounce; setting overflow-x on body too
+     (not just html) removes the scroll-root ambiguity. */
   overflow-x: hidden;
+  overscroll-behavior-x: none;
 }
 
 @layer base {
@@ -126,6 +130,9 @@ html {
     background-image: radial-gradient(ellipse 80% 50% at 50% -10%, var(--page-glow-top), transparent),
       radial-gradient(ellipse 60% 40% at 80% 100%, var(--page-glow-bottom), transparent);
     background-attachment: fixed;
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+    width: 100%;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-display;
