@@ -107,6 +107,13 @@
 
 html {
   scroll-behavior: smooth;
+  /* Belt-and-suspenders against horizontal scroll: individual overflow
+     sources (maps, tables, unwrapped flex rows) get fixed as they're found,
+     but this guarantees the page itself can never shift left-right no
+     matter what still slips through — without constraining body's own
+     overflow-y, which would break position:sticky elements relying on the
+     viewport as their scroll container. */
+  overflow-x: hidden;
 }
 
 @layer base {
