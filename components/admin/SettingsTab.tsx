@@ -614,7 +614,7 @@ export function SettingsTab() {
           <CardContent className="pt-6 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm text-muted-foreground">Most recent entries from the backend&apos;s laravel.log, newest first.</p>
-              <div className="flex items-center gap-1">
+              <div className="flex flex-wrap items-center gap-2">
                 <Button variant="outline" size="sm" onClick={refreshErrors}>Refresh</Button>
                 <Button variant="outline" size="sm" onClick={() => admin.downloadErrorLogsExport('csv')}>
                   <Download className="w-4 h-4" /> CSV

@@ -348,13 +348,11 @@ export default function EventDetailPage() {
                       Select Ticket Types
                     </label>
                     <p className="text-xs text-muted-foreground -mt-2 mb-3">Mix and match — pick a quantity for as many types as you like.</p>
-                    {/* pr reserves clearance from the fixed WhatsApp bubble
-                        (bottom-24 right-5 on mobile) — without it, the +
-                        button on whichever row happens to scroll into that
-                        screen position becomes untappable, covered by the
-                        bubble. lg: has no bubble in this corner (it moves to
-                        bottom-5 clear of any card), so no reserve needed there. */}
-                    <div className="space-y-2 pr-14 lg:pr-0">
+                    {/* id is watched by WhatsAppButton (IntersectionObserver) so the
+                        bubble hides itself while this list is on screen, instead of
+                        this list reserving permanent right-padding for it — that
+                        padding made the rows look pushed/tilted left. */}
+                    <div id="ticket-type-list" className="space-y-2">
                       {variations.map((v) => {
                         const qty = variationQuantities[v.id] || 0;
                         const soldOut = v.available_quantity <= 0;
