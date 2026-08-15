@@ -510,7 +510,7 @@ export default function EventDetailPage() {
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-xs text-muted-foreground uppercase font-bold">Total</p>
-            <p className="text-xl font-black text-gradient">{formatNaira(totalDue)}</p>
+            <p className="text-xl font-black text-gradient">{totalDue === 0 ? 'FREE' : formatNaira(totalDue)}</p>
           </div>
           <Button
             onClick={() => document.getElementById('booking-section')?.scrollIntoView({ behavior: 'smooth' })}
