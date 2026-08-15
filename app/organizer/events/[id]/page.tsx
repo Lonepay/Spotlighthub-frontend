@@ -81,6 +81,18 @@ export default function OrganizerEventDetailPage() {
     discount_value: 0,
     max_uses: '' as number | '',
     expires_at: '',
+  });
+
+  // Partnership codes are a separate concept from discount coupons — a
+  // partner shares a code to earn a per-ticket commission, and doesn't need
+  // to also discount the buyer. Kept as its own state/form/list rather than
+  // folded into the coupon UI, which was confusing when they were merged.
+  const [showPartnerForm, setShowPartnerForm] = useState(false);
+  const [editingPartnerId, setEditingPartnerId] = useState<number | null>(null);
+  const [savingPartner, setSavingPartner] = useState(false);
+  const [partnerError, setPartnerError] = useState('');
+  const [partnerForm, setPartnerForm] = useState({
+    code: '',
     partner_email: '',
     commission_per_ticket: '' as number | '',
   });
@@ -105,7 +117,7 @@ export default function OrganizerEventDetailPage() {
   };
 
   const resetCouponForm = () => {
-    setCouponForm({ code: '', discount_type: 'percentage', discount_value: 0, max_uses: '', expires_at: '', partner_email: '', commission_per_ticket: '' });
+    setCouponForm({ code: '', discount_type: 'percentage', discount_value: 0, max_uses: '', expires_at: '' });
     setEditingCouponId(null);
     setCouponError('');
   };
@@ -124,10 +136,6 @@ export default function OrganizerEventDetailPage() {
       setCouponError("A percentage discount can't exceed 100%.");
       return;
     }
-    if (couponForm.partner_email.trim() && !couponForm.commission_per_ticket) {
-      setCouponError('Set a commission per ticket for this partner code.');
-      return;
-    }
 
     setSavingCoupon(true);
     try {
@@ -137,10 +145,6 @@ export default function OrganizerEventDetailPage() {
         discount_value: couponForm.discount_value,
         max_uses: couponForm.max_uses === '' ? null : Number(couponForm.max_uses),
         expires_at: couponForm.expires_at || null,
-        ...(couponForm.partner_email.trim() && {
-          partner_email: couponForm.partner_email.trim(),
-          commission_per_ticket: Number(couponForm.commission_per_ticket),
-        }),
       };
       if (editingCouponId) {
         await couponsApi.update(Number(params.id), editingCouponId, payload);
@@ -157,6 +161,72 @@ export default function OrganizerEventDetailPage() {
     }
   };
 
+  const resetPartnerForm = () => {
+    setPartnerForm({ code: '', partner_email: '', commission_per_ticket: '' });
+    setEditingPartnerId(null);
+    setPartnerError('');
+  };
+
+  const handleSavePartnerCode = async () => {
+    setPartnerError('');
+    if (!partnerForm.code.trim()) {
+      setPartnerError('Enter a code the partner will share, e.g. JANE20.');
+      return;
+    }
+    if (!partnerForm.partner_email.trim()) {
+      setPartnerError("Enter the partner's account email — they must already have a Spotlighticket account.");
+      return;
+    }
+    if (!partnerForm.commission_per_ticket || Number(partnerForm.commission_per_ticket) <= 0) {
+      setPartnerError('Set how much the partner earns per ticket sold through this code.');
+      return;
+    }
+
+    setSavingPartner(true);
+    try {
+      const payload = {
+        code: partnerForm.code.trim().toUpperCase(),
+        discount_type: 'fixed' as const,
+        discount_value: 0,
+        partner_email: partnerForm.partner_email.trim(),
+        commission_per_ticket: Number(partnerForm.commission_per_ticket),
+      };
+      if (editingPartnerId) {
+        await couponsApi.update(Number(params.id), editingPartnerId, payload);
+      } else {
+        await couponsApi.create(Number(params.id), payload);
+      }
+      resetPartnerForm();
+      setShowPartnerForm(false);
+      await loadCoupons();
+    } catch (error: any) {
+      setPartnerError(error.response?.data?.message || 'Failed to save partnership code');
+    } finally {
+      setSavingPartner(false);
+    }
+  };
+
+  const handleEditPartnerCode = (coupon: Coupon) => {
+    setPartnerForm({
+      code: coupon.code,
+      partner_email: coupon.partner?.email ?? '',
+      commission_per_ticket: coupon.commission_per_ticket ?? '',
+    });
+    setEditingPartnerId(coupon.id);
+    setPartnerError('');
+    setShowPartnerForm(true);
+  };
+
+  const handleDeletePartnerCode = async (id: number) => {
+    if (!confirm('Delete this partnership code?')) return;
+    try {
+      await couponsApi.delete(Number(params.id), id);
+      await loadCoupons();
+    } catch (error) {
+      alert('Failed to delete partnership code');
+    }
+  };
+
   const handleEditCoupon = (coupon: Coupon) => {
     setCouponForm({
       code: coupon.code,
@@ -164,8 +234,6 @@ export default function OrganizerEventDetailPage() {
       discount_value: coupon.discount_value,
       max_uses: coupon.max_uses ?? '',
       expires_at: coupon.expires_at ? coupon.expires_at.slice(0, 10) : '',
-      partner_email: coupon.partner?.email ?? '',
-      commission_per_ticket: coupon.commission_per_ticket ?? '',
     });
     setEditingCouponId(coupon.id);
     setCouponError('');
@@ -898,40 +966,6 @@ export default function OrganizerEventDetailPage() {
                   </div>
                 </div>
 
-                {user && isAdminLevelRole(user.role) && (
-                  <div className="mt-4 pt-4 border-t border-border">
-                    <h4 className="font-medium text-sm mb-1">Make this a partnership code (admin only)</h4>
-                    <p className="text-xs text-muted-foreground mb-3">
-                      Turns this into a promo code a partner shares on their socials — they earn a flat commission per ticket sold through it, paid by the platform (not deducted from the organizer). Leave blank for a normal discount-only coupon.
-                    </p>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="coupon-partner-email">Partner&apos;s account email</Label>
-                        <Input
-                          id="coupon-partner-email"
-                          type="email"
-                          placeholder="partner@example.com"
-                          value={couponForm.partner_email}
-                          onChange={(e) => setCouponForm({ ...couponForm, partner_email: e.target.value })}
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">They must already have a Spotlighticket account — this is who gets paid.</p>
-                      </div>
-                      <div>
-                        <Label htmlFor="coupon-commission">Commission per ticket (₦)</Label>
-                        <Input
-                          id="coupon-commission"
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          placeholder="e.g. 500"
-                          value={couponForm.commission_per_ticket}
-                          onChange={(e) => setCouponForm({ ...couponForm, commission_per_ticket: e.target.value === '' ? '' : Number(e.target.value) })}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 <div className="flex justify-end space-x-2 mt-5 pt-4 border-t border-border">
                   <Button
                     variant="outline"
@@ -950,16 +984,15 @@ export default function OrganizerEventDetailPage() {
               </div>
             )}
 
-            {coupons.length > 0 ? (
+            {coupons.filter((c) => !c.partner).length > 0 ? (
               <div className="space-y-3">
-                {coupons.map((coupon) => (
+                {coupons.filter((c) => !c.partner).map((coupon) => (
                   <div key={coupon.id} className="p-4 rounded-xl border border-border">
                     <div className="flex flex-wrap justify-between items-start gap-3">
                       <div>
                         <h3 className="font-medium flex items-center gap-1.5">
                           <Tag className="w-4 h-4 text-primary" /> {coupon.code}
                           {!coupon.is_active && <Badge variant="outline">Disabled</Badge>}
-                          {coupon.partner && <Badge>Partner code</Badge>}
                         </h3>
                         <div className="flex flex-wrap gap-4 text-sm mt-1">
                           <span className="font-semibold">
@@ -972,11 +1005,6 @@ export default function OrganizerEventDetailPage() {
                             <span className="text-muted-foreground">Expires {new Date(coupon.expires_at).toLocaleDateString()}</span>
                           )}
                         </div>
-                        {coupon.partner && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Earns {coupon.partner.name} (<span className="break-all">{coupon.partner.email}</span>) ₦{Number(coupon.commission_per_ticket).toLocaleString('en-NG')} per ticket
-                          </p>
-                        )}
                       </div>
                       <div className="flex gap-2">
                         <Button variant="outline" size="sm" onClick={() => handleToggleCouponActive(coupon)}>
@@ -1005,6 +1033,130 @@ export default function OrganizerEventDetailPage() {
             )}
           </CardContent>
         </Card>
+
+        {user && isAdminLevelRole(user.role) && (
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex flex-wrap justify-between items-center gap-3 mb-2">
+                <div>
+                  <h2 className="font-display font-bold text-lg">Partnership Codes</h2>
+                  <p className="text-sm text-muted-foreground mt-1">Admin-only. A partner shares this code on their socials and earns a flat commission per ticket sold — paid by the platform, separate from the organizer&apos;s payout.</p>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setShowPartnerForm(!showPartnerForm);
+                    resetPartnerForm();
+                  }}
+                >
+                  <Plus className="w-4 h-4" /> Add Partner Code
+                </Button>
+              </div>
+
+              {showPartnerForm && (
+                <div className="p-5 my-4 rounded-xl border border-border bg-muted/30">
+                  {partnerError && (
+                    <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-xl text-destructive text-sm">{partnerError}</div>
+                  )}
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="partner-code-input">Code *</Label>
+                      <Input
+                        id="partner-code-input"
+                        placeholder="e.g., JANE20"
+                        value={partnerForm.code}
+                        onChange={(e) => setPartnerForm({ ...partnerForm, code: e.target.value.toUpperCase() })}
+                        className="uppercase"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">What the partner shares with their audience.</p>
+                    </div>
+                    <div>
+                      <Label htmlFor="partner-email-input">Partner&apos;s account email *</Label>
+                      <Input
+                        id="partner-email-input"
+                        type="email"
+                        placeholder="partner@example.com"
+                        value={partnerForm.partner_email}
+                        onChange={(e) => setPartnerForm({ ...partnerForm, partner_email: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Must already have a Spotlighticket account — this is who gets paid.</p>
+                    </div>
+                    <div>
+                      <Label htmlFor="partner-commission-input">Commission per ticket (₦) *</Label>
+                      <Input
+                        id="partner-commission-input"
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        placeholder="e.g. 500"
+                        value={partnerForm.commission_per_ticket}
+                        onChange={(e) => setPartnerForm({ ...partnerForm, commission_per_ticket: e.target.value === '' ? '' : Number(e.target.value) })}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2 mt-5 pt-4 border-t border-border">
+                    <Button
+                      variant="outline"
+                      disabled={savingPartner}
+                      onClick={() => {
+                        setShowPartnerForm(false);
+                        resetPartnerForm();
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button onClick={handleSavePartnerCode} disabled={savingPartner}>
+                      {savingPartner ? 'Saving…' : editingPartnerId ? 'Update partner code' : 'Create partner code'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {coupons.filter((c) => !!c.partner).length > 0 ? (
+                <div className="space-y-3">
+                  {coupons.filter((c) => !!c.partner).map((coupon) => (
+                    <div key={coupon.id} className="p-4 rounded-xl border border-border">
+                      <div className="flex flex-wrap justify-between items-start gap-3">
+                        <div>
+                          <h3 className="font-medium flex items-center gap-1.5">
+                            <Tag className="w-4 h-4 text-primary" /> {coupon.code}
+                            {!coupon.is_active && <Badge variant="outline">Disabled</Badge>}
+                          </h3>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {coupon.used_count} used{coupon.max_uses ? ` / ${coupon.max_uses}` : ''}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Earns {coupon.partner?.name} (<span className="break-all">{coupon.partner?.email}</span>) ₦{Number(coupon.commission_per_ticket).toLocaleString('en-NG')} per ticket
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" onClick={() => handleToggleCouponActive(coupon)}>
+                            {coupon.is_active ? 'Disable' : 'Enable'}
+                          </Button>
+                          <Button variant="outline" size="icon" onClick={() => handleEditPartnerCode(coupon)}>
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeletePartnerCode(coupon.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-10">
+                  <p className="text-muted-foreground">No partnership codes yet.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardContent className="p-6">

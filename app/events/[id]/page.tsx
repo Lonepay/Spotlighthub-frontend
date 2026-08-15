@@ -194,17 +194,23 @@ export default function EventDetailPage() {
           <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent" />
         </div>
 
-        <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-end pb-24 lg:pb-32">
+        <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-start pt-8 pb-24 lg:pb-32">
+          {/* A normal flow element, not absolute — an absolutely-positioned
+              button here doesn't reserve any space, so tall hero content
+              (a long wrapped title, the info rows, the countdown) could
+              grow upward on mobile and visually overlap it. mt-auto below
+              pushes the content to the bottom of whatever space remains,
+              keeping the original bottom-anchored look without the overlap risk. */}
           <button
             onClick={() => router.back()}
-            className="absolute top-8 left-4 lg:left-8 flex items-center space-x-2 text-white/80 hover:text-white transition-colors glass px-4 py-2 rounded-full"
+            className="shrink-0 flex items-center space-x-2 text-white/80 hover:text-white transition-colors glass px-4 py-2 rounded-full"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Explore</span>
           </button>
 
-          <div className="max-w-3xl space-y-6">
-            <div className="flex items-center space-x-3">
+          <div className="max-w-3xl space-y-6 mt-auto pt-8">
+            <div className="flex flex-wrap items-center gap-3">
               <span className="px-3 py-1 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider rounded-md">
                 {event.category}
               </span>
@@ -277,13 +283,13 @@ export default function EventDetailPage() {
 
               <div className="border-t border-border mt-8 pt-8">
                 <h3 className="font-semibold text-foreground mb-4">Presented by</h3>
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 shrink-0 bg-primary/10 rounded-full flex items-center justify-center">
                     <span className="text-xl font-bold text-primary">{event.user?.name?.charAt(0) || 'S'}</span>
                   </div>
-                  <div>
-                    <p className="font-medium text-foreground flex items-center gap-1.5">
-                      {event.user?.name || 'Spotlighticket Partner'}
+                  <div className="min-w-0">
+                    <p className="font-medium text-foreground flex flex-wrap items-center gap-1.5">
+                      <span className="truncate">{event.user?.name || 'Spotlighticket Partner'}</span>
                       {event.user?.is_verified && <VerifiedBadge />}
                     </p>
                     <p className="text-sm text-muted-foreground">{event.user?.is_verified ? 'Verified Organizer' : 'Organizer'}</p>
