@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useEffect } from 'react';
+import { Fragment, Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { StatCard } from '@/components/dashboard/StatCard';
@@ -18,7 +18,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Users, Calendar, Ticket, Award, Plus, Edit, Trash, ChevronUp, ChevronDown, Newspaper, Receipt, Search, Download, Crown } from 'lucide-react';
+import { Users, Calendar, Ticket, Award, Plus, Edit, Trash, ChevronUp, ChevronDown, Newspaper, Receipt, Search, Download, Crown, Eye, EyeOff, Phone, Mail, ShieldCheck } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { SettingsTab } from '@/components/admin/SettingsTab';
 import { DashboardCharts } from '@/components/admin/DashboardCharts';
@@ -115,6 +115,7 @@ function AdminDashboardPageInner() {
   const [ticketStatusFilter, setTicketStatusFilter] = useState<string>('');
   const [userRoleFilter, setUserRoleFilter] = useState<string>('');
   const [paymentSearch, setPaymentSearch] = useState<string>('');
+  const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
 
   const [newUser, setNewUser] = useState<{name:string; email:string; role:'attendee'|'organizer'|'admin'|'super-admin'|'developer'; password:string}>({
     name: '', email: '', role: 'attendee', password: ''
@@ -485,8 +486,9 @@ function AdminDashboardPageInner() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(usersList.length? usersList : (dashboard.recent_users || [])).map((u: any) => (
-                      <TableRow key={u.id}>
+                    {usersList.map((u: any) => (
+                      <Fragment key={u.id}>
+                      <TableRow>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-sm shrink-0">
@@ -524,18 +526,54 @@ function AdminDashboardPageInner() {
                           {u.events_count || 0} events, {u.tickets_count || 0} tickets
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            disabled={!canDeleteUser(u)}
-                            title={!canDeleteUser(u) ? "This account is protected and can't be deleted" : undefined}
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10 disabled:opacity-40 disabled:hover:bg-transparent"
-                            onClick={async()=>{ if(confirm('Delete this user?')) { try{ await admin.deleteUser(u.id); await refreshUsers(); } catch(e){ alert('Failed to delete'); } } }}
-                          >
-                            <Trash className="w-4 h-4"/> Delete
-                          </Button>
+                          <div className="flex items-center justify-end gap-1 flex-wrap">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setExpandedUserId(expandedUserId === u.id ? null : u.id)}
+                            >
+                              {expandedUserId === u.id ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              {expandedUserId === u.id ? 'Hide' : 'View'}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={!canDeleteUser(u)}
+                              title={!canDeleteUser(u) ? "This account is protected and can't be deleted" : undefined}
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10 disabled:opacity-40 disabled:hover:bg-transparent"
+                              onClick={async()=>{ if(confirm('Delete this user?')) { try{ await admin.deleteUser(u.id); await refreshUsers(); } catch(e){ alert('Failed to delete'); } } }}
+                            >
+                              <Trash className="w-4 h-4"/> Delete
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
+                      {expandedUserId === u.id && (
+                        <TableRow key={`${u.id}-detail`}>
+                          <TableCell colSpan={4} className="bg-muted/30">
+                            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 py-2 text-sm">
+                              <div>
+                                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1 flex items-center gap-1"><Mail className="w-3 h-3" /> Email</p>
+                                <p className="font-medium break-all">{u.email}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1 flex items-center gap-1"><Phone className="w-3 h-3" /> Phone</p>
+                                <p className="font-medium">{u.phone || '—'}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1 flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> KYC status</p>
+                                <p className="font-medium capitalize">{u.kyc_status || 'Not submitted'}</p>
+                                {u.kyc_business_name && <p className="text-xs text-muted-foreground">{u.kyc_business_name}</p>}
+                              </div>
+                              <div>
+                                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Joined</p>
+                                <p className="font-medium">{u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      </Fragment>
                     ))}
                   </TableBody>
                 </Table>

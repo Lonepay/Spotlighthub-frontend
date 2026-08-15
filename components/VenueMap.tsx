@@ -27,7 +27,10 @@ export function VenueMap({
   const address = [venue, location].filter(Boolean).join(', ');
   const hasCoords = lat != null && lng != null && !isNaN(lat) && !isNaN(lng);
 
-  const query = hasCoords ? `${lat},${lng}` : address;
+  // Anchor to Nigeria when we don't have precise coordinates yet — a bare
+  // venue name with no country context is ambiguous to Google's free
+  // query-based embed search and was resolving to random places worldwide.
+  const query = hasCoords ? `${lat},${lng}` : /nigeria/i.test(address) ? address : `${address}, Nigeria`;
   const embedSrc = `//maps.google.com/maps?width=100%25&height=385&hl=en&q=${encodeURIComponent(
     query
   )}&t=&z=15&ie=UTF8&iwloc=B&output=embed`;
