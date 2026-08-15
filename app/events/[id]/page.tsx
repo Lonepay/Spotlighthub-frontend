@@ -167,6 +167,13 @@ export default function EventDetailPage() {
     ? Math.round((subtotal * (gatewayStatus.platform_fee_percentage ?? 0) / 100 + (gatewayStatus.platform_flat_fee ?? 0)) * 100) / 100
     : 0;
   const totalDue = subtotal + serviceFee;
+  // "FREE" must mean the event/selection is actually free, not just that
+  // nothing's been picked yet — an event with real ₦-priced tiers showing
+  // "FREE" before any selection reads as "this event costs nothing", which
+  // is wrong and misleading the moment it has paid ticket types.
+  const priceLabel = totalQuantity > 0
+    ? (totalDue === 0 ? 'FREE' : formatNaira(totalDue))
+    : (variations.length === 0 && event.price === 0 ? 'FREE' : 'Select tickets');
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary selection:text-primary-foreground">
@@ -299,15 +306,20 @@ export default function EventDetailPage() {
             </section>
           </div>
 
-          {/* Right Column: Ticket selector */}
-          <div className="lg:col-span-1" id="booking-section">
+          {/* Right Column: Ticket selector.
+              min-w-0 required — same grid-item min-width:auto issue as the
+              left column: without it, the ticket-row's shrink-0 +/- controls
+              can force this column (and the page) wider than the viewport,
+              and the + button gets clipped off-screen by overflow-x:hidden
+              instead of staying visible. */}
+          <div className="lg:col-span-1 min-w-0" id="booking-section">
             <div className="sticky top-24 glass rounded-3xl shadow-elevated p-4 sm:p-6 lg:p-8">
               <div className="space-y-8">
                 <div className="flex justify-between items-baseline border-b border-border pb-6">
                   <div>
                     <p className="text-sm text-muted-foreground uppercase font-bold tracking-wider">Total Price</p>
-                    <div className="text-3xl font-black text-gradient">
-                      {totalDue === 0 ? 'FREE' : formatNaira(totalDue)}
+                    <div className={totalQuantity > 0 || (variations.length === 0 && event.price === 0) ? 'text-3xl font-black text-gradient' : 'text-lg font-bold text-muted-foreground'}>
+                      {priceLabel}
                     </div>
                     {serviceFee > 0 && (
                       <p className="text-xs text-muted-foreground mt-0.5">Includes {formatNaira(serviceFee)} service fee</p>
@@ -336,7 +348,13 @@ export default function EventDetailPage() {
                       Select Ticket Types
                     </label>
                     <p className="text-xs text-muted-foreground -mt-2 mb-3">Mix and match — pick a quantity for as many types as you like.</p>
-                    <div className="space-y-2">
+                    {/* pr reserves clearance from the fixed WhatsApp bubble
+                        (bottom-24 right-5 on mobile) — without it, the +
+                        button on whichever row happens to scroll into that
+                        screen position becomes untappable, covered by the
+                        bubble. lg: has no bubble in this corner (it moves to
+                        bottom-5 clear of any card), so no reserve needed there. */}
+                    <div className="space-y-2 pr-14 lg:pr-0">
                       {variations.map((v) => {
                         const qty = variationQuantities[v.id] || 0;
                         const soldOut = v.available_quantity <= 0;
@@ -510,7 +528,7 @@ export default function EventDetailPage() {
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-xs text-muted-foreground uppercase font-bold">Total</p>
-            <p className="text-xl font-black text-gradient">{totalDue === 0 ? 'FREE' : formatNaira(totalDue)}</p>
+            <p className={totalQuantity > 0 || (variations.length === 0 && event.price === 0) ? 'text-xl font-black text-gradient' : 'text-sm font-bold text-muted-foreground'}>{priceLabel}</p>
           </div>
           <Button
             onClick={() => document.getElementById('booking-section')?.scrollIntoView({ behavior: 'smooth' })}
