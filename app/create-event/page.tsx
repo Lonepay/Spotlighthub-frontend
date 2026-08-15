@@ -163,6 +163,13 @@ export default function CreateEventPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!image) {
+      setError('Upload a flyer or cover image for your event — it\'s required so buyers can see what they\'re getting a ticket for.');
+      window.scrollTo({ top: document.getElementById('image-upload')?.offsetTop ?? 0, behavior: 'smooth' });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -177,9 +184,7 @@ export default function CreateEventPage() {
       data.append('total_tickets', formData.total_tickets);
       data.append('is_virtual', formData.is_virtual ? '1' : '0');
       data.append('fee_payer', formData.fee_payer);
-      if (image) {
-        data.append('image', image);
-      }
+      data.append('image', image);
 
       const newEvent = await events.create(data);
 
@@ -693,20 +698,21 @@ export default function CreateEventPage() {
 
             {/* Event image */}
             <section>
-              <SectionHeader icon={ImageIcon} title="Event image" subtitle="The cover photo shown on your event card and detail page." />
-              <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 transition-colors">
+              <SectionHeader icon={ImageIcon} title="Event image *" subtitle="The cover photo shown on your event card and detail page — required, buyers need to see what they're getting a ticket for." />
+              <div className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${image ? 'border-primary/50' : 'border-destructive/40 hover:border-destructive/60'}`}>
                 <Upload className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={(e) => setImage(e.target.files?.[0] || null)}
+                  required
+                  onChange={(e) => { setImage(e.target.files?.[0] || null); setError(''); }}
                   className="hidden"
                   id="image-upload"
                 />
                 <label htmlFor="image-upload" className="cursor-pointer text-primary font-semibold hover:underline">
-                  {image ? image.name : 'Click to upload image'}
+                  {image ? image.name : 'Click to upload image (required)'}
                 </label>
-                <p className="text-xs text-muted-foreground mt-2">PNG or JPG, landscape works best.</p>
+                <p className="text-xs text-muted-foreground mt-2">PNG or JPG, landscape works best. Up to 30MB.</p>
               </div>
             </section>
 
