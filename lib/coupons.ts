@@ -11,6 +11,9 @@ export interface Coupon {
   used_count: number;
   expires_at: string | null;
   is_active: boolean;
+  partner_user_id?: number | null;
+  commission_per_ticket?: number | null;
+  partner?: { id: number; name: string; email: string } | null;
   created_at: string;
   updated_at: string;
 }
@@ -36,6 +39,8 @@ export const coupons = {
     max_uses?: number | null;
     expires_at?: string | null;
     is_active?: boolean;
+    partner_email?: string;
+    commission_per_ticket?: number;
   }): Promise<Coupon> {
     const { data } = await api.post(`/events/${eventId}/coupons`, payload);
     return data.data || data;
@@ -48,6 +53,8 @@ export const coupons = {
     max_uses: number | null;
     expires_at: string | null;
     is_active: boolean;
+    partner_email: string;
+    commission_per_ticket: number;
   }>): Promise<Coupon> {
     const { data } = await api.put(`/events/${eventId}/coupons/${couponId}`, payload);
     return data.data || data;

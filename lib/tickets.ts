@@ -21,6 +21,26 @@ export interface Ticket {
   updated_at: string;
 }
 
+export interface FoundTicket {
+  id: number;
+  code: string;
+  event_id: number;
+  attendee_name: string | null;
+  status?: string;
+  booking_date?: string | null;
+  booking_time?: string | null;
+  created_at: string;
+  event?: {
+    id: number;
+    title: string;
+    date: string;
+    time: string;
+    venue: string;
+    is_virtual?: boolean;
+    image?: string;
+  };
+}
+
 export const tickets = {
   async purchase(eventId: number, quantity: number) {
     const { data } = await api.post(`/events/${eventId}/tickets`, { quantity });
@@ -49,6 +69,11 @@ export const tickets = {
 
   async deleteTicket(ticketId: number) {
     await api.delete(`/organizer/tickets/${ticketId}`);
+  },
+
+  async findByEmail(email: string): Promise<FoundTicket[]> {
+    const { data } = await api.post('/tickets/find', { email });
+    return data.data || data;
   },
 };
 

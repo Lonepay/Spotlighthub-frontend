@@ -118,5 +118,10 @@ export const events = {
   async deleteVariation(eventId: number, variationId: number): Promise<void> {
     await api.delete(`/events/${eventId}/variations/${variationId}`);
   },
+
+  async reorderVariations(eventId: number, orderedIds: number[]): Promise<TicketVariation[]> {
+    const { data } = await api.put(`/events/${eventId}/variations/reorder`, { order: orderedIds });
+    return data.data || data;
+  },
 };
 

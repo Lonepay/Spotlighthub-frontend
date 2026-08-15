@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Trash2, Edit2, Tag, Calendar, MapPin, Ticket, Info } from 'lucide-react';
+import { Plus, Trash2, Edit2, Tag, Calendar, MapPin, Ticket, Info, ChevronUp, ChevronDown } from 'lucide-react';
 import DOMPurify from 'isomorphic-dompurify';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -81,6 +81,8 @@ export default function OrganizerEventDetailPage() {
     discount_value: 0,
     max_uses: '' as number | '',
     expires_at: '',
+    partner_email: '',
+    commission_per_ticket: '' as number | '',
   });
 
   useEffect(() => {
@@ -103,7 +105,7 @@ export default function OrganizerEventDetailPage() {
   };
 
   const resetCouponForm = () => {
-    setCouponForm({ code: '', discount_type: 'percentage', discount_value: 0, max_uses: '', expires_at: '' });
+    setCouponForm({ code: '', discount_type: 'percentage', discount_value: 0, max_uses: '', expires_at: '', partner_email: '', commission_per_ticket: '' });
     setEditingCouponId(null);
     setCouponError('');
   };
@@ -122,6 +124,10 @@ export default function OrganizerEventDetailPage() {
       setCouponError("A percentage discount can't exceed 100%.");
       return;
     }
+    if (couponForm.partner_email.trim() && !couponForm.commission_per_ticket) {
+      setCouponError('Set a commission per ticket for this partner code.');
+      return;
+    }
 
     setSavingCoupon(true);
     try {
@@ -131,6 +137,10 @@ export default function OrganizerEventDetailPage() {
         discount_value: couponForm.discount_value,
         max_uses: couponForm.max_uses === '' ? null : Number(couponForm.max_uses),
         expires_at: couponForm.expires_at || null,
+        ...(couponForm.partner_email.trim() && {
+          partner_email: couponForm.partner_email.trim(),
+          commission_per_ticket: Number(couponForm.commission_per_ticket),
+        }),
       };
       if (editingCouponId) {
         await couponsApi.update(Number(params.id), editingCouponId, payload);
@@ -154,6 +164,8 @@ export default function OrganizerEventDetailPage() {
       discount_value: coupon.discount_value,
       max_uses: coupon.max_uses ?? '',
       expires_at: coupon.expires_at ? coupon.expires_at.slice(0, 10) : '',
+      partner_email: coupon.partner?.email ?? '',
+      commission_per_ticket: coupon.commission_per_ticket ?? '',
     });
     setEditingCouponId(coupon.id);
     setCouponError('');
@@ -325,6 +337,20 @@ export default function OrganizerEventDetailPage() {
       setVariationError(error.response?.data?.message || 'Failed to save variation');
     } finally {
       setSavingVariation(false);
+    }
+  };
+
+  const handleMoveVariation = async (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= variations.length) return;
+    const reordered = [...variations];
+    [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
+    setVariations(reordered);
+    try {
+      await events.reorderVariations(Number(params.id), reordered.map((v) => v.id!));
+    } catch (error) {
+      alert('Failed to save the new order');
+      await loadVariations();
     }
   };
 
@@ -720,15 +746,30 @@ export default function OrganizerEventDetailPage() {
 
             {variations.length > 0 ? (
               <div className="space-y-3">
-                {variations.map((variation) => (
+                {variations.length > 1 && (
+                  <p className="text-xs text-muted-foreground">Auto-sorted by price — use the arrows to set a custom order instead.</p>
+                )}
+                {variations.map((variation, index) => (
                   <div key={variation.id} className="p-4 rounded-xl border border-border">
                     <div className="flex flex-wrap justify-between items-start gap-3">
-                      <div>
-                        <h3 className="font-medium">{variation.name}</h3>
-                        <p className="text-sm text-muted-foreground mb-2">{variation.description}</p>
-                        <div className="flex gap-4 text-sm">
-                          <span className="font-semibold">₦{variation.price.toLocaleString('en-NG', { maximumFractionDigits: 0 })}</span>
-                          <span className="text-muted-foreground">{variation.sold || 0} sold / {variation.quantity} total</span>
+                      <div className="flex items-start gap-2">
+                        {variations.length > 1 && (
+                          <div className="flex flex-col shrink-0 -mt-1">
+                            <Button variant="ghost" size="icon" className="h-6 w-6" disabled={index === 0} onClick={() => handleMoveVariation(index, -1)}>
+                              <ChevronUp className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" disabled={index === variations.length - 1} onClick={() => handleMoveVariation(index, 1)}>
+                              <ChevronDown className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        )}
+                        <div>
+                          <h3 className="font-medium">{variation.name}</h3>
+                          <p className="text-sm text-muted-foreground mb-2">{variation.description}</p>
+                          <div className="flex gap-4 text-sm">
+                            <span className="font-semibold">₦{variation.price.toLocaleString('en-NG', { maximumFractionDigits: 0 })}</span>
+                            <span className="text-muted-foreground">{variation.sold || 0} sold / {variation.quantity} total</span>
+                          </div>
                         </div>
                       </div>
                       <div className="flex gap-2">
@@ -856,6 +897,41 @@ export default function OrganizerEventDetailPage() {
                     <p className="text-xs text-muted-foreground mt-1">Leave blank to never expire.</p>
                   </div>
                 </div>
+
+                {user && isAdminLevelRole(user.role) && (
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <h4 className="font-medium text-sm mb-1">Make this a partnership code (admin only)</h4>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Turns this into a promo code a partner shares on their socials — they earn a flat commission per ticket sold through it, paid by the platform (not deducted from the organizer). Leave blank for a normal discount-only coupon.
+                    </p>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="coupon-partner-email">Partner&apos;s account email</Label>
+                        <Input
+                          id="coupon-partner-email"
+                          type="email"
+                          placeholder="partner@example.com"
+                          value={couponForm.partner_email}
+                          onChange={(e) => setCouponForm({ ...couponForm, partner_email: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">They must already have a Spotlighticket account — this is who gets paid.</p>
+                      </div>
+                      <div>
+                        <Label htmlFor="coupon-commission">Commission per ticket (₦)</Label>
+                        <Input
+                          id="coupon-commission"
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          placeholder="e.g. 500"
+                          value={couponForm.commission_per_ticket}
+                          onChange={(e) => setCouponForm({ ...couponForm, commission_per_ticket: e.target.value === '' ? '' : Number(e.target.value) })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex justify-end space-x-2 mt-5 pt-4 border-t border-border">
                   <Button
                     variant="outline"
@@ -883,8 +959,9 @@ export default function OrganizerEventDetailPage() {
                         <h3 className="font-medium flex items-center gap-1.5">
                           <Tag className="w-4 h-4 text-primary" /> {coupon.code}
                           {!coupon.is_active && <Badge variant="outline">Disabled</Badge>}
+                          {coupon.partner && <Badge>Partner code</Badge>}
                         </h3>
-                        <div className="flex gap-4 text-sm mt-1">
+                        <div className="flex flex-wrap gap-4 text-sm mt-1">
                           <span className="font-semibold">
                             {coupon.discount_type === 'percentage' ? `${coupon.discount_value}% off` : `₦${Number(coupon.discount_value).toLocaleString('en-NG')} off`}
                           </span>
@@ -895,6 +972,11 @@ export default function OrganizerEventDetailPage() {
                             <span className="text-muted-foreground">Expires {new Date(coupon.expires_at).toLocaleDateString()}</span>
                           )}
                         </div>
+                        {coupon.partner && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Earns {coupon.partner.name} (<span className="break-all">{coupon.partner.email}</span>) ₦{Number(coupon.commission_per_ticket).toLocaleString('en-NG')} per ticket
+                          </p>
+                        )}
                       </div>
                       <div className="flex gap-2">
                         <Button variant="outline" size="sm" onClick={() => handleToggleCouponActive(coupon)}>

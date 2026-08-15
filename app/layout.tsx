@@ -4,6 +4,7 @@ import './globals.css'
 import { AuthProvider } from '@/components/AuthProvider'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { CartProvider } from '@/lib/cart'
+import { WhatsAppButton } from '@/components/WhatsAppButton'
 import { Toaster } from 'sonner'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
@@ -33,6 +34,7 @@ export default function RootLayout({
             <CartProvider>{children}</CartProvider>
           </AuthProvider>
         </ThemeProvider>
+        <WhatsAppButton />
         <Toaster richColors position="top-center" theme="system" />
       </body>
     </html>
