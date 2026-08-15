@@ -53,12 +53,13 @@ export function VenueMap({
   }
 
   return (
-    <div className="rounded-2xl overflow-hidden border border-border">
+    <div className="w-full max-w-full rounded-2xl overflow-hidden border border-border">
       <iframe
         title={`Map showing ${venue}`}
         src={embedSrc}
+        width="100%"
         height="385"
-        className="w-full h-64 sm:h-80 border-0"
+        className="block w-full max-w-full h-64 sm:h-80 border-0"
         allowFullScreen
         loading="lazy"
       />

@@ -269,7 +269,9 @@ export default function EventDetailPage() {
                   <h3 className="font-semibold text-foreground mb-4 flex items-center">
                     <MapPin className="w-5 h-5 mr-2 text-primary-glow" /> Location
                   </h3>
-                  <VenueMap latitude={event.latitude} longitude={event.longitude} venue={event.venue} location={event.location} />
+                  <div className="w-full max-w-full overflow-hidden">
+                    <VenueMap latitude={event.latitude} longitude={event.longitude} venue={event.venue} location={event.location} />
+                  </div>
                 </div>
               )}
 
