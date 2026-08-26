@@ -20,7 +20,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Users, Calendar, Ticket, Award, Plus, Edit, Trash, ChevronUp, ChevronDown, Newspaper, Receipt, Search, Download, Crown, Eye, EyeOff, Phone, Mail, ShieldCheck } from 'lucide-react';
+import { Users, Calendar, Ticket, Award, Plus, Edit, Trash, ChevronUp, ChevronDown, Newspaper, Receipt, Search, Download, Crown, Eye, EyeOff, Phone, Mail, ShieldCheck, ArrowRight } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { SettingsTab } from '@/components/admin/SettingsTab';
 import { DashboardCharts } from '@/components/admin/DashboardCharts';
@@ -648,9 +648,14 @@ function AdminDashboardPageInner() {
 
                             {u.role === 'organizer' && !isStaffActor && (
                               <div className="mt-3 pt-3 border-t border-border">
-                                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-1">
-                                  <NairaSign className="w-3 h-3" /> Wallet overview (admin-only, logged)
-                                </p>
+                                <div className="flex items-center justify-between mb-2">
+                                  <p className="text-xs uppercase tracking-wide text-muted-foreground flex items-center gap-1">
+                                    <NairaSign className="w-3 h-3" /> Wallet overview (admin-only, logged)
+                                  </p>
+                                  <Link href={`/organizer?organizer_id=${u.id}`} className="text-xs text-primary hover:underline flex items-center gap-1">
+                                    View full dashboard <ArrowRight className="w-3 h-3" />
+                                  </Link>
+                                </div>
                                 {loadingOverviewId === u.id ? (
                                   <p className="text-xs text-muted-foreground">Loading…</p>
                                 ) : organizerOverview[u.id] ? (

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { useAuth } from '@/components/AuthProvider';
-import { isAdminLevelRole, isStaffRole } from '@/lib/auth';
+import { isAdminLevelRole, isStaffRole, hasPermission } from '@/lib/auth';
 import { events, Event } from '@/lib/events';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -476,19 +476,28 @@ export default function OrganizerEventDetailPage() {
           <CardContent className="p-6">
             <div className="flex flex-wrap justify-between items-start gap-3 mb-2">
               <h2 className="font-display font-bold text-xl">{event.title}</h2>
-              <div className="flex items-center gap-2 shrink-0">
-                <Button variant="outline" size="sm" onClick={() => (showEditEvent ? setShowEditEvent(false) : handleOpenEditEvent())}>
-                  <Edit2 className="w-4 h-4" /> {showEditEvent ? 'Cancel' : 'Edit Event'}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={handleDeleteEvent}
-                >
-                  <Trash2 className="w-4 h-4" /> Delete
-                </Button>
-              </div>
+              {(() => {
+                // Mirrors EventPolicy on the backend: owner, admin-level, or
+                // staff with the 'operations' permission. A staff account
+                // without it shouldn't see an enabled button that just 403s.
+                const canManageEvent = user?.id === event.user_id || isAdminLevelRole(user?.role) || hasPermission(user, 'operations');
+                if (!canManageEvent) return null;
+                return (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button variant="outline" size="sm" onClick={() => (showEditEvent ? setShowEditEvent(false) : handleOpenEditEvent())}>
+                      <Edit2 className="w-4 h-4" /> {showEditEvent ? 'Cancel' : 'Edit Event'}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={handleDeleteEvent}
+                    >
+                      <Trash2 className="w-4 h-4" /> Delete
+                    </Button>
+                  </div>
+                );
+              })()}
             </div>
 
             {showEditEvent ? (

@@ -11,11 +11,12 @@ export interface OrganizerDashboard {
   stats: OrganizerStats;
   recent_payments: any[];
   earnings_by_event: any[];
+  viewing_organizer: { id: number; name: string } | null;
 }
 
 export const organizer = {
-  async getDashboard(): Promise<OrganizerDashboard> {
-    const { data } = await api.get('/organizer/dashboard');
+  async getDashboard(organizerId?: number): Promise<OrganizerDashboard> {
+    const { data } = await api.get('/organizer/dashboard', { params: organizerId ? { organizer_id: organizerId } : undefined });
     return data;
   },
 

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { StatCard } from '@/components/dashboard/StatCard';
@@ -15,11 +15,24 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { DonutBreakdown } from '@/components/charts/DonutBreakdown';
-import { Ticket, Calendar, ArrowRight, Receipt, PieChart, Trash2 } from 'lucide-react';
+import { Ticket, Calendar, ArrowRight, Receipt, PieChart, Trash2, Eye, X } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 
 export default function OrganizerDashboardPage() {
+  // useSearchParams() below (for ?organizer_id=) requires a Suspense
+  // ancestor for Next.js's production build (static generation) — without
+  // it the build fails outright.
+  return (
+    <Suspense fallback={null}>
+      <OrganizerDashboardPageInner />
+    </Suspense>
+  );
+}
+
+function OrganizerDashboardPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const viewAsOrganizerId = searchParams.get('organizer_id');
   const { user, loading: authLoading } = useAuth();
   const [dashboard, setDashboard] = useState<OrganizerDashboard | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,11 +47,13 @@ export default function OrganizerDashboardPage() {
         loadDashboard();
       }
     }
-  }, [user, authLoading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, authLoading, viewAsOrganizerId]);
 
   const loadDashboard = async () => {
+    setLoading(true);
     try {
-      const data = await organizer.getDashboard();
+      const data = await organizer.getDashboard(viewAsOrganizerId ? Number(viewAsOrganizerId) : undefined);
       setDashboard(data);
     } catch (error) {
       console.error('Failed to load dashboard:', error);
@@ -87,6 +102,17 @@ export default function OrganizerDashboardPage() {
   return (
     <DashboardShell title="Organizer Dashboard" description={`${getGreeting()}, ${user?.name} — manage your events and track earnings`}>
       <div className="space-y-6">
+        {dashboard.viewing_organizer && (
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
+            <span className="flex items-center gap-2">
+              <Eye className="w-4 h-4 text-primary" />
+              Viewing <strong>{dashboard.viewing_organizer.name}</strong>&apos;s dashboard — read-only, logged for audit.
+            </span>
+            <Button variant="ghost" size="sm" onClick={() => router.push('/organizer')}>
+              <X className="w-4 h-4" /> Exit
+            </Button>
+          </div>
+        )}
         {/* Stats */}
         <div className="grid sm:grid-cols-3 gap-4">
           <StatCard
@@ -122,7 +148,9 @@ export default function OrganizerDashboardPage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
-              <h2 className="font-display font-bold text-lg">{user && isStaffRole(user.role) ? 'All Events' : 'Your Events'}</h2>
+              <h2 className="font-display font-bold text-lg">
+                {dashboard.viewing_organizer ? `${dashboard.viewing_organizer.name}'s Events` : user && isStaffRole(user.role) ? 'All Events' : 'Your Events'}
+              </h2>
               <Button asChild size="sm">
                 <Link href="/create-event">
                   Create event <ArrowRight className="w-4 h-4" />
