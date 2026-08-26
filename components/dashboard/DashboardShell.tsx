@@ -94,6 +94,7 @@ function buildAdminNav(role: string): NavEntry[] {
     { label: 'Payments', href: '/admin?tab=payments', icon: Receipt },
     { label: 'Blog', href: '/admin?tab=blog', icon: Newspaper },
     { label: 'Vendors', href: '/admin?tab=vendors', icon: Store },
+    { label: 'Support Tickets', href: '/admin?tab=support', icon: LifeBuoy },
   ];
 
   // Admin Settings and Roles & Staff Management are super-admin/developer only.

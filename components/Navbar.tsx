@@ -48,10 +48,10 @@ export function Navbar() {
   return (
     <nav className="glass sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-28">
           <Link href="/" className="flex items-center space-x-2 group">
             <Logo
-              className="h-14 w-auto object-contain group-hover:scale-105 transition-transform"
+              className="h-24 w-auto object-contain group-hover:scale-105 transition-transform"
               priority
             />
           </Link>
