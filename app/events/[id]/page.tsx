@@ -11,7 +11,7 @@ import { events, Event, TicketVariation } from '@/lib/events';
 import { Calendar, MapPin, Ticket, ArrowLeft, Check, CreditCard, Clock, Star, Info, Minus, Plus, Zap, Wallet, Layers } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import DOMPurify from 'isomorphic-dompurify';
+import { sanitize } from '@/lib/sanitize';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { CountdownTimer } from '@/components/CountdownTimer';
 import { VenueMap } from '@/components/VenueMap';
@@ -274,7 +274,7 @@ export default function EventDetailPage() {
               </h2>
               <div
                 className="prose prose-lg max-w-none text-muted-foreground leading-relaxed [&_p]:mb-4 [&_a]:text-primary [&_strong]:text-foreground [&_h1]:text-foreground [&_h2]:text-foreground [&_h3]:text-foreground [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6"
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(event.description) }}
+                dangerouslySetInnerHTML={{ __html: sanitize(event.description) }}
               />
 
               {!event.is_virtual && (

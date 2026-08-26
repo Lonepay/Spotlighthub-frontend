@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Trash2, Edit2, Tag, Calendar, MapPin, Ticket, Info, ChevronUp, ChevronDown } from 'lucide-react';
-import DOMPurify from 'isomorphic-dompurify';
+import { sanitize } from '@/lib/sanitize';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { tickets as ticketsApi } from '@/lib/tickets';
@@ -639,7 +639,7 @@ export default function OrganizerEventDetailPage() {
               <>
                 <div
                   className="prose prose-sm max-w-none text-muted-foreground mb-6 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(event.description) }}
+                  dangerouslySetInnerHTML={{ __html: sanitize(event.description) }}
                 />
                 <div className="grid sm:grid-cols-4 gap-4">
                   <div>
