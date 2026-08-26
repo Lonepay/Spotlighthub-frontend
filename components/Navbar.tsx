@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useAuth } from './AuthProvider';
-import { isAdminLevelRole } from '@/lib/auth';
+import { isStaffRole } from '@/lib/auth';
 import { useCart } from '@/lib/cart';
 import { ThemeToggle } from './ThemeToggle';
 import { Logo } from './Logo';
@@ -82,7 +82,7 @@ export function Navbar() {
 
             {user ? (
               <>
-                {isAdminLevelRole(user.role) ? (
+                {isStaffRole(user.role) ? (
                   <Link href="/admin" className="text-muted-foreground hover:text-foreground font-medium text-sm transition-colors">
                     Dashboard
                   </Link>
@@ -181,7 +181,7 @@ export function Navbar() {
                   </div>
 
                   <div className="grid grid-cols-1 gap-1">
-                    {isAdminLevelRole(user.role) ? (
+                    {isStaffRole(user.role) ? (
                       <Link href="/admin" className="flex items-center space-x-3 px-3 py-2 rounded-none hover:bg-secondary/50 text-sm text-muted-foreground hover:text-primary font-medium transition-colors" onClick={() => setMobileMenuOpen(false)}>
                         <Shield className="w-4 h-4" />
                         <span>Admin Dashboard</span>

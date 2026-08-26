@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Instagram, Youtube, MessageCircle } from 'lucide-react';
 import { Logo } from './Logo';
+import { WHATSAPP_NUMBER } from '@/lib/constants';
 
 function TikTokIcon({ className }: { className?: string }) {
   return (
@@ -29,7 +30,7 @@ export function Footer() {
               <a href="https://tiktok.com/@spot_lhub" target="_blank" rel="noopener noreferrer" aria-label="TikTok" className="text-muted-foreground hover:text-primary transition-colors">
                 <TikTokIcon className="w-5 h-5" />
               </a>
-              <a href="https://api.whatsapp.com/send?phone=2348132209554" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" className="text-muted-foreground hover:text-primary transition-colors">
+              <a href={`https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER}`} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" className="text-muted-foreground hover:text-primary transition-colors">
                 <MessageCircle className="w-5 h-5" />
               </a>
               <a href="https://www.youtube.com/@spot_lhub" target="_blank" rel="noopener noreferrer" aria-label="YouTube" className="text-muted-foreground hover:text-primary transition-colors">
@@ -62,6 +63,7 @@ export function Footer() {
             <h4 className="font-display font-semibold text-foreground mb-4">Support</h4>
             <ul className="space-y-2 text-sm">
               <li><Link href="/find-tickets" className="hover:text-primary transition-colors">Find My Ticket</Link></li>
+              <li><Link href="/support" className="hover:text-primary transition-colors">Support Tickets</Link></li>
               <li><Link href="/faq" className="hover:text-primary transition-colors">FAQ</Link></li>
               <li><Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link></li>
               <li><Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>

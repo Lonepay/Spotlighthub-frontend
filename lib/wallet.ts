@@ -88,4 +88,13 @@ export const wallet = {
     const { data } = await api.get('/admin/withdrawals-payout-balance');
     return data as { balance: number | null };
   },
+
+  async adminOrganizerOverview(userId: number) {
+    const { data } = await api.get(`/admin/organizers/${userId}/overview`);
+    return data as WalletSummary & {
+      organizer: { id: number; name: string; email: string; phone: string | null; kyc_status: string | null; is_verified: boolean };
+      events_count: number;
+      recent_withdrawals: Withdrawal[];
+    };
+  },
 };

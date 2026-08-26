@@ -47,6 +47,7 @@ import {
   ShieldCheck,
   Crown,
   Store,
+  LifeBuoy,
 } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { TopProgressBar } from '@/components/TopProgressBar';
@@ -63,6 +64,7 @@ const NAV_BY_ROLE: Record<string, NavEntry[]> = {
     link('My Tickets', '/my-tickets', Ticket),
     link('Explore', '/events', Compass),
     link('Pricing', '/pricing', NairaSign),
+    link('Support', '/support', LifeBuoy),
     link('Settings', '/profile', Settings),
   ],
   organizer: [
@@ -73,6 +75,7 @@ const NAV_BY_ROLE: Record<string, NavEntry[]> = {
     link('Wallet', '/organizer/wallet', Wallet),
     link('Pricing', '/pricing', NairaSign),
     link('Explore', '/events', Compass),
+    link('Support', '/support', LifeBuoy),
     link('Settings', '/profile', Settings),
   ],
 };
@@ -116,6 +119,16 @@ function buildAdminNav(role: string): NavEntry[] {
   ];
 }
 
+/** Support sees only Organizers/Attendees (read-only, via the Users tab) and Support Tickets — nothing else in /admin. */
+function buildSupportNav(): NavEntry[] {
+  return [
+    link('Users', '/admin?tab=users', Users),
+    link('Support Tickets', '/admin?tab=support', LifeBuoy),
+    link('Explore', '/events', Compass),
+    link('My Profile', '/profile', UserCircle),
+  ];
+}
+
 export function DashboardShell(props: {
   title: string;
   description?: string;
@@ -150,6 +163,8 @@ function DashboardShellInner({
   const role = user?.role || 'attendee';
   const navItems = ['admin', 'super-admin', 'developer'].includes(role)
     ? buildAdminNav(role)
+    : role === 'support'
+    ? buildSupportNav()
     : NAV_BY_ROLE[role] || NAV_BY_ROLE.attendee;
 
   const isItemActive = (href: string) => {

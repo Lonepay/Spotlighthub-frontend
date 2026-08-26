@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { WHATSAPP_NUMBER } from '@/lib/constants';
 
-const WHATSAPP_NUMBER = '2348132209554';
 const DEFAULT_MESSAGE = "Hi Spotlighticket, I need some help.";
 
 export function WhatsAppButton() {

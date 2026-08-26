@@ -5,9 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { useAuth } from '@/components/AuthProvider';
-import { isAdminLevelRole } from '@/lib/auth';
+import { isStaffRole } from '@/lib/auth';
 import { getGreeting } from '@/lib/utils';
 import { admin, AdminDashboard } from '@/lib/admin';
+import { wallet } from '@/lib/wallet';
 import { payments } from '@/lib/payments';
 import { tickets } from '@/lib/tickets';
 import { Button } from '@/components/ui/button';
@@ -26,11 +27,12 @@ import { RichTextEditor } from '@/components/RichTextEditor';
 import { KycReviewTab } from '@/components/admin/KycReviewTab';
 import { WithdrawalsTab } from '@/components/admin/WithdrawalsTab';
 import { VendorsTab } from '@/components/admin/VendorsTab';
+import { SupportTicketsTab } from '@/components/admin/SupportTicketsTab';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import Link from 'next/link';
 
-type AdminTab = 'overview' | 'users' | 'events' | 'kyc' | 'withdrawals' | 'tickets' | 'payments' | 'blog' | 'vendors' | 'settings';
-const VALID_TABS: AdminTab[] = ['overview', 'users', 'events', 'kyc', 'withdrawals', 'tickets', 'payments', 'blog', 'vendors', 'settings'];
+type AdminTab = 'overview' | 'users' | 'events' | 'kyc' | 'withdrawals' | 'tickets' | 'payments' | 'blog' | 'vendors' | 'settings' | 'support';
+const VALID_TABS: AdminTab[] = ['overview', 'users', 'events', 'kyc', 'withdrawals', 'tickets', 'payments', 'blog', 'vendors', 'settings', 'support'];
 
 export default function AdminDashboardPage() {
   // useSearchParams() below requires a Suspense ancestor for Next.js's
@@ -48,6 +50,7 @@ function AdminDashboardPageInner() {
   const { user: authUser, loading: authLoading } = useAuth();
   const isElevatedActor = !!authUser?.role && ['super-admin', 'developer'].includes(authUser.role);
   const isDeveloperActor = authUser?.role === 'developer';
+  const isSupportActor = authUser?.role === 'support';
   const canChangeRoleOf = (u: any) => {
     if (u.role === 'developer') return false;
     if (u.role === 'super-admin') return isDeveloperActor;
@@ -116,8 +119,31 @@ function AdminDashboardPageInner() {
   const [userRoleFilter, setUserRoleFilter] = useState<string>('');
   const [paymentSearch, setPaymentSearch] = useState<string>('');
   const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
+  const [organizerOverview, setOrganizerOverview] = useState<Record<number, any>>({});
+  const [loadingOverviewId, setLoadingOverviewId] = useState<number | null>(null);
 
-  const [newUser, setNewUser] = useState<{name:string; email:string; role:'attendee'|'organizer'|'admin'|'super-admin'|'developer'; password:string}>({
+  const toggleExpandUser = async (u: any) => {
+    if (expandedUserId === u.id) {
+      setExpandedUserId(null);
+      return;
+    }
+    setExpandedUserId(u.id);
+    // Admin-only "view as organizer" balance peek — support can't reach this
+    // endpoint (financial data), so don't even attempt the fetch for them.
+    if (u.role === 'organizer' && !isSupportActor && !organizerOverview[u.id]) {
+      setLoadingOverviewId(u.id);
+      try {
+        const data = await wallet.adminOrganizerOverview(u.id);
+        setOrganizerOverview((prev) => ({ ...prev, [u.id]: data }));
+      } catch {
+        // Silently skip — the plain user-detail fields above still render fine.
+      } finally {
+        setLoadingOverviewId(null);
+      }
+    }
+  };
+
+  const [newUser, setNewUser] = useState<{name:string; email:string; role:'attendee'|'organizer'|'admin'|'super-admin'|'developer'|'support'; password:string}>({
     name: '', email: '', role: 'attendee', password: ''
   });
   const [creatingUser, setCreatingUser] = useState(false);
@@ -133,8 +159,16 @@ function AdminDashboardPageInner() {
     if (!authLoading) {
       if (!authUser) {
         router.push('/login');
-      } else if (!isAdminLevelRole(authUser.role)) {
+      } else if (!isStaffRole(authUser.role)) {
         router.push('/dashboard');
+      } else if (authUser.role === 'support') {
+        // Support can't reach /admin/dashboard (strict admin-only endpoint) —
+        // skip the platform-overview fetch entirely, and never leave them
+        // sitting on the blank Overview tab if they land on a bare /admin.
+        setLoading(false);
+        if (activeTab === 'overview') {
+          setActiveTab('users');
+        }
       } else {
         loadDashboard();
       }
@@ -410,13 +444,16 @@ function AdminDashboardPageInner() {
                       <option value="attendee">Attendees</option>
                       <option value="organizer">Organizers</option>
                       <option value="admin">Admins</option>
+                      <option value="support">Support</option>
                       {isElevatedActor && <option value="staff">Staff (Admin+)</option>}
                     </select>
                     <Button variant="outline" size="icon" onClick={() => refreshUsers()}><Search className="w-4 h-4" /></Button>
-                    {exportButtons('users', { search, role: userRoleFilter })}
-                    <Button onClick={() => setCreatingUser((v) => !v)}>
-                      <Plus className="w-4 h-4" /> Add User
-                    </Button>
+                    {!isSupportActor && exportButtons('users', { search, role: userRoleFilter })}
+                    {!isSupportActor && (
+                      <Button onClick={() => setCreatingUser((v) => !v)}>
+                        <Plus className="w-4 h-4" /> Add User
+                      </Button>
+                    )}
                   </div>
                 </div>
 
@@ -441,10 +478,11 @@ function AdminDashboardPageInner() {
                           <option value="attendee">Attendee</option>
                           <option value="organizer">Organizer</option>
                           <option value="admin">Admin</option>
+                          {isElevatedActor && <option value="support">Support</option>}
                           {isElevatedActor && <option value="super-admin">Super Admin</option>}
                           {isDeveloperActor && <option value="developer">Developer</option>}
                         </select>
-                        <p className="text-xs text-muted-foreground mt-1">Determines what they can access — admin and above reach the admin dashboard.</p>
+                        <p className="text-xs text-muted-foreground mt-1">Determines what they can access — admin and above reach the admin dashboard. Support sees Organizers/Attendees and Support Tickets only.</p>
                       </div>
                       <div>
                         <Label htmlFor="new-user-password">Password</Label>
@@ -505,22 +543,27 @@ function AdminDashboardPageInner() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <select
-                            className="h-9 rounded-none border border-input bg-background px-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                            value={u.role}
-                            disabled={!canChangeRoleOf(u)}
-                            title={!canChangeRoleOf(u) ? "This account's role is protected" : undefined}
-                            onChange={async(e)=>{ try { await admin.updateUserRole(u.id, e.target.value as any); await refreshUsers(); } catch(err: any){ alert(err?.response?.data?.message || 'Failed to update role'); } }}
-                          >
-                            <option value="attendee">Attendee</option>
-                            <option value="organizer">Organizer</option>
-                            <option value="admin">Admin</option>
-                            <option value="super-admin">Super Admin</option>
-                            {/* Only the developer can see/assign the developer role — this option is rendered for a
-                                non-developer viewer only when it's the row's own current value, so the <select>
-                                still displays "Developer" correctly for a protected (disabled) row. */}
-                            {(isDeveloperActor || u.role === 'developer') && <option value="developer">Developer</option>}
-                          </select>
+                          {isSupportActor ? (
+                            <Badge variant="outline" className="capitalize">{u.role}</Badge>
+                          ) : (
+                            <select
+                              className="h-9 rounded-none border border-input bg-background px-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                              value={u.role}
+                              disabled={!canChangeRoleOf(u)}
+                              title={!canChangeRoleOf(u) ? "This account's role is protected" : undefined}
+                              onChange={async(e)=>{ try { await admin.updateUserRole(u.id, e.target.value as any); await refreshUsers(); } catch(err: any){ alert(err?.response?.data?.message || 'Failed to update role'); } }}
+                            >
+                              <option value="attendee">Attendee</option>
+                              <option value="organizer">Organizer</option>
+                              <option value="admin">Admin</option>
+                              {isElevatedActor && <option value="support">Support</option>}
+                              <option value="super-admin">Super Admin</option>
+                              {/* Only the developer can see/assign the developer role — this option is rendered for a
+                                  non-developer viewer only when it's the row's own current value, so the <select>
+                                  still displays "Developer" correctly for a protected (disabled) row. */}
+                              {(isDeveloperActor || u.role === 'developer') && <option value="developer">Developer</option>}
+                            </select>
+                          )}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {u.events_count || 0} events, {u.tickets_count || 0} tickets
@@ -530,21 +573,23 @@ function AdminDashboardPageInner() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => setExpandedUserId(expandedUserId === u.id ? null : u.id)}
+                              onClick={() => toggleExpandUser(u)}
                             >
                               {expandedUserId === u.id ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                               {expandedUserId === u.id ? 'Hide' : 'View'}
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              disabled={!canDeleteUser(u)}
-                              title={!canDeleteUser(u) ? "This account is protected and can't be deleted" : undefined}
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10 disabled:opacity-40 disabled:hover:bg-transparent"
-                              onClick={async()=>{ if(confirm('Delete this user?')) { try{ await admin.deleteUser(u.id); await refreshUsers(); } catch(e){ alert('Failed to delete'); } } }}
-                            >
-                              <Trash className="w-4 h-4"/> Delete
-                            </Button>
+                            {!isSupportActor && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                disabled={!canDeleteUser(u)}
+                                title={!canDeleteUser(u) ? "This account is protected and can't be deleted" : undefined}
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10 disabled:opacity-40 disabled:hover:bg-transparent"
+                                onClick={async()=>{ if(confirm('Delete this user?')) { try{ await admin.deleteUser(u.id); await refreshUsers(); } catch(e){ alert('Failed to delete'); } } }}
+                              >
+                                <Trash className="w-4 h-4"/> Delete
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -570,6 +615,38 @@ function AdminDashboardPageInner() {
                                 <p className="font-medium">{u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}</p>
                               </div>
                             </div>
+
+                            {u.role === 'organizer' && !isSupportActor && (
+                              <div className="mt-3 pt-3 border-t border-border">
+                                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-1">
+                                  <NairaSign className="w-3 h-3" /> Wallet overview (admin-only, logged)
+                                </p>
+                                {loadingOverviewId === u.id ? (
+                                  <p className="text-xs text-muted-foreground">Loading…</p>
+                                ) : organizerOverview[u.id] ? (
+                                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                                    <div>
+                                      <p className="text-xs text-muted-foreground mb-0.5">Available balance</p>
+                                      <p className="font-semibold">₦{Number(organizerOverview[u.id].balance).toLocaleString('en-NG')}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-muted-foreground mb-0.5">Total earned</p>
+                                      <p className="font-semibold">₦{Number(organizerOverview[u.id].total_earned).toLocaleString('en-NG')}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-muted-foreground mb-0.5">Total withdrawn</p>
+                                      <p className="font-semibold">₦{Number(organizerOverview[u.id].total_withdrawn).toLocaleString('en-NG')}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-muted-foreground mb-0.5">Pending withdrawals</p>
+                                      <p className="font-semibold">₦{Number(organizerOverview[u.id].pending_withdrawals).toLocaleString('en-NG')}</p>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <p className="text-xs text-muted-foreground">Couldn't load wallet data.</p>
+                                )}
+                              </div>
+                            )}
                           </TableCell>
                         </TableRow>
                       )}
@@ -1028,6 +1105,10 @@ function AdminDashboardPageInner() {
 
           <TabsContent value="vendors">
             <VendorsTab />
+          </TabsContent>
+
+          <TabsContent value="support">
+            <SupportTicketsTab />
           </TabsContent>
 
           <TabsContent value="settings">

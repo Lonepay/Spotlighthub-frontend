@@ -5,7 +5,10 @@ import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 
 const LIGHT_LOGO = '/storage/logo.png';
-const DARK_LOGO = 'https://pub-842aae4c90d54643a70e1822b6b9de7b.r2.dev/dark-logo.PNG';
+// Both logos are local files now — previously the dark one lived on an
+// external Cloudflare R2 bucket, which meant updating it needed separate
+// storage credentials instead of just editing a file in the repo.
+const DARK_LOGO = '/storage/dark-logo.png';
 
 export function Logo({ className, priority }: { className?: string; priority?: boolean }) {
   const { resolvedTheme } = useTheme();

@@ -5,7 +5,7 @@ export interface User {
   name: string;
   email: string;
   phone?: string;
-  role?: 'attendee' | 'organizer' | 'admin' | 'super-admin' | 'developer';
+  role?: 'attendee' | 'organizer' | 'admin' | 'super-admin' | 'developer' | 'support';
   bio?: string;
   avatar_url?: string | null;
   two_factor_enabled?: boolean;
@@ -28,9 +28,19 @@ export function requiresTwoFactor(result: LoginResult): result is TwoFactorChall
   return (result as TwoFactorChallenge).requires_2fa === true;
 }
 
-/** True for admin, super-admin, and developer — anyone who belongs in /admin. */
+/**
+ * True for admin, super-admin, and developer only — full admin dashboard
+ * capabilities (events, payments, withdrawals, KYC, partnership codes,
+ * etc). Deliberately excludes 'support' — use isStaffRole() for the
+ * narrower "can reach /admin at all" check instead.
+ */
 export function isAdminLevelRole(role?: string | null): boolean {
   return role === 'admin' || role === 'super-admin' || role === 'developer';
+}
+
+/** True for admin-level roles plus support — support only sees Users (read-only) + Support Tickets inside /admin. */
+export function isStaffRole(role?: string | null): boolean {
+  return isAdminLevelRole(role) || role === 'support';
 }
 
 export const auth = {

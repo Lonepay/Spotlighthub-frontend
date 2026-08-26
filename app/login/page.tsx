@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/components/AuthProvider';
-import { isAdminLevelRole, requiresTwoFactor } from '@/lib/auth';
+import { isStaffRole, requiresTwoFactor } from '@/lib/auth';
 import { Mail, Lock, ArrowRight, ShieldCheck } from 'lucide-react';
 
 export default function LoginPage() {
@@ -38,7 +38,7 @@ function LoginForm() {
       router.push(next);
     } else if (role === 'organizer') {
       router.push('/organizer');
-    } else if (isAdminLevelRole(role)) {
+    } else if (isStaffRole(role)) {
       router.push('/admin');
     } else {
       router.push('/dashboard');

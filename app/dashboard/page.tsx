@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { useAuth } from '@/components/AuthProvider';
-import { isAdminLevelRole } from '@/lib/auth';
+import { isStaffRole } from '@/lib/auth';
 import { user, UserDashboard } from '@/lib/user';
 import { getGreeting } from '@/lib/utils';
 import { storageUrl } from '@/lib/storage';
@@ -32,7 +32,7 @@ export default function UserDashboardPage() {
         router.push('/login');
       } else if (authUser.role === 'organizer') {
         router.push('/organizer');
-      } else if (isAdminLevelRole(authUser.role)) {
+      } else if (isStaffRole(authUser.role)) {
         router.push('/admin');
       } else {
         loadDashboard();
