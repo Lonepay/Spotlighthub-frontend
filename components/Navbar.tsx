@@ -51,7 +51,7 @@ export function Navbar() {
         <div className="flex justify-between items-center h-16">
           <Link href="/" className="flex items-center space-x-2 group">
             <Logo
-              className="h-10 w-auto object-contain group-hover:scale-105 transition-transform"
+              className="h-14 w-auto object-contain group-hover:scale-105 transition-transform"
               priority
             />
           </Link>

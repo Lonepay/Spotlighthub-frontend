@@ -213,7 +213,7 @@ function DashboardShellInner({
     <div className="flex h-full flex-col">
       <div className="flex items-center h-16 px-5 border-b border-border shrink-0">
         <Link href="/" className="flex items-center">
-          <Logo className="h-8 w-auto object-contain" />
+          <Logo className="h-10 w-auto object-contain" />
         </Link>
       </div>
 
