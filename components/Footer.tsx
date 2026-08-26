@@ -18,7 +18,7 @@ export function Footer() {
         <div className="grid md:grid-cols-4 gap-8 mb-8">
           <div>
             <div className="flex items-center space-x-2 mb-4">
-              <Logo className="h-10 w-auto object-contain" />
+              <Logo className="h-16 w-auto object-contain" />
             </div>
             <p className="text-sm text-muted-foreground mb-4">
               Nigeria's home for booking events, movies, and visit-worthy locations.
