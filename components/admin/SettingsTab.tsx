@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { admin, AdminSettings } from '@/lib/admin';
+import { staffRoles as staffRolesApi, PERMISSION_LABELS } from '@/lib/staffRoles';
+import { StaffRole } from '@/lib/auth';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,13 +26,14 @@ const ACTIVITY_CATEGORY_META: Record<string, { label: string; icon: any }> = {
   settings: { label: 'Settings', icon: SlidersHorizontal },
 };
 
-type SubTab = 'general' | 'seo' | 'webhooks' | 'cache' | 'activity' | 'errors' | 'staff';
-const VALID_SUB_TABS: SubTab[] = ['general', 'seo', 'webhooks', 'cache', 'activity', 'errors', 'staff'];
+type SubTab = 'general' | 'seo' | 'webhooks' | 'cache' | 'activity' | 'errors' | 'staff' | 'staff-roles';
+const VALID_SUB_TABS: SubTab[] = ['general', 'seo', 'webhooks', 'cache', 'activity', 'errors', 'staff', 'staff-roles'];
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',
   'super-admin': 'Super Admin',
   developer: 'Developer',
+  staff: 'Staff',
 };
 
 export function SettingsTab() {
@@ -38,6 +41,7 @@ export function SettingsTab() {
   const searchParams = useSearchParams();
   const { user: authUser } = useAuth();
   const isDeveloperActor = authUser?.role === 'developer';
+  const isElevatedActor = !!authUser?.role && ['super-admin', 'developer'].includes(authUser.role);
   const subParam = searchParams.get('sub') as SubTab | null;
   const [settings, setSettings] = useState<AdminSettings | null>(null);
   const [form, setForm] = useState<SettingsForm>({});
@@ -76,7 +80,26 @@ export function SettingsTab() {
   const [staffList, setStaffList] = useState<any[]>([]);
   const [loadingStaff, setLoadingStaff] = useState(false);
   const [invitingStaff, setInvitingStaff] = useState(false);
-  const [newStaff, setNewStaff] = useState({ name: '', email: '', role: 'admin', password: '' });
+  const [newStaff, setNewStaff] = useState<{ name: string; email: string; role: string; staff_role_id: number | null; password: string }>({ name: '', email: '', role: 'admin', staff_role_id: null, password: '' });
+
+  const [staffRolesList, setStaffRolesList] = useState<StaffRole[]>([]);
+  const [availablePermissions, setAvailablePermissions] = useState<Record<string, string>>(PERMISSION_LABELS);
+  const [loadingStaffRoles, setLoadingStaffRoles] = useState(false);
+  const [editingStaffRoleId, setEditingStaffRoleId] = useState<number | 'new' | null>(null);
+  const [staffRoleForm, setStaffRoleForm] = useState<{ name: string; duties: string; permissions: string[] }>({ name: '', duties: '', permissions: [] });
+  const [savingStaffRole, setSavingStaffRole] = useState(false);
+  const [pendingRoleChange, setPendingRoleChange] = useState<{ id: number; role: string; staffRoleId: number | null } | null>(null);
+
+  const refreshStaffRoles = async () => {
+    setLoadingStaffRoles(true);
+    try {
+      const data = await staffRolesApi.list();
+      setStaffRolesList(data.roles);
+      setAvailablePermissions(data.available_permissions);
+    } finally {
+      setLoadingStaffRoles(false);
+    }
+  };
 
   useEffect(() => {
     admin.getSettings().then((data) => {
@@ -91,14 +114,15 @@ export function SettingsTab() {
   useEffect(() => {
     if (subTab === 'activity') refreshActivity(1);
     if (subTab === 'errors') refreshErrors();
-    if (subTab === 'staff') refreshStaff();
+    if (subTab === 'staff') { refreshStaff(); refreshStaffRoles(); }
+    if (subTab === 'staff-roles') refreshStaffRoles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subTab]);
 
   const refreshStaff = async () => {
     setLoadingStaff(true);
     try {
-      const data = await admin.getUsers({ role: 'staff' });
+      const data = await admin.getUsers({ role: 'team' });
       setStaffList(data.data || data);
     } finally {
       setLoadingStaff(false);
@@ -114,6 +138,7 @@ export function SettingsTab() {
   const canDeleteStaff = (u: any) => {
     if (u.role === 'developer') return false;
     if (u.role === 'super-admin') return isDeveloperActor;
+    if (u.role === 'admin' || u.role === 'staff') return isElevatedActor;
     return true;
   };
 
@@ -666,19 +691,33 @@ export function SettingsTab() {
                 <select
                   className="h-11 rounded-none border border-input bg-background px-4 text-sm"
                   value={newStaff.role}
-                  onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
+                  onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value, staff_role_id: e.target.value === 'staff' ? newStaff.staff_role_id : null })}
                 >
                   <option value="admin">Admin</option>
+                  <option value="staff">Staff</option>
                   <option value="super-admin">Super Admin</option>
                   {isDeveloperActor && <option value="developer">Developer</option>}
                 </select>
+                {newStaff.role === 'staff' && (
+                  <select
+                    className="h-11 rounded-none border border-input bg-background px-4 text-sm"
+                    value={newStaff.staff_role_id ?? ''}
+                    onChange={(e) => setNewStaff({ ...newStaff, staff_role_id: e.target.value ? Number(e.target.value) : null })}
+                  >
+                    <option value="">Select staff role…</option>
+                    {staffRolesList.map((r) => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ))}
+                  </select>
+                )}
                 <PasswordInput placeholder="Password" value={newStaff.password} onChange={(e) => setNewStaff({ ...newStaff, password: e.target.value })} />
                 <div className="md:col-span-2 flex justify-end">
                   <Button
+                    disabled={newStaff.role === 'staff' && !newStaff.staff_role_id}
                     onClick={async () => {
                       try {
                         await admin.createUser(newStaff as any);
-                        setNewStaff({ name: '', email: '', role: 'admin', password: '' });
+                        setNewStaff({ name: '', email: '', role: 'admin', staff_role_id: null, password: '' });
                         setInvitingStaff(false);
                         await refreshStaff();
                       } catch {
@@ -689,6 +728,11 @@ export function SettingsTab() {
                     Create
                   </Button>
                 </div>
+                {newStaff.role === 'staff' && staffRolesList.length === 0 && !loadingStaffRoles && (
+                  <p className="md:col-span-2 text-xs text-amber-600">
+                    No staff roles exist yet — create one under Manage Staff Roles first.
+                  </p>
+                )}
               </div>
             )}
 
@@ -716,24 +760,72 @@ export function SettingsTab() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap shrink-0">
-                      <select
-                        className="h-9 rounded-none border border-input bg-background px-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        value={u.role}
-                        disabled={locked}
-                        title={locked ? "This account's role is protected" : undefined}
-                        onChange={async (e) => {
-                          try {
-                            await admin.updateUserRole(u.id, e.target.value as any);
-                            await refreshStaff();
-                          } catch (err: any) {
-                            alert(err?.response?.data?.message || 'Failed to update role');
-                          }
-                        }}
-                      >
-                        <option value="admin">Admin</option>
-                        <option value="super-admin">Super Admin</option>
-                        {(isDeveloperActor || u.role === 'developer') && <option value="developer">Developer</option>}
-                      </select>
+                      {u.role === 'staff' && (
+                        <span className="text-xs text-muted-foreground">{staffRolesList.find((r) => r.id === u.staff_role_id)?.name || 'No staff role'}</span>
+                      )}
+                      {(() => {
+                        const pending = pendingRoleChange?.id === u.id ? pendingRoleChange : null;
+                        return (
+                          <>
+                            <select
+                              className="h-9 rounded-none border border-input bg-background px-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                              value={pending ? pending.role : u.role}
+                              disabled={locked}
+                              title={locked ? "This account's role is protected" : undefined}
+                              onChange={async (e) => {
+                                const newRole = e.target.value;
+                                if (newRole === 'staff') {
+                                  // Needs a staff role picked before it can submit — see the inline picker below.
+                                  setPendingRoleChange({ id: u.id, role: 'staff', staffRoleId: u.staff_role_id ?? null });
+                                  return;
+                                }
+                                setPendingRoleChange(null);
+                                try {
+                                  await admin.updateUserRole(u.id, newRole as any);
+                                  await refreshStaff();
+                                } catch (err: any) {
+                                  alert(err?.response?.data?.message || 'Failed to update role');
+                                }
+                              }}
+                            >
+                              <option value="admin">Admin</option>
+                              <option value="staff">Staff</option>
+                              <option value="super-admin">Super Admin</option>
+                              {(isDeveloperActor || u.role === 'developer') && <option value="developer">Developer</option>}
+                            </select>
+                            {pending && (
+                              <>
+                                <select
+                                  className="h-9 rounded-none border border-input bg-background px-2 text-sm"
+                                  value={pending.staffRoleId ?? ''}
+                                  onChange={(e) => setPendingRoleChange({ ...pending, staffRoleId: e.target.value ? Number(e.target.value) : null })}
+                                >
+                                  <option value="">Select staff role…</option>
+                                  {staffRolesList.map((r) => (
+                                    <option key={r.id} value={r.id}>{r.name}</option>
+                                  ))}
+                                </select>
+                                <Button
+                                  size="sm"
+                                  disabled={!pending.staffRoleId}
+                                  onClick={async () => {
+                                    try {
+                                      await admin.updateUser(u.id, { role: 'staff' as any, staff_role_id: pending.staffRoleId });
+                                      setPendingRoleChange(null);
+                                      await refreshStaff();
+                                    } catch (err: any) {
+                                      alert(err?.response?.data?.message || 'Failed to update role');
+                                    }
+                                  }}
+                                >
+                                  Apply
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => setPendingRoleChange(null)}>Cancel</Button>
+                              </>
+                            )}
+                          </>
+                        );
+                      })()}
                       <Badge variant="outline" className="hidden sm:inline-flex">
                         <ShieldCheck className="w-3 h-3 mr-1" /> {ROLE_LABELS[u.role] ?? u.role}
                       </Badge>
@@ -759,6 +851,142 @@ export function SettingsTab() {
                   </div>
                 );
               })}
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="staff-roles" className="space-y-4">
+        <h2 className="font-display font-bold text-lg">Manage Staff Roles</h2>
+        <p className="text-sm text-muted-foreground -mt-2">
+          Define positions like Customer Support or Finance, tick what each can do, then assign staff accounts to one under Roles &amp; Staff Management.
+          Only Developer and Super Admin can delete a staff role.
+        </p>
+
+        <Card>
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-display font-semibold">Staff roles</h3>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setEditingStaffRoleId('new');
+                  setStaffRoleForm({ name: '', duties: '', permissions: [] });
+                }}
+              >
+                Add role
+              </Button>
+            </div>
+
+            {editingStaffRoleId !== null && (
+              <div className="p-4 rounded-xl border border-border bg-muted/30 space-y-3">
+                <Input placeholder="Role name (e.g. Customer Support)" value={staffRoleForm.name} onChange={(e) => setStaffRoleForm({ ...staffRoleForm, name: e.target.value })} />
+                <textarea
+                  className="w-full min-h-[70px] rounded-xl border border-input bg-background px-3 py-2 text-sm resize-y"
+                  placeholder="Duties — what does this role do?"
+                  value={staffRoleForm.duties}
+                  onChange={(e) => setStaffRoleForm({ ...staffRoleForm, duties: e.target.value })}
+                />
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Permissions</p>
+                  <div className="grid sm:grid-cols-2 gap-2">
+                    {Object.entries(availablePermissions).map(([key, label]) => (
+                      <label key={key} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={staffRoleForm.permissions.includes(key)}
+                          onChange={(e) => {
+                            setStaffRoleForm({
+                              ...staffRoleForm,
+                              permissions: e.target.checked
+                                ? [...staffRoleForm.permissions, key]
+                                : staffRoleForm.permissions.filter((p) => p !== key),
+                            });
+                          }}
+                        />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setEditingStaffRoleId(null)}>Cancel</Button>
+                  <Button
+                    disabled={!staffRoleForm.name.trim() || savingStaffRole}
+                    onClick={async () => {
+                      setSavingStaffRole(true);
+                      try {
+                        if (editingStaffRoleId === 'new') {
+                          await staffRolesApi.create(staffRoleForm);
+                        } else if (typeof editingStaffRoleId === 'number') {
+                          await staffRolesApi.update(editingStaffRoleId, staffRoleForm);
+                        }
+                        setEditingStaffRoleId(null);
+                        await refreshStaffRoles();
+                      } catch (err: any) {
+                        alert(err?.response?.data?.message || 'Failed to save staff role');
+                      } finally {
+                        setSavingStaffRole(false);
+                      }
+                    }}
+                  >
+                    {savingStaffRole ? 'Saving…' : 'Save'}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              {loadingStaffRoles && <div className="py-8 flex justify-center"><Loader size={28} /></div>}
+              {!loadingStaffRoles && staffRolesList.length === 0 && (
+                <p className="text-muted-foreground text-sm text-center py-8">No staff roles yet — add one above.</p>
+              )}
+              {staffRolesList.map((r: any) => (
+                <div key={r.id} className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-3 last:border-0">
+                  <div className="min-w-0">
+                    <div className="font-medium text-sm flex items-center gap-2">
+                      {r.name}
+                      {typeof r.users_count === 'number' && <Badge variant="outline">{r.users_count} staff</Badge>}
+                    </div>
+                    {r.duties && <p className="text-xs text-muted-foreground mt-0.5">{r.duties}</p>}
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {(r.permissions || []).map((p: string) => (
+                        <Badge key={p} variant="secondary" className="text-[10px]">{availablePermissions[p] || p}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setEditingStaffRoleId(r.id);
+                        setStaffRoleForm({ name: r.name, duties: r.duties || '', permissions: r.permissions || [] });
+                      }}
+                    >
+                      Edit
+                    </Button>
+                    {isElevatedActor && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={async () => {
+                          if (!confirm(`Delete staff role "${r.name}"?`)) return;
+                          try {
+                            await staffRolesApi.delete(r.id);
+                            await refreshStaffRoles();
+                          } catch (err: any) {
+                            alert(err?.response?.data?.message || 'Failed to delete staff role');
+                          }
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>

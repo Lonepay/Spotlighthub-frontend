@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { useAuth } from '@/components/AuthProvider';
-import { isStaffRole } from '@/lib/auth';
+import { isStaffRole, StaffRole as StaffRoleType } from '@/lib/auth';
+import { staffRoles as staffRolesApi } from '@/lib/staffRoles';
 import { getGreeting } from '@/lib/utils';
 import { admin, AdminDashboard } from '@/lib/admin';
 import { wallet } from '@/lib/wallet';
@@ -50,7 +51,9 @@ function AdminDashboardPageInner() {
   const { user: authUser, loading: authLoading } = useAuth();
   const isElevatedActor = !!authUser?.role && ['super-admin', 'developer'].includes(authUser.role);
   const isDeveloperActor = authUser?.role === 'developer';
-  const isSupportActor = authUser?.role === 'support';
+  const isStaffActor = authUser?.role === 'staff';
+  const actorPermissions = authUser?.staff_role?.permissions || [];
+  const actorCan = (permission: string) => isElevatedActor || (authUser?.role === 'admin') || actorPermissions.includes(permission);
   const canChangeRoleOf = (u: any) => {
     if (u.role === 'developer') return false;
     if (u.role === 'super-admin') return isDeveloperActor;
@@ -130,7 +133,7 @@ function AdminDashboardPageInner() {
     setExpandedUserId(u.id);
     // Admin-only "view as organizer" balance peek — support can't reach this
     // endpoint (financial data), so don't even attempt the fetch for them.
-    if (u.role === 'organizer' && !isSupportActor && !organizerOverview[u.id]) {
+    if (u.role === 'organizer' && !isStaffActor && !organizerOverview[u.id]) {
       setLoadingOverviewId(u.id);
       try {
         const data = await wallet.adminOrganizerOverview(u.id);
@@ -143,9 +146,10 @@ function AdminDashboardPageInner() {
     }
   };
 
-  const [newUser, setNewUser] = useState<{name:string; email:string; role:'attendee'|'organizer'|'admin'|'super-admin'|'developer'|'support'; password:string}>({
-    name: '', email: '', role: 'attendee', password: ''
+  const [newUser, setNewUser] = useState<{name:string; email:string; role:'attendee'|'organizer'|'admin'|'super-admin'|'developer'|'staff'; staff_role_id: number | null; password:string}>({
+    name: '', email: '', role: 'attendee', staff_role_id: null, password: ''
   });
+  const [staffRolesList, setStaffRolesList] = useState<StaffRoleType[]>([]);
   const [creatingUser, setCreatingUser] = useState(false);
 
   const [newBlogPost, setNewBlogPost] = useState<{title:string; excerpt:string; content:string; category:string; image: File|null}>({
@@ -161,8 +165,8 @@ function AdminDashboardPageInner() {
         router.push('/login');
       } else if (!isStaffRole(authUser.role)) {
         router.push('/dashboard');
-      } else if (authUser.role === 'support') {
-        // Support can't reach /admin/dashboard (strict admin-only endpoint) —
+      } else if (authUser.role === 'staff') {
+        // Staff can't reach /admin/dashboard (strict admin-only endpoint) —
         // skip the platform-overview fetch entirely, and never leave them
         // sitting on the blank Overview tab if they land on a bare /admin.
         setLoading(false);
@@ -174,6 +178,13 @@ function AdminDashboardPageInner() {
       }
     }
   }, [authUser, authLoading]);
+
+  useEffect(() => {
+    if (isElevatedActor) {
+      staffRolesApi.list().then((data) => setStaffRolesList(data.roles)).catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isElevatedActor]);
 
   const loadDashboard = async () => {
     try {
@@ -448,8 +459,8 @@ function AdminDashboardPageInner() {
                       {isElevatedActor && <option value="staff">Staff (Admin+)</option>}
                     </select>
                     <Button variant="outline" size="icon" onClick={() => refreshUsers()}><Search className="w-4 h-4" /></Button>
-                    {!isSupportActor && exportButtons('users', { search, role: userRoleFilter })}
-                    {!isSupportActor && (
+                    {!isStaffActor && exportButtons('users', { search, role: userRoleFilter })}
+                    {!isStaffActor && (
                       <Button onClick={() => setCreatingUser((v) => !v)}>
                         <Plus className="w-4 h-4" /> Add User
                       </Button>
@@ -474,16 +485,35 @@ function AdminDashboardPageInner() {
                       </div>
                       <div>
                         <Label htmlFor="new-user-role">Role</Label>
-                        <select id="new-user-role" className="w-full h-11 rounded-xl border border-input bg-background px-4 text-sm" value={newUser.role} onChange={(e)=>setNewUser({...newUser, role: e.target.value as any})}>
+                        <select id="new-user-role" className="w-full h-11 rounded-xl border border-input bg-background px-4 text-sm" value={newUser.role} onChange={(e)=>setNewUser({...newUser, role: e.target.value as any, staff_role_id: e.target.value === 'staff' ? newUser.staff_role_id : null})}>
                           <option value="attendee">Attendee</option>
                           <option value="organizer">Organizer</option>
                           <option value="admin">Admin</option>
-                          {isElevatedActor && <option value="support">Support</option>}
+                          {isElevatedActor && <option value="staff">Staff</option>}
                           {isElevatedActor && <option value="super-admin">Super Admin</option>}
                           {isDeveloperActor && <option value="developer">Developer</option>}
                         </select>
-                        <p className="text-xs text-muted-foreground mt-1">Determines what they can access — admin and above reach the admin dashboard. Support sees Organizers/Attendees and Support Tickets only.</p>
+                        <p className="text-xs text-muted-foreground mt-1">Determines what they can access — admin and above reach the admin dashboard. A staff account's access depends entirely on their assigned staff role.</p>
                       </div>
+                      {newUser.role === 'staff' && (
+                        <div>
+                          <Label htmlFor="new-user-staff-role">Staff role</Label>
+                          <select
+                            id="new-user-staff-role"
+                            className="w-full h-11 rounded-xl border border-input bg-background px-4 text-sm"
+                            value={newUser.staff_role_id ?? ''}
+                            onChange={(e) => setNewUser({ ...newUser, staff_role_id: e.target.value ? Number(e.target.value) : null })}
+                          >
+                            <option value="">Select staff role…</option>
+                            {staffRolesList.map((r) => (
+                              <option key={r.id} value={r.id}>{r.name}</option>
+                            ))}
+                          </select>
+                          {staffRolesList.length === 0 && (
+                            <p className="text-xs text-amber-600 mt-1">No staff roles exist yet — create one under Admin Settings → Manage Staff Roles first.</p>
+                          )}
+                        </div>
+                      )}
                       <div>
                         <Label htmlFor="new-user-password">Password</Label>
                         <PasswordInput id="new-user-password" placeholder="At least 8 characters" value={newUser.password} onChange={(e)=>setNewUser({...newUser, password:e.target.value})} />
@@ -494,7 +524,7 @@ function AdminDashboardPageInner() {
                       <Button variant="outline" onClick={()=>setCreatingUser(false)}>Cancel</Button>
                       <Button
                         onClick={async()=>{
-                          try { await admin.createUser(newUser); setNewUser({name:'',email:'',role:'attendee',password:''}); setCreatingUser(false); await refreshUsers(); } catch(e){ alert('Failed to create user'); }
+                          try { await admin.createUser(newUser); setNewUser({name:'',email:'',role:'attendee',staff_role_id:null,password:''}); setCreatingUser(false); await refreshUsers(); } catch(e){ alert('Failed to create user'); }
                         }}
                       >Create user</Button>
                     </div>
@@ -543,7 +573,7 @@ function AdminDashboardPageInner() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          {isSupportActor ? (
+                          {isStaffActor ? (
                             <Badge variant="outline" className="capitalize">{u.role}</Badge>
                           ) : (
                             <select
@@ -578,7 +608,7 @@ function AdminDashboardPageInner() {
                               {expandedUserId === u.id ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                               {expandedUserId === u.id ? 'Hide' : 'View'}
                             </Button>
-                            {!isSupportActor && (
+                            {!isStaffActor && (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -616,7 +646,7 @@ function AdminDashboardPageInner() {
                               </div>
                             </div>
 
-                            {u.role === 'organizer' && !isSupportActor && (
+                            {u.role === 'organizer' && !isStaffActor && (
                               <div className="mt-3 pt-3 border-t border-border">
                                 <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-1">
                                   <NairaSign className="w-3 h-3" /> Wallet overview (admin-only, logged)

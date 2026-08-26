@@ -63,17 +63,17 @@ export const admin = {
     return data;
   },
 
-  async updateUserRole(userId: number, role: 'attendee' | 'organizer' | 'admin' | 'super-admin' | 'developer' | 'support') {
+  async updateUserRole(userId: number, role: 'attendee' | 'organizer' | 'admin' | 'super-admin' | 'developer' | 'staff') {
     const { data } = await api.put(`/admin/users/${userId}/role`, { role });
     return data;
   },
 
-  async createUser(payload: { name: string; email: string; role: 'attendee'|'organizer'|'admin'|'super-admin'|'developer'|'support'; password: string }) {
+  async createUser(payload: { name: string; email: string; role: 'attendee'|'organizer'|'admin'|'super-admin'|'developer'|'staff'; staff_role_id?: number | null; password: string }) {
     const { data } = await api.post('/admin/users', payload);
     return data;
   },
 
-  async updateUser(userId: number, payload: Partial<{ name: string; email: string; role: 'attendee'|'organizer'|'admin'|'super-admin'|'developer'|'support'; password: string }>) {
+  async updateUser(userId: number, payload: Partial<{ name: string; email: string; role: 'attendee'|'organizer'|'admin'|'super-admin'|'developer'|'staff'; staff_role_id: number | null; password: string }>) {
     const { data } = await api.put(`/admin/users/${userId}`, payload);
     return data;
   },

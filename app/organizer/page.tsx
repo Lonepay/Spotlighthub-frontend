@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { useAuth } from '@/components/AuthProvider';
-import { isAdminLevelRole } from '@/lib/auth';
+import { isAdminLevelRole, isStaffRole } from '@/lib/auth';
 import { getGreeting } from '@/lib/utils';
 import { organizer, OrganizerDashboard } from '@/lib/organizer';
 import { payments } from '@/lib/payments';
@@ -28,7 +28,7 @@ export default function OrganizerDashboardPage() {
     if (!authLoading) {
       if (!user) {
         router.push('/login');
-      } else if (user.role !== 'organizer' && !isAdminLevelRole(user.role)) {
+      } else if (user.role !== 'organizer' && !isStaffRole(user.role)) {
         router.push('/dashboard');
       } else {
         loadDashboard();
@@ -122,7 +122,7 @@ export default function OrganizerDashboardPage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
-              <h2 className="font-display font-bold text-lg">{user && isAdminLevelRole(user.role) ? 'All Events' : 'Your Events'}</h2>
+              <h2 className="font-display font-bold text-lg">{user && isStaffRole(user.role) ? 'All Events' : 'Your Events'}</h2>
               <Button asChild size="sm">
                 <Link href="/create-event">
                   Create event <ArrowRight className="w-4 h-4" />

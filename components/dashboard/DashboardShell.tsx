@@ -48,6 +48,7 @@ import {
   Crown,
   Store,
   LifeBuoy,
+  Briefcase,
 } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { TopProgressBar } from '@/components/TopProgressBar';
@@ -101,6 +102,7 @@ function buildAdminNav(role: string): NavEntry[] {
   if (isElevated) {
     adminToolsItems.push(
       { label: 'Roles & Staff', href: '/admin?tab=settings&sub=staff', icon: ShieldCheck },
+      { label: 'Manage Staff Roles', href: '/admin?tab=settings&sub=staff-roles', icon: LifeBuoy },
       { label: 'General & Fees', href: '/admin?tab=settings&sub=general', icon: Percent },
       { label: 'SEO', href: '/admin?tab=settings&sub=seo', icon: Globe },
       { label: 'Webhooks', href: '/admin?tab=settings&sub=webhooks', icon: Webhook },
@@ -113,6 +115,7 @@ function buildAdminNav(role: string): NavEntry[] {
   return [
     link('Overview', '/admin?tab=overview', LayoutDashboard),
     { type: 'group', label: 'Admin Tools', icon: Wrench, items: adminToolsItems },
+    link('Organizer', '/organizer', Briefcase),
     link('Scan Tickets', '/organizer/scan', QrCode),
     link('Pricing', '/pricing', NairaSign),
     link('Explore', '/events', Compass),
@@ -120,14 +123,33 @@ function buildAdminNav(role: string): NavEntry[] {
   ];
 }
 
-/** Support sees only Organizers/Attendees (read-only, via the Users tab) and Support Tickets — nothing else in /admin. */
-function buildSupportNav(): NavEntry[] {
-  return [
-    link('Users', '/admin?tab=users', Users),
-    link('Support Tickets', '/admin?tab=support', LifeBuoy),
-    link('Explore', '/events', Compass),
-    link('My Profile', '/profile', UserCircle),
-  ];
+/**
+ * A 'staff' account has no fixed nav — it's built from whatever permissions
+ * their assigned StaffRole actually grants (see StaffRole::PERMISSIONS on
+ * the backend), so a Finance role and a Customer Support role see
+ * different things without needing separate code for each.
+ */
+function buildStaffNav(permissions: string[]): NavEntry[] {
+  const items: NavEntry[] = [];
+  if (permissions.includes('view_users')) items.push(link('Users', '/admin?tab=users', Users));
+  if (permissions.includes('support_tickets')) items.push(link('Support Tickets', '/admin?tab=support', LifeBuoy));
+  if (permissions.includes('finance')) {
+    items.push(link('Withdrawals', '/admin?tab=withdrawals', Wallet));
+    items.push(link('Payments', '/admin?tab=payments', Receipt));
+  }
+  if (permissions.includes('operations')) {
+    items.push(link('Events', '/admin?tab=events', Calendar));
+    items.push(link('KYC Review', '/admin?tab=kyc', BadgeCheck));
+    items.push(link('Blog', '/admin?tab=blog', Newspaper));
+    items.push(link('Vendors', '/admin?tab=vendors', Store));
+  }
+  // Read-only platform-wide events visibility (via OrganizerController's
+  // isStaff() bypass) — not gated behind a specific permission since every
+  // staff position can reasonably need to look up an organizer's event.
+  items.push(link('Organizer', '/organizer', Briefcase));
+  items.push(link('Explore', '/events', Compass));
+  items.push(link('My Profile', '/profile', UserCircle));
+  return items;
 }
 
 export function DashboardShell(props: {
@@ -164,8 +186,8 @@ function DashboardShellInner({
   const role = user?.role || 'attendee';
   const navItems = ['admin', 'super-admin', 'developer'].includes(role)
     ? buildAdminNav(role)
-    : role === 'support'
-    ? buildSupportNav()
+    : role === 'staff'
+    ? buildStaffNav(user?.staff_role?.permissions || [])
     : NAV_BY_ROLE[role] || NAV_BY_ROLE.attendee;
 
   const isItemActive = (href: string) => {

@@ -1,11 +1,20 @@
 import api from './api';
 
+export interface StaffRole {
+  id: number;
+  name: string;
+  duties: string | null;
+  permissions: string[];
+}
+
 export interface User {
   id: number;
   name: string;
   email: string;
   phone?: string;
-  role?: 'attendee' | 'organizer' | 'admin' | 'super-admin' | 'developer' | 'support';
+  role?: 'attendee' | 'organizer' | 'admin' | 'super-admin' | 'developer' | 'staff';
+  staff_role_id?: number | null;
+  staff_role?: StaffRole | null;
   bio?: string;
   avatar_url?: string | null;
   two_factor_enabled?: boolean;
@@ -31,16 +40,25 @@ export function requiresTwoFactor(result: LoginResult): result is TwoFactorChall
 /**
  * True for admin, super-admin, and developer only — full admin dashboard
  * capabilities (events, payments, withdrawals, KYC, partnership codes,
- * etc). Deliberately excludes 'support' — use isStaffRole() for the
- * narrower "can reach /admin at all" check instead.
+ * etc). Deliberately excludes 'staff' — use isStaffRole() for the
+ * narrower "can reach /admin at all" check, and hasPermission() for what
+ * a specific staff account can actually do there.
  */
 export function isAdminLevelRole(role?: string | null): boolean {
   return role === 'admin' || role === 'super-admin' || role === 'developer';
 }
 
-/** True for admin-level roles plus support — support only sees Users (read-only) + Support Tickets inside /admin. */
+/** True for admin-level roles plus staff — a staff account's actual capabilities depend on their assigned StaffRole's permissions. */
 export function isStaffRole(role?: string | null): boolean {
-  return isAdminLevelRole(role) || role === 'support';
+  return isAdminLevelRole(role) || role === 'staff';
+}
+
+/** True if `user` can do `permission` — admin-level users always can; a staff account only if their assigned StaffRole grants it. */
+export function hasPermission(user: User | null | undefined, permission: string): boolean {
+  if (!user) return false;
+  if (isAdminLevelRole(user.role)) return true;
+  if (user.role !== 'staff') return false;
+  return !!user.staff_role?.permissions?.includes(permission);
 }
 
 export const auth = {
