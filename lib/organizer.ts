@@ -2,6 +2,7 @@ import api from './api';
 
 export interface OrganizerStats {
   total_earnings: number;
+  current_balance: number;
   total_tickets_sold: number;
   total_events: number;
 }

@@ -33,7 +33,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) setItemState(JSON.parse(stored));
+      if (!stored) return;
+      const parsed = JSON.parse(stored);
+      // A cart saved before the multi-variation rework has no `items` array
+      // at all (old shape was {quantity, variation}, not {items: [...]})  —
+      // valid JSON, wrong shape, so JSON.parse alone doesn't catch it. Drop
+      // anything that doesn't match instead of crashing every page that
+      // reads the cart (the Navbar's item count, on every page, does).
+      if (parsed && Array.isArray(parsed.items)) {
+        setItemState(parsed);
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+      }
     } catch {
       // ignore corrupt cart state
     }
@@ -49,7 +60,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(STORAGE_KEY);
   };
 
-  const itemCount = item ? item.items.reduce((sum, i) => sum + i.quantity, 0) : 0;
+  const itemCount = item?.items?.reduce((sum, i) => sum + i.quantity, 0) ?? 0;
 
   return (
     <CartContext.Provider value={{ item, itemCount, setItem, clear }}>

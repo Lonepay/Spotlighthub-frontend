@@ -103,18 +103,25 @@ function OrganizerDashboardPageInner() {
     <DashboardShell title="Organizer Dashboard" description={`${getGreeting()}, ${user?.name} — manage your events and track earnings`}>
       <div className="space-y-6">
         {dashboard.viewing_organizer && (
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
-            <span className="flex items-center gap-2">
-              <Eye className="w-4 h-4 text-primary" />
-              Viewing <strong>{dashboard.viewing_organizer.name}</strong>&apos;s dashboard — read-only, logged for audit.
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
+            <span className="flex items-center gap-2 min-w-0">
+              <Eye className="w-4 h-4 text-primary shrink-0" />
+              <span className="min-w-0">
+                Viewing dashboard for <strong>{dashboard.viewing_organizer.name}</strong> — read-only, logged for audit.
+              </span>
             </span>
-            <Button variant="ghost" size="sm" onClick={() => router.push('/organizer')}>
+            <Button variant="ghost" size="sm" className="self-end sm:self-auto shrink-0" onClick={() => router.push('/organizer')}>
               <X className="w-4 h-4" /> Exit
             </Button>
           </div>
         )}
         {/* Stats */}
-        <div className="grid sm:grid-cols-3 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            icon={NairaSign}
+            label="Current Balance"
+            value={`₦${dashboard.stats.current_balance.toLocaleString('en-NG', { maximumFractionDigits: 0 })}`}
+          />
           <StatCard
             icon={NairaSign}
             label="Total Earnings"
