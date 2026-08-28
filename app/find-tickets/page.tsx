@@ -133,7 +133,7 @@ export default function FindTicketsPage() {
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground mt-3">
-                For your security, we verify it's really your inbox before showing any ticket details.
+                For security reasons, we need to verify it's really you before showing any ticket details.
               </p>
             </form>
           )}

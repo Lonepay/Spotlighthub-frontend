@@ -24,8 +24,8 @@ export function Logo({ className, priority }: { className?: string; priority?: b
     <Image
       src={src}
       alt="Spotlighticket"
-      width={219}
-      height={99}
+      width={404}
+      height={108}
       className={className}
       priority={priority}
     />

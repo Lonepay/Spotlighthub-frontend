@@ -313,7 +313,7 @@ export default function EventDetailPage() {
               and the + button gets clipped off-screen by overflow-x:hidden
               instead of staying visible. */}
           <div className="lg:col-span-1 min-w-0" id="booking-section">
-            <div className="sticky top-64 lg:top-40 glass rounded-3xl shadow-elevated p-4 sm:p-6 lg:p-8">
+            <div className="sticky top-24 lg:top-28 glass rounded-3xl shadow-elevated p-4 sm:p-6 lg:p-8">
               <div className="space-y-8">
                 <div className="flex justify-between items-baseline border-b border-border pb-6">
                   <div>

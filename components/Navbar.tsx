@@ -61,10 +61,10 @@ export function Navbar() {
   return (
     <nav className="glass sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-56 lg:h-36">
+        <div className="flex justify-between items-center h-20 lg:h-24">
           <Link href="/" className="flex items-center space-x-2 group">
             <Logo
-              className="h-48 lg:h-[120px] w-auto object-contain group-hover:scale-105 transition-transform"
+              className="h-16 lg:h-10 w-auto object-contain group-hover:scale-105 transition-transform"
               priority
             />
           </Link>
@@ -171,7 +171,7 @@ export function Navbar() {
         </div>
 
         {mobileMenuOpen && (
-          <div className="md:hidden fixed inset-x-0 top-56 h-[calc(100vh-14rem)] overflow-y-auto bg-background border-t border-border p-4 z-40 shadow-elevated">
+          <div className="md:hidden fixed inset-x-0 top-20 h-[calc(100vh-5rem)] overflow-y-auto bg-background border-t border-border p-4 z-40 shadow-elevated">
             <div className="grid grid-cols-2 gap-2 mb-4">
               <Link href="/" className="flex items-center justify-center space-x-2 px-3 py-2 rounded-none bg-secondary/30 hover:bg-secondary/50 text-sm font-medium transition-colors" onClick={() => setMobileMenuOpen(false)}>
                 <Home className="w-4 h-4" />
