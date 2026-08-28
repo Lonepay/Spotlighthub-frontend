@@ -16,10 +16,12 @@ import {
   Ticket,
   Film,
   Building2,
+  MessageCircle,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { events, Event, CategoryCount } from '@/lib/events';
 import { storageUrl } from '@/lib/storage';
+import { COMMUNITY_LINK } from '@/lib/constants';
 
 const CATEGORY_ICONS = [Ticket, Film, MapPin, Calendar, Building2, ShieldCheck];
 const CATEGORY_IMAGES = ['/images/feature-experience.jpg', '/images/feature-secure.jpg', '/images/feature-global.jpg'];
@@ -89,6 +91,14 @@ export default function Home() {
               <Link href="/organizers">For organizers</Link>
             </Button>
           </div>
+          <a
+            href={COMMUNITY_LINK}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 mt-6 text-sm text-muted-foreground hover:text-primary-glow transition-colors"
+          >
+            <MessageCircle className="w-4 h-4" /> Join our community on WhatsApp
+          </a>
         </Reveal>
       </section>
 

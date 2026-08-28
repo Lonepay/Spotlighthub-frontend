@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Instagram, Youtube, MessageCircle } from 'lucide-react';
 import { Logo } from './Logo';
-import { WHATSAPP_NUMBER } from '@/lib/constants';
+import { WHATSAPP_NUMBER, COMMUNITY_LINK } from '@/lib/constants';
 
 function TikTokIcon({ className }: { className?: string }) {
   return (
@@ -56,6 +56,7 @@ export function Footer() {
               <li><Link href="/blog" className="hover:text-primary transition-colors">Blog</Link></li>
               <li><Link href="/contact" className="hover:text-primary transition-colors">Contact</Link></li>
               <li><Link href="/about" className="hover:text-primary transition-colors">About</Link></li>
+              <li><a href={COMMUNITY_LINK} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">Join Community</a></li>
             </ul>
           </div>
 

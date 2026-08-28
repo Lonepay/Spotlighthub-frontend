@@ -104,6 +104,16 @@ export const auth = {
     return data.user;
   },
 
+  // Idle-timeout re-verification — the Sanctum token itself is untouched by
+  // either call, so there's no token to store/replace here (unlike login).
+  async lockSession(): Promise<void> {
+    await api.post('/session/lock');
+  },
+
+  async unlockSession(otp: string): Promise<void> {
+    await api.post('/session/unlock', { otp });
+  },
+
   async logout(): Promise<void> {
     try {
       await api.post('/logout');

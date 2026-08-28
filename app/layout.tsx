@@ -5,6 +5,7 @@ import { AuthProvider } from '@/components/AuthProvider'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { CartProvider } from '@/lib/cart'
 import { WhatsAppButton } from '@/components/WhatsAppButton'
+import { SessionLockOverlay } from '@/components/SessionLockOverlay'
 import { Toaster } from 'sonner'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
@@ -32,6 +33,7 @@ export default function RootLayout({
         >
           <AuthProvider>
             <CartProvider>{children}</CartProvider>
+            <SessionLockOverlay />
           </AuthProvider>
         </ThemeProvider>
         <WhatsAppButton />

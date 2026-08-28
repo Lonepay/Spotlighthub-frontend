@@ -8,8 +8,20 @@ import { ThemeToggle } from './ThemeToggle';
 import { Logo } from './Logo';
 import { Button } from './ui/button';
 import {
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+} from './ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from './ui/dropdown-menu';
+import {
   Ticket,
-  User,
   LogOut,
   Menu,
   X,
@@ -25,6 +37,7 @@ import {
   Shield,
   ShoppingCart,
   Info,
+  ChevronDown,
 } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { useState } from 'react';
@@ -48,10 +61,10 @@ export function Navbar() {
   return (
     <nav className="glass sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-32 lg:h-36">
+        <div className="flex justify-between items-center h-56 lg:h-36">
           <Link href="/" className="flex items-center space-x-2 group">
             <Logo
-              className="h-24 lg:h-[120px] w-auto object-contain group-hover:scale-105 transition-transform"
+              className="h-48 lg:h-[120px] w-auto object-contain group-hover:scale-105 transition-transform"
               priority
             />
           </Link>
@@ -82,41 +95,50 @@ export function Navbar() {
             <ThemeToggle />
 
             {user ? (
-              <>
-                {isStaffRole(user.role) ? (
-                  <Link href="/admin" className="text-muted-foreground hover:text-foreground font-medium text-sm transition-colors">
-                    Dashboard
-                  </Link>
-                ) : user.role === 'organizer' ? (
-                  <>
-                    <Link href="/organizer" className="text-muted-foreground hover:text-foreground font-medium text-sm transition-colors">
-                      Dashboard
-                    </Link>
-                    <Link href="/create-event" className="text-muted-foreground hover:text-foreground font-medium text-sm transition-colors">
-                      Create Event
-                    </Link>
-                  </>
-                ) : (
-                  <Link href="/dashboard" className="text-muted-foreground hover:text-foreground font-medium text-sm transition-colors">
-                    Dashboard
-                  </Link>
-                )}
-                <Link href="/my-tickets" className="text-muted-foreground hover:text-foreground font-medium text-sm transition-colors">
-                  My Tickets
-                </Link>
-                <Link href="/profile" className="flex items-center space-x-2 text-foreground hover:text-primary-glow transition-colors">
-                  {user.avatar_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={user.avatar_url} alt={user.name} className="w-6 h-6 rounded-full object-cover" />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-secondary/50 transition-colors max-w-[180px]">
+                    <Avatar className="w-8 h-8">
+                      {user.avatar_url && <AvatarImage src={user.avatar_url} alt={user.name} />}
+                      <AvatarFallback>{user.name?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm font-medium truncate">{user.name}</span>
+                    <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel className="truncate">{user.email}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {isStaffRole(user.role) ? (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin"><Shield className="w-4 h-4" /> Dashboard</Link>
+                    </DropdownMenuItem>
+                  ) : user.role === 'organizer' ? (
+                    <>
+                      <DropdownMenuItem asChild>
+                        <Link href="/organizer"><LayoutDashboard className="w-4 h-4" /> Dashboard</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/create-event"><PlusCircle className="w-4 h-4" /> Create Event</Link>
+                      </DropdownMenuItem>
+                    </>
                   ) : (
-                    <User className="w-4 h-4" />
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard"><LayoutDashboard className="w-4 h-4" /> Dashboard</Link>
+                    </DropdownMenuItem>
                   )}
-                  <span className="text-sm font-medium">{user.name}</span>
-                </Link>
-                <Button variant="ghost" size="icon" onClick={logout} title="Log out">
-                  <LogOut className="w-4 h-4" />
-                </Button>
-              </>
+                  <DropdownMenuItem asChild>
+                    <Link href="/my-tickets"><Ticket className="w-4 h-4" /> My Tickets</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile"><Settings className="w-4 h-4" /> Profile</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
+                    <LogOut className="w-4 h-4" /> Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
               <div className="flex items-center space-x-2">
                 <Button asChild variant="ghost">
@@ -149,7 +171,7 @@ export function Navbar() {
         </div>
 
         {mobileMenuOpen && (
-          <div className="md:hidden fixed inset-x-0 top-32 h-[calc(100vh-8rem)] overflow-y-auto bg-background border-t border-border p-4 z-40 shadow-elevated">
+          <div className="md:hidden fixed inset-x-0 top-56 h-[calc(100vh-14rem)] overflow-y-auto bg-background border-t border-border p-4 z-40 shadow-elevated">
             <div className="grid grid-cols-2 gap-2 mb-4">
               <Link href="/" className="flex items-center justify-center space-x-2 px-3 py-2 rounded-none bg-secondary/30 hover:bg-secondary/50 text-sm font-medium transition-colors" onClick={() => setMobileMenuOpen(false)}>
                 <Home className="w-4 h-4" />
