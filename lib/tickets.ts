@@ -51,9 +51,33 @@ export const tickets = {
     await api.delete(`/organizer/tickets/${ticketId}`);
   },
 
-  async resendByEmail(email: string): Promise<{ message: string }> {
-    const { data } = await api.post('/tickets/resend', { email });
+  // "Find My Ticket" is a 3-step, OTP-gated flow — see TicketController for why.
+  async requestLookupCode(email: string): Promise<{ message: string }> {
+    const { data } = await api.post('/tickets/lookup/request-code', { email });
+    return data;
+  },
+
+  async verifyLookupCode(email: string, otp: string): Promise<{ tickets: FoundTicket[] }> {
+    const { data } = await api.post('/tickets/lookup/verify', { email, otp });
+    return data;
+  },
+
+  async resendSelected(email: string, otp: string, ticketIds: number[]): Promise<{ message: string }> {
+    const { data } = await api.post('/tickets/lookup/resend-selected', { email, otp, ticket_ids: ticketIds });
     return data;
   },
 };
+
+export interface FoundTicket {
+  id: number;
+  status: string;
+  event: {
+    title: string;
+    date: string;
+    time: string;
+    venue: string;
+    is_virtual: boolean;
+  } | null;
+  variation: { name: string } | null;
+}
 
