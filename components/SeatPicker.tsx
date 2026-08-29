@@ -116,11 +116,11 @@ export function SeatPicker({ movieId, showtime, ticketTiers, sessionToken, onSel
         <p className="text-center text-[10px] uppercase tracking-widest text-muted-foreground mt-1">{seatMap.screen_label || 'Screen'}</p>
       </div>
 
-      <div className="space-y-2 overflow-x-auto pb-2">
+      <div className="space-y-1.5 sm:space-y-2 -mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto pb-2">
         {seatMap.rows.map((row) => (
           <div key={row.row_id} className="flex items-center gap-2 min-w-max">
-            <span className="w-6 text-xs font-semibold text-muted-foreground shrink-0">{row.label}</span>
-            <div className="flex gap-1">
+            <span className="w-5 sm:w-6 text-xs font-semibold text-muted-foreground shrink-0">{row.label}</span>
+            <div className="flex gap-1.5">
               {row.seats.filter((s) => s.enabled).map((seat) => {
                 const live = liveById.get(seat.seat_id);
                 const status: SeatStatus = live?.status ?? 'available';
@@ -138,7 +138,7 @@ export function SeatPicker({ movieId, showtime, ticketTiers, sessionToken, onSel
                     title={`${seat.seat_id} — ${tierLabel || 'Unassigned'} (${status.replace('_', ' ')})`}
                     onClick={() => handleSeatClick(seat.seat_id, status)}
                     disabled={status === 'sold' || status === 'held_by_other'}
-                    className={`w-6 h-6 rounded-sm border text-[9px] font-medium flex items-center justify-center shrink-0 transition-colors ${colorClass}`}
+                    className={`w-7 h-7 rounded-sm border text-[9px] font-medium flex items-center justify-center shrink-0 transition-colors touch-manipulation ${colorClass}`}
                   >
                     {seat.number}
                   </button>

@@ -121,9 +121,9 @@ export default function MovieDetailPage() {
     <div className="min-h-screen">
       <Navbar />
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid md:grid-cols-[320px_1fr] gap-10">
-          <div className="relative aspect-[2/3] rounded-2xl overflow-hidden bg-muted shadow-elevated h-fit">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-16 pb-28 md:pb-16">
+        <div className="grid md:grid-cols-[320px_1fr] gap-6 md:gap-10">
+          <div className="relative mx-auto w-full max-w-[220px] sm:max-w-[260px] md:max-w-none aspect-[2/3] rounded-2xl overflow-hidden bg-muted shadow-elevated h-fit">
             {poster ? (
               <Image src={poster} alt={movie.title} fill className="object-cover" priority />
             ) : (
@@ -133,18 +133,18 @@ export default function MovieDetailPage() {
             )}
           </div>
 
-          <div>
-            <div className="text-xs uppercase tracking-widest text-primary-glow mb-2 flex items-center gap-1.5">
+          <div className="min-w-0">
+            <div className="text-xs uppercase tracking-widest text-primary-glow mb-2 flex items-center justify-center md:justify-start gap-1.5">
               <MapPin className="w-3.5 h-3.5" /> {movie.city}
             </div>
-            <h1 className="text-4xl font-bold mb-2">{movie.title}</h1>
-            {movie.tagline && <p className="text-lg text-muted-foreground mb-6">{movie.tagline}</p>}
-            {movie.description && <p className="text-muted-foreground mb-8 whitespace-pre-line">{movie.description}</p>}
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 text-center md:text-left break-words">{movie.title}</h1>
+            {movie.tagline && <p className="text-base sm:text-lg text-muted-foreground mb-6 text-center md:text-left">{movie.tagline}</p>}
+            {movie.description && <p className="text-muted-foreground mb-8 whitespace-pre-line break-words">{movie.description}</p>}
 
             <section className="mb-8">
               <h2 className="font-display font-semibold text-lg mb-4 flex items-center gap-2"><Clock className="w-4 h-4 text-primary" /> Showtimes</h2>
               {showtimes.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
                   {showtimes.map((s) => (
                     <button
                       key={s.id}
@@ -152,9 +152,9 @@ export default function MovieDetailPage() {
                       className={`px-4 py-3 rounded-xl border-2 text-left text-sm transition-colors ${selectedShowtime?.id === s.id ? 'border-primary bg-primary/5' : 'border-border'}`}
                     >
                       <div className="flex items-center gap-1.5 font-medium">
-                        <Calendar className="w-3.5 h-3.5" /> {new Date(s.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                        <Calendar className="w-3.5 h-3.5 shrink-0" /> {new Date(s.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
                       </div>
-                      <div className="text-muted-foreground mt-0.5">{s.time} &middot; {s.hall_name}</div>
+                      <div className="text-muted-foreground mt-0.5 truncate">{s.time} &middot; {s.hall_name}</div>
                     </button>
                   ))}
                 </div>
@@ -204,18 +204,34 @@ export default function MovieDetailPage() {
               </section>
             )}
 
-            <div className="p-4 rounded-xl border border-border bg-muted/30 mb-6 flex items-center justify-between">
+            <div className="hidden md:flex p-4 rounded-xl border border-border bg-muted/30 mb-6 items-center justify-between">
               <div className="text-sm text-muted-foreground">
                 {selectedSeatIds.length} seat{selectedSeatIds.length === 1 ? '' : 's'}{addonsTotal > 0 ? ' + snacks/drinks' : ''}
               </div>
               <div className="font-bold text-lg">{formatNaira(grandTotal)}</div>
             </div>
 
-            <Button variant="hero" size="lg" onClick={handleAddToCart} disabled={!selectedShowtime || selectedSeatIds.length === 0}>
+            <Button variant="hero" size="lg" onClick={handleAddToCart} disabled={!selectedShowtime || selectedSeatIds.length === 0} className="hidden md:inline-flex">
               <Ticket className="w-4 h-4" /> Add to cart
             </Button>
           </div>
         </div>
+      </div>
+
+      {/* Mobile-only sticky checkout bar — the inline summary above is off-screen by the time seats/addons are picked */}
+      <div
+        className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur-sm px-4 py-3 flex items-center justify-between gap-3"
+        style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+      >
+        <div className="min-w-0">
+          <div className="text-[11px] text-muted-foreground truncate">
+            {selectedSeatIds.length} seat{selectedSeatIds.length === 1 ? '' : 's'}{addonsTotal > 0 ? ' + snacks' : ''}
+          </div>
+          <div className="font-bold text-base leading-tight">{formatNaira(grandTotal)}</div>
+        </div>
+        <Button variant="hero" size="lg" onClick={handleAddToCart} disabled={!selectedShowtime || selectedSeatIds.length === 0} className="shrink-0">
+          <Ticket className="w-4 h-4" /> Add to cart
+        </Button>
       </div>
 
       <Footer />
