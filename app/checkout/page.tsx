@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/components/AuthProvider';
-import { useCart, entryTotal, EventCartEntry } from '@/lib/cart';
+import { useCart, entryTotal, EventCartEntry, CartEntry } from '@/lib/cart';
 import { payments } from '@/lib/payments';
 import { gateway as gatewayApi, GatewayStatus } from '@/lib/gateway';
 import { coupons, CouponValidation } from '@/lib/coupons';
@@ -19,6 +19,53 @@ import { toast } from 'sonner';
 
 function formatNaira(value: number) {
   return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(value);
+}
+
+/**
+ * Estimate only — the real split happens server-side in
+ * PaymentController::initializeMulti(). Event/Movie/Venue each carry their
+ * own organizer-chosen fee_payer, so a mixed cart can have organizers who
+ * disagree; the platform fee is split by ticket-count share per organizer
+ * (same proxy the backend earnings-splitting already uses), and only the
+ * shares belonging to an "attendee pays" organizer count toward what's
+ * shown here as due on top.
+ */
+function estimateAttendeeFeePortion(entries: CartEntry[], platformFeeAmount: number): number {
+  const countsByOrganizer: Record<number, number> = {};
+  const feePayerByOrganizer: Record<number, 'organizer' | 'attendee'> = {};
+
+  for (const entry of entries) {
+    let organizerId: number | undefined;
+    let count = 0;
+    let feePayer: 'organizer' | 'attendee' = 'organizer';
+
+    if (entry.type === 'event') {
+      organizerId = entry.event.user_id;
+      count = entry.items.reduce((s, i) => s + i.quantity, 0);
+      feePayer = entry.event.fee_payer ?? 'organizer';
+    } else if (entry.type === 'movie') {
+      organizerId = entry.movie.user_id;
+      count = entry.seatIds.length;
+      feePayer = entry.movie.fee_payer ?? 'organizer';
+    } else {
+      organizerId = entry.venue.user_id;
+      count = 1;
+      feePayer = entry.venue.fee_payer ?? 'organizer';
+    }
+
+    if (organizerId == null || count <= 0) continue;
+    countsByOrganizer[organizerId] = (countsByOrganizer[organizerId] || 0) + count;
+    feePayerByOrganizer[organizerId] = feePayer;
+  }
+
+  const totalCount = Object.values(countsByOrganizer).reduce((a, b) => a + b, 0) || 1;
+  let attendeePortion = 0;
+  for (const [organizerId, count] of Object.entries(countsByOrganizer)) {
+    if (feePayerByOrganizer[Number(organizerId)] === 'attendee') {
+      attendeePortion += Math.round(platformFeeAmount * (count / totalCount) * 100) / 100;
+    }
+  }
+  return Math.round(attendeePortion * 100) / 100;
 }
 
 export default function CheckoutPage() {
@@ -132,7 +179,6 @@ export default function CheckoutPage() {
   }
 
   const primaryEventEntry = cart.entries.find((e): e is EventCartEntry => e.type === 'event');
-  const allEventType = cart.entries.every((e) => e.type === 'event');
 
   const eventSubtotal = cart.entries.filter((e) => e.type === 'event').reduce((sum, e) => sum + entryTotal(e), 0);
   const otherSubtotal = cart.entries.filter((e) => e.type !== 'event').reduce((sum, e) => sum + entryTotal(e), 0);
@@ -140,12 +186,12 @@ export default function CheckoutPage() {
   const subtotal = eventSubtotal + otherSubtotal;
   const discountedSubtotal = Math.max(0, subtotal - discountAmount);
 
-  // Fee only ever applies to an all-Event cart, using the first event's own
-  // fee_payer choice — matches PaymentController::initializeMulti exactly.
-  const feePayerIsAttendee = allEventType && primaryEventEntry?.event.fee_payer === 'attendee';
-  const serviceFee = feePayerIsAttendee && discountedSubtotal > 0
+  // Platform fee on the whole cart, then split per-organizer by
+  // ticket-count share — matches PaymentController::initializeMulti exactly.
+  const platformFeeAmount = discountedSubtotal > 0
     ? Math.round((discountedSubtotal * (feeInfo.platform_fee_percentage ?? 0) / 100 + (feeInfo.platform_flat_fee ?? 0)) * 100) / 100
     : 0;
+  const serviceFee = estimateAttendeeFeePortion(cart.entries, platformFeeAmount);
   const total = discountedSubtotal + serviceFee;
   const isFree = total <= 0;
 

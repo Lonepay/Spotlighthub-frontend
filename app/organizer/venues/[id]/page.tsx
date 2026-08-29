@@ -30,6 +30,7 @@ export default function OrganizerVenueDetailPage() {
   const [editForm, setEditForm] = useState({
     name: '', tagline: '', description: '', location: '', city: '',
     available_from: '', available_to: '', daily_open_time: '', daily_close_time: '',
+    fee_payer: 'organizer' as 'organizer' | 'attendee',
   });
 
   const [tiers, setTiers] = useState<VenuePricingTier[]>([]);
@@ -70,6 +71,7 @@ export default function OrganizerVenueDetailPage() {
       available_to: venue.available_to?.slice(0, 10) || '',
       daily_open_time: venue.daily_open_time || '',
       daily_close_time: venue.daily_close_time || '',
+      fee_payer: venue.fee_payer || 'organizer',
     });
     setCoverFile(null);
     setShowEdit(true);
@@ -89,6 +91,7 @@ export default function OrganizerVenueDetailPage() {
       if (editForm.available_to) data.append('available_to', editForm.available_to);
       if (editForm.daily_open_time) data.append('daily_open_time', editForm.daily_open_time);
       if (editForm.daily_close_time) data.append('daily_close_time', editForm.daily_close_time);
+      data.append('fee_payer', editForm.fee_payer);
       if (coverFile) data.append('cover_image', coverFile);
       await venues.update(venueId, data);
       setShowEdit(false);
@@ -238,6 +241,25 @@ export default function OrganizerVenueDetailPage() {
                   <Label htmlFor="edit-venue-cover">Replace cover image (optional)</Label>
                   <input id="edit-venue-cover" type="file" accept="image/*" onChange={(e) => setCoverFile(e.target.files?.[0] || null)} className="w-full text-sm" />
                 </div>
+                <div>
+                  <Label>Who covers the platform fee?</Label>
+                  <div className="grid md:grid-cols-2 gap-2 mt-1">
+                    <button
+                      type="button"
+                      onClick={() => setEditForm({ ...editForm, fee_payer: 'organizer' })}
+                      className={`rounded-xl border-2 px-4 py-3 text-sm font-medium text-left transition-colors ${editForm.fee_payer === 'organizer' ? 'border-primary bg-primary/5' : 'border-border'}`}
+                    >
+                      You (the organizer)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditForm({ ...editForm, fee_payer: 'attendee' })}
+                      className={`rounded-xl border-2 px-4 py-3 text-sm font-medium text-left transition-colors ${editForm.fee_payer === 'attendee' ? 'border-primary bg-primary/5' : 'border-border'}`}
+                    >
+                      Buyers
+                    </button>
+                  </div>
+                </div>
                 <div className="flex gap-2">
                   <Button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save changes'}</Button>
                   <Button type="button" variant="outline" onClick={() => setShowEdit(false)}>Cancel</Button>
@@ -258,6 +280,10 @@ export default function OrganizerVenueDetailPage() {
                   <div>
                     <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Daily hours</p>
                     <p className="font-medium text-sm">{venue.daily_open_time && venue.daily_close_time ? `${venue.daily_open_time} – ${venue.daily_close_time}` : '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Platform fee paid by</p>
+                    <p className="font-medium text-sm">{venue.fee_payer === 'attendee' ? 'Buyers' : 'You (the organizer)'}</p>
                   </div>
                 </div>
               </>

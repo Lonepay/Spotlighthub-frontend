@@ -49,6 +49,7 @@ export default function CreateVenuePage() {
   const [city, setCity] = useState('');
   const [customCity, setCustomCity] = useState(false);
   const [coverImage, setCoverImage] = useState<File | null>(null);
+  const [feePayer, setFeePayer] = useState<'organizer' | 'attendee'>('organizer');
 
   const [availableFrom, setAvailableFrom] = useState('');
   const [availableTo, setAvailableTo] = useState('');
@@ -96,6 +97,7 @@ export default function CreateVenuePage() {
       data.append('location', location);
       data.append('city', city);
       data.append('cover_image', coverImage);
+      data.append('fee_payer', feePayer);
       if (availableFrom) data.append('available_from', availableFrom);
       if (availableTo) data.append('available_to', availableTo);
       if (dailyOpenTime) data.append('daily_open_time', dailyOpenTime);
@@ -204,6 +206,33 @@ export default function CreateVenuePage() {
                   {coverImage ? coverImage.name : 'Click to upload cover image (required)'}
                 </label>
                 <p className="text-xs text-muted-foreground mt-2">PNG or JPG, landscape works best. Up to 30MB.</p>
+              </div>
+            </section>
+
+            {/* Fee payer */}
+            <section className="pb-8 border-b border-border">
+              <SectionHeader icon={NairaSign} title="Platform fee" subtitle="Who covers Spotlighticket's fee on paid bookings." />
+              <div>
+                <Label>Who covers the platform fee?</Label>
+                <p className="text-xs text-muted-foreground mb-2">Only applies to paid tiers — free bookings are never charged.</p>
+                <div className="grid md:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFeePayer('organizer')}
+                    className={`rounded-xl border-2 px-4 py-3 text-sm font-medium text-left transition-colors ${feePayer === 'organizer' ? 'border-primary bg-primary/5' : 'border-border'}`}
+                  >
+                    You (the organizer)
+                    <p className="text-xs text-muted-foreground font-normal mt-0.5">Deducted from your payout. Buyers pay exactly the price you set.</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFeePayer('attendee')}
+                    className={`rounded-xl border-2 px-4 py-3 text-sm font-medium text-left transition-colors ${feePayer === 'attendee' ? 'border-primary bg-primary/5' : 'border-border'}`}
+                  >
+                    Buyers
+                    <p className="text-xs text-muted-foreground font-normal mt-0.5">Added on top at checkout. You receive the full price you set.</p>
+                  </button>
+                </div>
               </div>
             </section>
 

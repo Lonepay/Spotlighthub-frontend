@@ -61,6 +61,7 @@ export interface Movie {
   city: string;
   poster?: string | null;
   poster_url?: string | null;
+  fee_payer?: 'organizer' | 'attendee';
   showtimes?: MovieShowtime[];
   ticket_tiers?: MovieTicketTier[];
   addons?: MovieAddon[];

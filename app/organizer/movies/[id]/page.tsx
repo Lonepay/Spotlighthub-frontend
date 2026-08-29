@@ -33,7 +33,7 @@ export default function OrganizerMovieDetailPage() {
   const [showEdit, setShowEdit] = useState(false);
   const [saving, setSaving] = useState(false);
   const [posterFile, setPosterFile] = useState<File | null>(null);
-  const [editForm, setEditForm] = useState({ title: '', tagline: '', city: '' });
+  const [editForm, setEditForm] = useState({ title: '', tagline: '', city: '', fee_payer: 'organizer' as 'organizer' | 'attendee' });
 
   const [showtimes, setShowtimes] = useState<MovieShowtime[]>([]);
   const [showShowtimeForm, setShowShowtimeForm] = useState(false);
@@ -79,7 +79,7 @@ export default function OrganizerMovieDetailPage() {
 
   const handleOpenEdit = () => {
     if (!movie) return;
-    setEditForm({ title: movie.title, tagline: movie.tagline || '', city: movie.city });
+    setEditForm({ title: movie.title, tagline: movie.tagline || '', city: movie.city, fee_payer: movie.fee_payer || 'organizer' });
     setPosterFile(null);
     setShowEdit(true);
   };
@@ -92,6 +92,7 @@ export default function OrganizerMovieDetailPage() {
       data.append('title', editForm.title);
       data.append('tagline', editForm.tagline);
       data.append('city', editForm.city);
+      data.append('fee_payer', editForm.fee_payer);
       if (posterFile) data.append('poster', posterFile);
       await movies.update(movieId, data);
       setShowEdit(false);
@@ -323,6 +324,25 @@ export default function OrganizerMovieDetailPage() {
                   <Label htmlFor="edit-movie-poster">Replace poster (optional)</Label>
                   <input id="edit-movie-poster" type="file" accept="image/*" onChange={(e) => setPosterFile(e.target.files?.[0] || null)} className="w-full text-sm" />
                 </div>
+                <div>
+                  <Label>Who covers the platform fee?</Label>
+                  <div className="grid md:grid-cols-2 gap-2 mt-1">
+                    <button
+                      type="button"
+                      onClick={() => setEditForm({ ...editForm, fee_payer: 'organizer' })}
+                      className={`rounded-xl border-2 px-4 py-3 text-sm font-medium text-left transition-colors ${editForm.fee_payer === 'organizer' ? 'border-primary bg-primary/5' : 'border-border'}`}
+                    >
+                      You (the organizer)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditForm({ ...editForm, fee_payer: 'attendee' })}
+                      className={`rounded-xl border-2 px-4 py-3 text-sm font-medium text-left transition-colors ${editForm.fee_payer === 'attendee' ? 'border-primary bg-primary/5' : 'border-border'}`}
+                    >
+                      Buyers
+                    </button>
+                  </div>
+                </div>
                 <div className="flex gap-2">
                   <Button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save changes'}</Button>
                   <Button type="button" variant="outline" onClick={() => setShowEdit(false)}>Cancel</Button>
@@ -337,6 +357,10 @@ export default function OrganizerMovieDetailPage() {
                 <div>
                   <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">City</p>
                   <p className="font-medium text-sm">{movie.city}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Platform fee paid by</p>
+                  <p className="font-medium text-sm">{movie.fee_payer === 'attendee' ? 'Buyers' : 'You (the organizer)'}</p>
                 </div>
               </div>
             )}

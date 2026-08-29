@@ -23,6 +23,7 @@ export interface Venue {
   available_to?: string | null;
   daily_open_time?: string | null;
   daily_close_time?: string | null;
+  fee_payer?: 'organizer' | 'attendee';
   pricing_tiers?: VenuePricingTier[];
   created_at: string;
   updated_at: string;
