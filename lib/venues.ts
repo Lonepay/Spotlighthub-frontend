@@ -28,13 +28,33 @@ export interface Venue {
   updated_at: string;
 }
 
+export interface PublicVenuesResponse {
+  data: Venue[];
+  current_page: number;
+  last_page: number;
+}
+
 export const venues = {
+  // Organizer-scoped: only the caller's own venues (or all, for admin/staff
+  // with the 'operations' permission). Lives at /organizer/venues, not
+  // /venues — the public browse routes below occupy that path instead.
   async getAll(): Promise<Venue[]> {
-    const { data } = await api.get('/venues');
+    const { data } = await api.get('/organizer/venues');
     return data;
   },
 
   async getOne(id: number): Promise<Venue> {
+    const { data } = await api.get(`/organizer/venues/${id}`);
+    return data;
+  },
+
+  // Public browse — no auth required, closed venues (available_to in the past) excluded.
+  async getPublicAll(params?: { city?: string; search?: string; page?: number }): Promise<PublicVenuesResponse> {
+    const { data } = await api.get('/venues', { params });
+    return data;
+  },
+
+  async getPublicOne(id: number): Promise<Venue> {
     const { data } = await api.get(`/venues/${id}`);
     return data;
   },

@@ -38,12 +38,16 @@ import {
   ShoppingCart,
   Info,
   ChevronDown,
+  Clapperboard,
+  MapPin,
 } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { useState } from 'react';
 
 const NAV_LINKS = [
   { href: '/events', label: 'Explore', icon: Compass },
+  { href: '/movies', label: 'Movies', icon: Clapperboard },
+  { href: '/venues', label: 'Venues', icon: MapPin },
   { href: '/find-tickets', label: 'Find My Ticket', icon: Ticket },
   { href: '/organizers', label: 'Organizers', icon: Building2 },
   { href: '/vendors', label: 'Vendors', icon: Store },

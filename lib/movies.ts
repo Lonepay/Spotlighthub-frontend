@@ -68,13 +68,33 @@ export interface Movie {
   updated_at: string;
 }
 
+export interface PublicMoviesResponse {
+  data: Movie[];
+  current_page: number;
+  last_page: number;
+}
+
 export const movies = {
+  // Organizer-scoped: only the caller's own movies (or all, for admin/staff
+  // with the 'operations' permission). Lives at /organizer/movies, not
+  // /movies — the public browse routes below occupy that path instead.
   async getAll(): Promise<Movie[]> {
-    const { data } = await api.get('/movies');
+    const { data } = await api.get('/organizer/movies');
     return data;
   },
 
   async getOne(id: number): Promise<Movie> {
+    const { data } = await api.get(`/organizer/movies/${id}`);
+    return data;
+  },
+
+  // Public browse — no auth required, only movies with an upcoming showtime.
+  async getPublicAll(params?: { city?: string; search?: string; page?: number }): Promise<PublicMoviesResponse> {
+    const { data } = await api.get('/movies', { params });
+    return data;
+  },
+
+  async getPublicOne(id: number): Promise<Movie> {
     const { data } = await api.get(`/movies/${id}`);
     return data;
   },
