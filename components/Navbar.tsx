@@ -29,7 +29,6 @@ import {
   Compass,
   Building2,
   Store,
-  Newspaper,
   Mail,
   Settings,
   LayoutDashboard,
@@ -44,18 +43,27 @@ import {
 import { NairaSign } from '@/components/icons/NairaSign';
 import { useState } from 'react';
 
+// Kept inline in the desktop bar — the essentials for browsing/finding a
+// ticket. Everything else lives in the "More" dropdown so the bar doesn't
+// overflow and wrap onto two lines (it did, with 10 items inline).
 const NAV_LINKS = [
   { href: '/events', label: 'Explore', icon: Compass },
   { href: '/movies', label: 'Movies', icon: Clapperboard },
   { href: '/venues', label: 'Venues', icon: MapPin },
   { href: '/find-tickets', label: 'Find My Ticket', icon: Ticket },
+];
+
+// Blog dropped from nav entirely (still reachable via the Footer/direct URL)
+// per explicit feedback that the bar felt cluttered.
+const MORE_LINKS = [
   { href: '/organizers', label: 'Organizers', icon: Building2 },
   { href: '/vendors', label: 'Vendors', icon: Store },
   { href: '/pricing', label: 'Pricing', icon: NairaSign },
-  { href: '/blog', label: 'Blog', icon: Newspaper },
   { href: '/about', label: 'About Us', icon: Info },
   { href: '/contact', label: 'Contact', icon: Mail },
 ];
+
+const ALL_LINKS = [...NAV_LINKS, ...MORE_LINKS];
 
 export function Navbar() {
   const { user, logout } = useAuth();
@@ -73,16 +81,30 @@ export function Navbar() {
             />
           </Link>
 
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center space-x-6 lg:space-x-8">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-muted-foreground hover:text-foreground font-medium text-sm transition-colors"
+                className="text-muted-foreground hover:text-foreground font-medium text-sm transition-colors whitespace-nowrap"
               >
                 {link.label}
               </Link>
             ))}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-1 text-muted-foreground hover:text-foreground font-medium text-sm transition-colors whitespace-nowrap">
+                  More <ChevronDown className="w-3.5 h-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                {MORE_LINKS.map((link) => (
+                  <DropdownMenuItem key={link.href} asChild>
+                    <Link href={link.href}><link.icon className="w-4 h-4" /> {link.label}</Link>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           <div className="hidden md:flex items-center space-x-3">
@@ -181,7 +203,7 @@ export function Navbar() {
                 <Home className="w-4 h-4" />
                 <span>Home</span>
               </Link>
-              {NAV_LINKS.map((link) => (
+              {ALL_LINKS.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}

@@ -720,8 +720,14 @@ export function SettingsTab() {
                         setNewStaff({ name: '', email: '', role: 'admin', staff_role_id: null, password: '' });
                         setInvitingStaff(false);
                         await refreshStaff();
-                      } catch {
-                        alert('Failed to create staff account');
+                      } catch (error: any) {
+                        // Surface the server's actual reason (validation
+                        // message, 403, etc.) instead of a generic alert —
+                        // "failed" with no detail was undiagnosable.
+                        const detail = error?.response?.data?.message
+                          || (error?.response?.data?.errors && Object.values(error.response.data.errors).flat().join(' '))
+                          || error?.message;
+                        alert(detail ? `Failed to create staff account: ${detail}` : 'Failed to create staff account');
                       }
                     }}
                   >

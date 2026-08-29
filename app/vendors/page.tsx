@@ -1,13 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { vendorInquiries } from '@/lib/vendorInquiries';
-import { MapPin, Users, TrendingUp, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { vendors, Vendor } from '@/lib/vendors';
+import { storageUrl } from '@/lib/storage';
+import { MapPin, Users, TrendingUp, ArrowRight, CheckCircle2, Store, Search } from 'lucide-react';
 
 const BENEFITS = [
   { icon: MapPin, title: 'Get discovered', desc: 'List your venue or location where thousands of people search for places to go.' },
@@ -28,6 +32,17 @@ export default function VendorsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+
+  const [directory, setDirectory] = useState<Vendor[]>([]);
+  const [directoryLoading, setDirectoryLoading] = useState(true);
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    vendors.getPublicAll({ search: search.trim() || undefined }).then((data) => {
+      setDirectory(data.data || []);
+      setDirectoryLoading(false);
+    }).catch(() => setDirectoryLoading(false));
+  }, [search]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +83,65 @@ export default function VendorsPage() {
               <a href="/contact">Talk to us</a>
             </Button>
           </div>
+        </div>
+      </section>
+
+      <section className="py-20 border-t border-border/60">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-3">Browse our vendor directory</h2>
+            <p className="text-muted-foreground">Photographers, caterers, decorators, and more — vetted businesses ready to help plan your event.</p>
+          </div>
+
+          <div className="relative max-w-xl mx-auto mb-10">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search vendors…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-12"
+            />
+          </div>
+
+          {directoryLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="aspect-[4/3] bg-muted rounded-xl mb-4" />
+                  <div className="h-4 bg-muted rounded w-3/4 mb-2" />
+                  <div className="h-4 bg-muted rounded w-1/2" />
+                </div>
+              ))}
+            </div>
+          ) : directory.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {directory.map((v) => {
+                const cover = storageUrl(v.cover_image);
+                return (
+                  <Link key={v.id} href={`/vendors/${v.id}`} className="group relative block">
+                    <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-muted shadow-card transition-all duration-300 group-hover:shadow-glow-sm group-hover:scale-[1.02]">
+                      {cover ? (
+                        <Image src={cover} alt={v.name} fill className="object-cover transition-transform duration-500 group-hover:scale-110" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-primary flex items-center justify-center">
+                          <Store className="w-10 h-10 text-white/50" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-70" />
+                      <div className="absolute bottom-0 left-0 right-0 p-4">
+                        <span className="inline-block px-2 py-1 mb-2 text-xs font-bold text-white bg-primary/80 backdrop-blur-sm rounded-md">{v.category}</span>
+                        <h3 className="text-base font-bold text-white leading-tight line-clamp-1">{v.name}</h3>
+                        <p className="text-white/80 text-xs">{v.city}</p>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-center text-muted-foreground py-8">No listings yet — be the first, partner with us below.</p>
+          )}
         </div>
       </section>
 
