@@ -223,7 +223,7 @@ function OrganizerDashboardPageInner() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Event</TableHead>
+                    <TableHead>Item</TableHead>
                     <TableHead>Buyer</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Date</TableHead>
@@ -233,7 +233,7 @@ function OrganizerDashboardPageInner() {
                 <TableBody>
                   {dashboard.recent_payments.map((payment: any) => (
                     <TableRow key={payment.id}>
-                      <TableCell>{payment.event?.title}</TableCell>
+                      <TableCell>{payment.event?.title || payment.movie?.title || payment.venue?.name}</TableCell>
                       <TableCell className="font-medium">{payment.user?.name || payment.guest_name || payment.user?.email}</TableCell>
                       <TableCell className="font-semibold text-emerald-600 dark:text-emerald-400">
                         ₦{payment.amount.toLocaleString('en-NG', { maximumFractionDigits: 0 })}
