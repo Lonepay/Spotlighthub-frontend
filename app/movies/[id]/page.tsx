@@ -1,24 +1,32 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useState, useEffect, useMemo } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { movies, Movie, MovieShowtime } from '@/lib/movies';
 import { storageUrl } from '@/lib/storage';
+import { useCart, estimateSeatPrice, MovieAddonSelection } from '@/lib/cart';
+import { getOrCreateHoldSessionToken } from '@/lib/holdSession';
+import { SeatPicker } from '@/components/SeatPicker';
 import { Clapperboard, MapPin, Calendar, Clock, Ticket, Popcorn, Minus, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function MovieDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const movieId = Number(params.id);
+  const { addEntry } = useCart();
+
   const [movie, setMovie] = useState<Movie | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedShowtime, setSelectedShowtime] = useState<MovieShowtime | null>(null);
-  const [tierQuantities, setTierQuantities] = useState<Record<number, number>>({});
+  const [selectedSeatIds, setSelectedSeatIds] = useState<string[]>([]);
+  const [holdExpiresAt, setHoldExpiresAt] = useState<string | null>(null);
   const [addonQuantities, setAddonQuantities] = useState<Record<number, number>>({});
+  const sessionToken = useMemo(() => getOrCreateHoldSessionToken(), []);
 
   useEffect(() => {
     movies.getPublicOne(movieId)
@@ -38,29 +46,48 @@ export default function MovieDetailPage() {
   const addons = (movie?.addons || []).filter((a) => a.is_available);
   const showtimes = movie?.showtimes || [];
 
-  const setTierQty = (tierId: number, qty: number, max: number) => {
-    setTierQuantities((prev) => ({ ...prev, [tierId]: Math.max(0, Math.min(qty, max)) }));
-  };
-
   const setAddonQty = (addonId: number, qty: number) => {
     setAddonQuantities((prev) => ({ ...prev, [addonId]: Math.max(0, Math.min(qty, 10)) }));
   };
 
-  const ticketCount = Object.values(tierQuantities).reduce((sum, q) => sum + q, 0);
-  const ticketsTotal = tiers.reduce((sum, t) => sum + (tierQuantities[t.id] || 0) * t.price, 0);
-  const addonsTotal = addons.reduce((sum, a) => sum + (addonQuantities[a.id] || 0) * a.price, 0);
-  const grandTotal = ticketsTotal + addonsTotal;
+  // Changing showtimes means the previous one's seat selection/hold no
+  // longer applies — SeatPicker's own unmount cleanup releases it.
+  const handleSelectShowtime = (s: MovieShowtime) => {
+    setSelectedShowtime(s);
+    setSelectedSeatIds([]);
+    setHoldExpiresAt(null);
+  };
 
-  const handleBuy = () => {
-    if (!selectedShowtime) {
-      toast.error('Pick a showtime first.');
+  const seatsTotal = movie && selectedShowtime
+    ? selectedSeatIds.reduce((sum, id) => sum + estimateSeatPrice({
+        type: 'movie', movie, showtime: selectedShowtime, seatIds: [], ticketTiers: tiers, addons: [], sessionToken,
+      }, id), 0)
+    : 0;
+  const addonsTotal = addons.reduce((sum, a) => sum + (addonQuantities[a.id] || 0) * a.price, 0);
+  const grandTotal = seatsTotal + addonsTotal;
+
+  const handleAddToCart = () => {
+    if (!movie || !selectedShowtime) return;
+    if (selectedSeatIds.length === 0) {
+      toast.error('Select at least one seat.');
       return;
     }
-    if (ticketCount === 0) {
-      toast.error('Select at least one ticket.');
-      return;
-    }
-    toast.info("Ticket purchase for movies is launching soon — check back shortly! Your selection isn't lost, just not payable yet.");
+
+    const addonSelections: MovieAddonSelection[] = addons
+      .filter((a) => (addonQuantities[a.id] || 0) > 0)
+      .map((a) => ({ addonId: a.id, quantity: addonQuantities[a.id], name: a.name, price: a.price }));
+
+    addEntry({
+      type: 'movie',
+      movie,
+      showtime: selectedShowtime,
+      seatIds: selectedSeatIds,
+      ticketTiers: tiers,
+      addons: addonSelections,
+      sessionToken,
+    });
+    toast.success('Added to cart');
+    router.push('/cart');
   };
 
   if (loading) {
@@ -121,7 +148,7 @@ export default function MovieDetailPage() {
                   {showtimes.map((s) => (
                     <button
                       key={s.id}
-                      onClick={() => setSelectedShowtime(s)}
+                      onClick={() => handleSelectShowtime(s)}
                       className={`px-4 py-3 rounded-xl border-2 text-left text-sm transition-colors ${selectedShowtime?.id === s.id ? 'border-primary bg-primary/5' : 'border-border'}`}
                     >
                       <div className="flex items-center gap-1.5 font-medium">
@@ -136,46 +163,16 @@ export default function MovieDetailPage() {
               )}
             </section>
 
-            {tiers.length > 0 && (
+            {selectedShowtime && (
               <section className="mb-8">
-                <h2 className="font-display font-semibold text-lg mb-4 flex items-center gap-2"><Ticket className="w-4 h-4 text-primary" /> Ticket tiers</h2>
-                <div className="space-y-2">
-                  {tiers.map((t) => {
-                    const qty = tierQuantities[t.id] || 0;
-                    const max = Math.max(0, t.available_quantity);
-                    return (
-                      <div key={t.id} className="flex items-center justify-between p-3 rounded-xl border border-border gap-3">
-                        <div className="min-w-0">
-                          <p className="font-medium text-sm">{t.name}</p>
-                          {t.description && <p className="text-xs text-muted-foreground">{t.description}</p>}
-                          <p className="text-xs text-muted-foreground mt-0.5">{max > 0 ? `${max} available` : 'Sold out'}</p>
-                        </div>
-                        <div className="flex items-center gap-3 shrink-0">
-                          <span className="font-semibold text-sm">{t.price === 0 ? 'Free' : formatNaira(t.price)}</span>
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setTierQty(t.id, qty - 1, max)}
-                              disabled={qty === 0}
-                              className="w-8 h-8 rounded-full bg-background border border-border flex items-center justify-center active:scale-90 disabled:opacity-50 transition-transform"
-                            >
-                              <Minus className="w-3.5 h-3.5" />
-                            </button>
-                            <span className="font-bold w-4 text-center">{qty}</span>
-                            <button
-                              type="button"
-                              onClick={() => setTierQty(t.id, qty + 1, max)}
-                              disabled={qty >= max}
-                              className="w-8 h-8 rounded-full bg-background border border-border flex items-center justify-center active:scale-90 disabled:opacity-50 transition-transform"
-                            >
-                              <Plus className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                <h2 className="font-display font-semibold text-lg mb-4 flex items-center gap-2"><Ticket className="w-4 h-4 text-primary" /> Pick your seats</h2>
+                <SeatPicker
+                  movieId={movie.id}
+                  showtime={selectedShowtime}
+                  ticketTiers={tiers}
+                  sessionToken={sessionToken}
+                  onSelectionChange={(seatIds, expiresAt) => { setSelectedSeatIds(seatIds); setHoldExpiresAt(expiresAt); }}
+                />
               </section>
             )}
 
@@ -192,20 +189,11 @@ export default function MovieDetailPage() {
                           <span className="font-semibold text-xs">{a.price === 0 ? 'Free' : formatNaira(a.price)}</span>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => setAddonQty(a.id, qty - 1)}
-                            disabled={qty === 0}
-                            className="w-7 h-7 rounded-full bg-background border border-border flex items-center justify-center active:scale-90 disabled:opacity-50 transition-transform"
-                          >
+                          <button type="button" onClick={() => setAddonQty(a.id, qty - 1)} disabled={qty === 0} className="w-7 h-7 rounded-full bg-background border border-border flex items-center justify-center active:scale-90 disabled:opacity-50 transition-transform">
                             <Minus className="w-3 h-3" />
                           </button>
                           <span className="font-bold w-4 text-center text-sm">{qty}</span>
-                          <button
-                            type="button"
-                            onClick={() => setAddonQty(a.id, qty + 1)}
-                            className="w-7 h-7 rounded-full bg-background border border-border flex items-center justify-center active:scale-90 transition-transform"
-                          >
+                          <button type="button" onClick={() => setAddonQty(a.id, qty + 1)} className="w-7 h-7 rounded-full bg-background border border-border flex items-center justify-center active:scale-90 transition-transform">
                             <Plus className="w-3 h-3" />
                           </button>
                         </div>
@@ -218,13 +206,13 @@ export default function MovieDetailPage() {
 
             <div className="p-4 rounded-xl border border-border bg-muted/30 mb-6 flex items-center justify-between">
               <div className="text-sm text-muted-foreground">
-                {ticketCount} ticket{ticketCount === 1 ? '' : 's'}{addonsTotal > 0 ? ' + snacks/drinks' : ''}
+                {selectedSeatIds.length} seat{selectedSeatIds.length === 1 ? '' : 's'}{addonsTotal > 0 ? ' + snacks/drinks' : ''}
               </div>
               <div className="font-bold text-lg">{formatNaira(grandTotal)}</div>
             </div>
 
-            <Button variant="hero" size="lg" onClick={handleBuy} disabled={!selectedShowtime || ticketCount === 0}>
-              <Ticket className="w-4 h-4" /> Buy tickets
+            <Button variant="hero" size="lg" onClick={handleAddToCart} disabled={!selectedShowtime || selectedSeatIds.length === 0}>
+              <Ticket className="w-4 h-4" /> Add to cart
             </Button>
           </div>
         </div>

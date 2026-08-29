@@ -1,4 +1,5 @@
 import api from './api';
+import { CartEntry } from './cart';
 
 export interface Payment {
   id: number;
@@ -41,6 +42,62 @@ export const payments = {
       gateway,
       booking_date: bookingDate,
       booking_time: bookingTime,
+      coupon_code: couponCode ?? undefined,
+    });
+    return data;
+  },
+
+  // Unified multi-item cart checkout — an Event, a Movie, and a Venue can
+  // all be in the same payment. Serializes each CartEntry into the shape
+  // PaymentController::initializeMulti expects; price/tier resolution for
+  // movie seats happens server-side (each seat carries its own tier from
+  // the seat map), so the buyer never has to pick a tier separately.
+  async initializeMulti(
+    entries: CartEntry[],
+    email: string,
+    attendeeName: string,
+    attendeePhone: string,
+    gateway: 'flutterwave' | 'paystack' = 'flutterwave',
+    couponCode?: string | null
+  ) {
+    // An Event cart entry can carry several ticket-tier lines (e.g. 2x
+    // Regular + 1x VIP) — the backend's per-entry loop expects one "event"
+    // item per line, so expand those out; Movie/Venue entries map 1:1.
+    const expanded: Record<string, unknown>[] = entries.flatMap((entry): Record<string, unknown>[] => {
+      if (entry.type === 'event') {
+        return entry.items.map((line) => ({
+          type: 'event',
+          event_id: entry.event.id,
+          variation_id: line.variation?.id,
+          quantity: line.quantity,
+          booking_date: entry.selectedDate,
+          booking_time: entry.selectedTime,
+        }));
+      }
+      if (entry.type === 'movie') {
+        return [{
+          type: 'movie',
+          showtime_id: entry.showtime.id,
+          seat_ids: entry.seatIds,
+          addons: entry.addons.map((a) => ({ addon_id: a.addonId, quantity: a.quantity })),
+          session_token: entry.sessionToken,
+        }];
+      }
+      return [{
+        type: 'venue',
+        venue_id: entry.venue.id,
+        tier_id: entry.tier.id,
+        booking_date: entry.bookingDate,
+        session_token: entry.sessionToken,
+      }];
+    });
+
+    const { data } = await api.post('/payments/initialize', {
+      entries: expanded,
+      email,
+      attendee_name: attendeeName,
+      attendee_phone: attendeePhone,
+      gateway,
       coupon_code: couponCode ?? undefined,
     });
     return data;

@@ -14,9 +14,9 @@ import { storageUrl } from '@/lib/storage';
 import { MapPin, Users, TrendingUp, ArrowRight, CheckCircle2, Store, Search } from 'lucide-react';
 
 const BENEFITS = [
-  { icon: MapPin, title: 'Get discovered', desc: 'List your venue or location where thousands of people search for places to go.' },
-  { icon: Users, title: 'Reach new visitors', desc: 'Tap into Spotlighticket\'s audience of event-goers looking for their next outing.' },
-  { icon: TrendingUp, title: 'Track performance', desc: 'See how many people are viewing and booking your location over time.' },
+  { icon: MapPin, title: 'Get discovered', desc: 'List your business where thousands of people search for services to book for their event.' },
+  { icon: Users, title: 'Reach new clients', desc: 'Tap into Spotlighticket\'s audience of event-goers and organizers looking for vendors.' },
+  { icon: TrendingUp, title: 'Track performance', desc: 'See how many people are viewing your listing over time.' },
 ];
 
 const NIGERIA_STATES = [
@@ -65,13 +65,13 @@ export default function VendorsPage() {
       <section className="relative overflow-hidden py-24">
         <div className="absolute inset-0 bg-gradient-hero" />
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="text-xs uppercase tracking-widest text-primary-glow mb-3">For vendors &amp; venues</div>
+          <div className="text-xs uppercase tracking-widest text-primary-glow mb-3">For vendors</div>
           <h1 className="text-4xl sm:text-6xl font-display font-bold mb-6">
-            List your <span className="text-gradient">location.</span>
+            List your <span className="text-gradient">business.</span>
           </h1>
           <p className="text-lg sm:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
-            Partner with Spotlighticket to put your venue, restaurant, or attraction in front of people
-            actively planning their next night out.
+            Partner with Spotlighticket to put your photography, catering, decor, or other event
+            service in front of people actively planning their next event.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild variant="hero" size="lg">
@@ -162,8 +162,8 @@ export default function VendorsPage() {
       <section id="partner-form" className="py-20 border-t border-border/60">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-3">Want your location listed?</h2>
-            <p className="text-muted-foreground">Tell us about your venue and our partnerships team will reach out — no account needed.</p>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-3">Want your business listed?</h2>
+            <p className="text-muted-foreground">Tell us about your business and our partnerships team will reach out — no account needed.</p>
           </div>
 
           {submitted ? (
@@ -179,7 +179,7 @@ export default function VendorsPage() {
               )}
               <div className="grid sm:grid-cols-2 gap-5">
                 <div>
-                  <Label htmlFor="business_name">Business / venue name *</Label>
+                  <Label htmlFor="business_name">Business name *</Label>
                   <Input id="business_name" required value={form.business_name} onChange={(e) => setForm({ ...form, business_name: e.target.value })} />
                 </div>
                 <div>
@@ -212,7 +212,7 @@ export default function VendorsPage() {
                 </select>
               </div>
               <div>
-                <Label htmlFor="message">Tell us about your venue *</Label>
+                <Label htmlFor="message">Tell us about your business *</Label>
                 <textarea
                   id="message"
                   required
@@ -220,7 +220,7 @@ export default function VendorsPage() {
                   value={form.message}
                   onChange={(e) => setForm({ ...form, message: e.target.value })}
                   className="w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-sm"
-                  placeholder="Capacity, type of venue, what makes it a good fit..."
+                  placeholder="What you offer, experience, what makes you a good fit..."
                 />
               </div>
               <Button type="submit" variant="hero" size="lg" disabled={submitting} className="w-full">

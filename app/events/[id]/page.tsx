@@ -21,7 +21,7 @@ import { storageUrl } from '@/lib/storage';
 export default function EventDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { setItem } = useCart();
+  const { addEntry, setGateway } = useCart();
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   // Only used when the event has no ticket variations at all (a single,
@@ -120,11 +120,12 @@ export default function EventDetailPage() {
       toast.error('Select at least one ticket.');
       return;
     }
-    setItem({
+    setGateway(selectedGateway);
+    addEntry({
+      type: 'event',
       event,
       selectedDate: isMovie ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(event.date), 'yyyy-MM-dd'),
       selectedTime: isMovie ? selectedTime : event.time,
-      gateway: selectedGateway,
       items: selectedItems,
     });
     toast.success('Added to cart');

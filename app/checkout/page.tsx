@@ -10,17 +10,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/components/AuthProvider';
-import { useCart } from '@/lib/cart';
+import { useCart, entryTotal, EventCartEntry } from '@/lib/cart';
 import { payments } from '@/lib/payments';
 import { gateway as gatewayApi, GatewayStatus } from '@/lib/gateway';
 import { coupons, CouponValidation } from '@/lib/coupons';
-import { ArrowLeft, Mail, User as UserIcon, Phone, ShieldCheck, Loader2, CheckCircle2, Download, Receipt, Tag, X } from 'lucide-react';
+import { ArrowLeft, Mail, User as UserIcon, Phone, ShieldCheck, Loader2, CheckCircle2, Receipt, Tag, X, Clapperboard, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
+
+function formatNaira(value: number) {
+  return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(value);
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { item, clear } = useCart();
+  const { cart, clear } = useCart();
 
   const [email, setEmail] = useState('');
   const [attendeeName, setAttendeeName] = useState('');
@@ -35,13 +39,6 @@ export default function CheckoutPage() {
   useEffect(() => {
     gatewayApi.status().then(setFeeInfo).catch(() => {});
   }, []);
-
-  const formatNaira = (value: number) =>
-    new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      maximumFractionDigits: 0,
-    }).format(value);
 
   useEffect(() => {
     if (user) {
@@ -59,7 +56,6 @@ export default function CheckoutPage() {
     );
   }
 
-  // Free-ticket success (shown inline since guests have no /my-tickets to land on)
   if (freeSuccess) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -117,7 +113,7 @@ export default function CheckoutPage() {
     );
   }
 
-  if (!item) {
+  if (cart.entries.length === 0) {
     return (
       <div className="min-h-screen">
         <Navbar />
@@ -135,24 +131,30 @@ export default function CheckoutPage() {
     );
   }
 
-  const { event, items, selectedDate, selectedTime, gateway } = item;
-  const quantity = items.reduce((sum, i) => sum + i.quantity, 0);
-  const subtotal = items.reduce((sum, i) => sum + (i.variation ? i.variation.price : event.price) * i.quantity, 0);
+  const primaryEventEntry = cart.entries.find((e): e is EventCartEntry => e.type === 'event');
+  const allEventType = cart.entries.every((e) => e.type === 'event');
+
+  const eventSubtotal = cart.entries.filter((e) => e.type === 'event').reduce((sum, e) => sum + entryTotal(e), 0);
+  const otherSubtotal = cart.entries.filter((e) => e.type !== 'event').reduce((sum, e) => sum + entryTotal(e), 0);
   const discountAmount = appliedCoupon?.discount_amount ?? 0;
+  const subtotal = eventSubtotal + otherSubtotal;
   const discountedSubtotal = Math.max(0, subtotal - discountAmount);
-  const serviceFee = event.fee_payer === 'attendee' && discountedSubtotal > 0
+
+  // Fee only ever applies to an all-Event cart, using the first event's own
+  // fee_payer choice — matches PaymentController::initializeMulti exactly.
+  const feePayerIsAttendee = allEventType && primaryEventEntry?.event.fee_payer === 'attendee';
+  const serviceFee = feePayerIsAttendee && discountedSubtotal > 0
     ? Math.round((discountedSubtotal * (feeInfo.platform_fee_percentage ?? 0) / 100 + (feeInfo.platform_flat_fee ?? 0)) * 100) / 100
     : 0;
   const total = discountedSubtotal + serviceFee;
   const isFree = total <= 0;
 
-  const itemsPayload = items.map((i) => ({ variationId: i.variation?.id, quantity: i.quantity }));
-
   const handleApplyCoupon = async () => {
-    if (!couponInput.trim()) return;
+    if (!couponInput.trim() || !primaryEventEntry) return;
     setApplyingCoupon(true);
     try {
-      const result = await coupons.validate(event.id, couponInput.trim(), itemsPayload);
+      const itemsPayload = primaryEventEntry.items.map((i) => ({ variationId: i.variation?.id, quantity: i.quantity }));
+      const result = await coupons.validate(primaryEventEntry.event.id, couponInput.trim(), itemsPayload);
       setAppliedCoupon(result);
       toast.success(`Coupon applied — ${formatNaira(result.discount_amount)} off`);
     } catch (error: any) {
@@ -176,15 +178,12 @@ export default function CheckoutPage() {
 
     setSubmitting(true);
     try {
-      const response = await payments.initialize(
-        event.id,
-        itemsPayload,
+      const response = await payments.initializeMulti(
+        cart.entries,
         email,
         attendeeName,
         attendeePhone,
-        gateway,
-        selectedDate,
-        selectedTime,
+        cart.gateway,
         appliedCoupon?.code
       );
 
@@ -203,7 +202,11 @@ export default function CheckoutPage() {
         toast.error('Failed to initialize payment. Please try again.');
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to initialize payment');
+      if (error.response?.status === 409) {
+        toast.error(error.response?.data?.message || 'Some items were just taken by someone else — please review your cart.');
+      } else {
+        toast.error(error.response?.data?.message || 'Failed to initialize payment');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -225,27 +228,37 @@ export default function CheckoutPage() {
         <h1 className="font-display font-bold text-4xl md:text-5xl mb-8">Checkout</h1>
 
         <div className="glass rounded-2xl p-6 md:p-8 shadow-card">
-          <div className="pb-6 border-b border-border/50">
-            <div className="font-display font-semibold truncate mb-1">{event.title}</div>
-            <div className="text-xs text-muted-foreground mb-3">
-              {selectedDate}{selectedTime ? ` ${selectedTime}` : ''}
-            </div>
-            <div className="space-y-2">
-              {items.map((i, idx) => {
-                const price = i.variation ? i.variation.price : event.price;
-                return (
-                  <div key={idx} className="flex gap-3 items-center">
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium truncate">{i.variation ? i.variation.name : 'General Admission'}</div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        {i.quantity} &times; {price === 0 ? 'Free' : formatNaira(price)}
-                      </div>
-                    </div>
-                    <div className="text-sm font-semibold">{price * i.quantity === 0 ? 'Free' : formatNaira(price * i.quantity)}</div>
-                  </div>
-                );
-              })}
-            </div>
+          <div className="pb-6 border-b border-border/50 space-y-4">
+            {cart.entries.map((entry, idx) => (
+              <div key={idx} className="flex gap-3 items-start">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                  {entry.type === 'event' && <span className="text-xs font-bold text-primary">{entry.items.reduce((s, i) => s + i.quantity, 0)}</span>}
+                  {entry.type === 'movie' && <Clapperboard className="w-4 h-4 text-primary" />}
+                  {entry.type === 'venue' && <Building2 className="w-4 h-4 text-primary" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  {entry.type === 'event' && (
+                    <>
+                      <div className="text-sm font-medium truncate">{entry.event.title}</div>
+                      <div className="text-xs text-muted-foreground">{entry.selectedDate}{entry.selectedTime ? ` ${entry.selectedTime}` : ''}</div>
+                    </>
+                  )}
+                  {entry.type === 'movie' && (
+                    <>
+                      <div className="text-sm font-medium truncate">{entry.movie.title} — {entry.seatIds.length} seat{entry.seatIds.length > 1 ? 's' : ''}</div>
+                      <div className="text-xs text-muted-foreground">{new Date(entry.showtime.date).toLocaleDateString()} {entry.showtime.time} · Seats {entry.seatIds.join(', ')}</div>
+                    </>
+                  )}
+                  {entry.type === 'venue' && (
+                    <>
+                      <div className="text-sm font-medium truncate">{entry.venue.name} — {entry.tier.name}</div>
+                      <div className="text-xs text-muted-foreground">{new Date(entry.bookingDate).toLocaleDateString()}</div>
+                    </>
+                  )}
+                </div>
+                <div className="text-sm font-semibold shrink-0">{entryTotal(entry) === 0 ? 'Free' : formatNaira(entryTotal(entry))}</div>
+              </div>
+            ))}
           </div>
 
           <div className="py-6 border-b border-border/50 space-y-4">
@@ -264,53 +277,29 @@ export default function CheckoutPage() {
               <Label htmlFor="attendee-email">Email *</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="attendee-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
-                  placeholder="you@example.com"
-                  required
-                />
+                <Input id="attendee-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10" placeholder="you@example.com" required />
               </div>
             </div>
             <div>
               <Label htmlFor="attendee-name">Full name *</Label>
               <div className="relative">
                 <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="attendee-name"
-                  value={attendeeName}
-                  onChange={(e) => setAttendeeName(e.target.value)}
-                  className="pl-10"
-                  placeholder="Ada Okafor"
-                  required
-                />
+                <Input id="attendee-name" value={attendeeName} onChange={(e) => setAttendeeName(e.target.value)} className="pl-10" placeholder="Ada Okafor" required />
               </div>
             </div>
             <div>
               <Label htmlFor="attendee-phone">Phone number *</Label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="attendee-phone"
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  value={attendeePhone}
-                  onChange={(e) => setAttendeePhone(e.target.value)}
-                  className="pl-10"
-                  placeholder="+234 801 234 5678"
-                  required
-                />
+                <Input id="attendee-phone" type="tel" inputMode="tel" autoComplete="tel" value={attendeePhone} onChange={(e) => setAttendeePhone(e.target.value)} className="pl-10" placeholder="+234 801 234 5678" required />
               </div>
             </div>
           </div>
 
-          {subtotal > 0 && (
+          {primaryEventEntry && eventSubtotal > 0 && (
             <div className="py-6 border-b border-border/50">
               <Label htmlFor="coupon-code">Coupon code</Label>
+              <p className="text-xs text-muted-foreground mb-1.5">Applies to {primaryEventEntry.event.title} only.</p>
               {appliedCoupon ? (
                 <div className="flex items-center justify-between mt-1 rounded-lg bg-primary/5 border border-primary/30 px-3 py-2">
                   <span className="flex items-center gap-2 text-sm font-medium">
@@ -322,13 +311,7 @@ export default function CheckoutPage() {
                 </div>
               ) : (
                 <div className="flex gap-2 mt-1">
-                  <Input
-                    id="coupon-code"
-                    value={couponInput}
-                    onChange={(e) => setCouponInput(e.target.value)}
-                    placeholder="Enter code"
-                    className="uppercase"
-                  />
+                  <Input id="coupon-code" value={couponInput} onChange={(e) => setCouponInput(e.target.value)} placeholder="Enter code" className="uppercase" />
                   <Button type="button" variant="outline" onClick={handleApplyCoupon} disabled={applyingCoupon || !couponInput.trim()}>
                     {applyingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Apply'}
                   </Button>
@@ -338,7 +321,7 @@ export default function CheckoutPage() {
           )}
 
           <div className="py-6 space-y-2 text-sm">
-            {(serviceFee > 0 || discountAmount > 0) && (
+            {(serviceFee > 0 || discountAmount > 0 || cart.entries.length > 1) && (
               <>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Subtotal</span>
@@ -378,7 +361,7 @@ export default function CheckoutPage() {
 
           {!isFree && (
             <p className="text-[11px] text-muted-foreground text-center mt-4 flex items-center justify-center gap-1.5">
-              <ShieldCheck className="h-3 w-3" /> Secured by {gateway === 'flutterwave' ? 'Flutterwave' : 'Paystack'} &middot; Tickets reserved for 15 minutes
+              <ShieldCheck className="h-3 w-3" /> Secured by {cart.gateway === 'flutterwave' ? 'Flutterwave' : 'Paystack'} &middot; Seats/dates held for 15 minutes
             </p>
           )}
         </div>
