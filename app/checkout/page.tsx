@@ -14,7 +14,7 @@ import { useCart, entryTotal, EventCartEntry, CartEntry } from '@/lib/cart';
 import { payments } from '@/lib/payments';
 import { gateway as gatewayApi, GatewayStatus } from '@/lib/gateway';
 import { coupons, CouponValidation } from '@/lib/coupons';
-import { ArrowLeft, Mail, User as UserIcon, Phone, ShieldCheck, Loader2, CheckCircle2, Receipt, Tag, X, Clapperboard, Building2 } from 'lucide-react';
+import { ArrowLeft, Mail, User as UserIcon, Phone, ShieldCheck, Loader2, CheckCircle2, Receipt, Tag, X, Clapperboard, Building2, CreditCard, Zap, Wallet, Check, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 function formatNaira(value: number) {
@@ -71,7 +71,7 @@ function estimateAttendeeFeePortion(entries: CartEntry[], platformFeeAmount: num
 export default function CheckoutPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { cart, clear } = useCart();
+  const { cart, clear, setGateway } = useCart();
 
   const [email, setEmail] = useState('');
   const [attendeeName, setAttendeeName] = useState('');
@@ -86,6 +86,20 @@ export default function CheckoutPage() {
   useEffect(() => {
     gatewayApi.status().then(setFeeInfo).catch(() => {});
   }, []);
+
+  // Movie/Venue detail pages never call setGateway() — only the Event page
+  // does, right before addEntry() — so a cart built from those flows keeps
+  // whatever gateway it defaulted to (or was last set to) even if an admin
+  // has since disabled that one. Auto-correct to whichever gateway is
+  // actually enabled rather than letting the buyer hit a checkout error for
+  // a choice they never consciously made.
+  useEffect(() => {
+    if (cart.gateway === 'flutterwave' && !feeInfo.flutterwave_enabled && feeInfo.paystack_enabled) {
+      setGateway('paystack');
+    } else if (cart.gateway === 'paystack' && !feeInfo.paystack_enabled && feeInfo.flutterwave_enabled) {
+      setGateway('flutterwave');
+    }
+  }, [feeInfo, cart.gateway, setGateway]);
 
   useEffect(() => {
     if (user) {
@@ -366,6 +380,42 @@ export default function CheckoutPage() {
             </div>
           )}
 
+          {!isFree && (
+            <div className="py-6 border-b border-border/50">
+              <label className="text-sm font-medium text-muted-foreground mb-3 flex items-center">
+                <CreditCard className="w-4 h-4 mr-2" />
+                Payment Method
+              </label>
+              {feeInfo.flutterwave_enabled || feeInfo.paystack_enabled ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {([
+                    { id: 'flutterwave' as const, label: 'Flutterwave', icon: Zap, enabled: feeInfo.flutterwave_enabled },
+                    { id: 'paystack' as const, label: 'Paystack', icon: Wallet, enabled: feeInfo.paystack_enabled },
+                  ]).filter((gw) => gw.enabled).map((gw) => (
+                    <button
+                      key={gw.id}
+                      type="button"
+                      onClick={() => setGateway(gw.id)}
+                      className={`relative py-3 px-4 rounded-xl text-sm font-bold border-2 transition-all duration-200 ease-smooth flex items-center justify-center gap-2 active:scale-[0.97] ${
+                        cart.gateway === gw.id
+                          ? 'bg-gradient-primary border-transparent text-white shadow-glow-sm'
+                          : 'bg-card border-border text-foreground hover:border-primary/50 hover:-translate-y-0.5'
+                      }`}
+                    >
+                      <gw.icon className="w-4 h-4" />
+                      <span>{gw.label}</span>
+                      {cart.gateway === gw.id && <Check className="w-4 h-4" />}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 rounded-xl bg-destructive/10 border border-destructive/30 px-4 py-3 text-sm text-destructive">
+                  <AlertTriangle className="w-4 h-4 shrink-0" /> Payments are temporarily unavailable — please check back shortly.
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="py-6 space-y-2 text-sm">
             {(serviceFee > 0 || discountAmount > 0 || cart.entries.length > 1) && (
               <>
@@ -393,7 +443,13 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          <Button variant="hero" size="lg" className="w-full" onClick={handleSubmit} disabled={submitting}>
+          <Button
+            variant="hero"
+            size="lg"
+            className="w-full"
+            onClick={handleSubmit}
+            disabled={submitting || (!isFree && !feeInfo.flutterwave_enabled && !feeInfo.paystack_enabled)}
+          >
             {submitting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" /> Processing…
