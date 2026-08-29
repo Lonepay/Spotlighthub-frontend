@@ -205,7 +205,7 @@ export default function CreateVenuePage() {
                 <label htmlFor="cover-upload" className="cursor-pointer text-primary font-semibold hover:underline">
                   {coverImage ? coverImage.name : 'Click to upload cover image (required)'}
                 </label>
-                <p className="text-xs text-muted-foreground mt-2">PNG or JPG, landscape works best. Up to 30MB.</p>
+                <p className="text-xs text-muted-foreground mt-2">PNG or JPG, landscape works best. Up to 20MB.</p>
               </div>
             </section>
 

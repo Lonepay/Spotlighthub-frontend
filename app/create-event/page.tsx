@@ -712,7 +712,7 @@ export default function CreateEventPage() {
                 <label htmlFor="image-upload" className="cursor-pointer text-primary font-semibold hover:underline">
                   {image ? image.name : 'Click to upload image (required)'}
                 </label>
-                <p className="text-xs text-muted-foreground mt-2">PNG or JPG, landscape works best. Up to 30MB.</p>
+                <p className="text-xs text-muted-foreground mt-2">PNG or JPG, landscape works best. Up to 20MB.</p>
               </div>
             </section>
 
