@@ -586,7 +586,6 @@ function AdminDashboardPageInner() {
                               <option value="attendee">Attendee</option>
                               <option value="organizer">Organizer</option>
                               <option value="admin">Admin</option>
-                              {isElevatedActor && <option value="support">Support</option>}
                               <option value="super-admin">Super Admin</option>
                               {/* Only the developer can see/assign the developer role — this option is rendered for a
                                   non-developer viewer only when it's the row's own current value, so the <select>
@@ -646,17 +645,19 @@ function AdminDashboardPageInner() {
                               </div>
                             </div>
 
-                            {u.role === 'organizer' && !isStaffActor && (
+                            {u.role === 'organizer' && (
                               <div className="mt-3 pt-3 border-t border-border">
                                 <div className="flex items-center justify-between mb-2">
                                   <p className="text-xs uppercase tracking-wide text-muted-foreground flex items-center gap-1">
-                                    <NairaSign className="w-3 h-3" /> Wallet overview (admin-only, logged)
+                                    <NairaSign className="w-3 h-3" /> Wallet overview{!isStaffActor && ' (admin-only, logged)'}
                                   </p>
+                                  {/* OrganizerController::dashboard() permits any staff account via ?organizer_id=,
+                                      unlike the admin-only wallet-peek fetched below — so this link isn't staff-gated. */}
                                   <Link href={`/organizer?organizer_id=${u.id}`} className="text-xs text-primary hover:underline flex items-center gap-1">
                                     View full dashboard <ArrowRight className="w-3 h-3" />
                                   </Link>
                                 </div>
-                                {loadingOverviewId === u.id ? (
+                                {isStaffActor ? null : loadingOverviewId === u.id ? (
                                   <p className="text-xs text-muted-foreground">Loading…</p>
                                 ) : organizerOverview[u.id] ? (
                                   <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
