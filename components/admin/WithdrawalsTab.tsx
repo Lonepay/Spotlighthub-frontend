@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { wallet, Withdrawal } from '@/lib/wallet';
+import { admin } from '@/lib/admin';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader } from '@/components/Loader';
+import { StatCard } from '@/components/dashboard/StatCard';
+import { TableSkeleton } from '@/components/dashboard/TableSkeleton';
 import { Check, X, Banknote, Zap, AlertTriangle } from 'lucide-react';
 
 export function WithdrawalsTab() {
@@ -15,6 +17,7 @@ export function WithdrawalsTab() {
   const [rejectingId, setRejectingId] = useState<number | null>(null);
   const [reason, setReason] = useState('');
   const [payoutBalance, setPayoutBalance] = useState<number | null | undefined>(undefined);
+  const [lowBalanceThreshold, setLowBalanceThreshold] = useState<number | null>(null);
   const [payingId, setPayingId] = useState<number | null>(null);
 
   const refresh = async () => {
@@ -34,6 +37,7 @@ export function WithdrawalsTab() {
 
   useEffect(() => {
     wallet.adminPayoutBalance().then((r) => setPayoutBalance(r.balance)).catch(() => setPayoutBalance(null));
+    admin.getSettings().then((s) => setLowBalanceThreshold(s.low_balance_threshold)).catch(() => setLowBalanceThreshold(null));
   }, []);
 
   const handleApprove = async (id: number) => {
@@ -76,19 +80,22 @@ export function WithdrawalsTab() {
   return (
     <div className="space-y-4">
       {payoutBalance !== undefined && (
-        <div className={`flex items-center gap-2 p-3 rounded-xl border text-sm ${payoutBalance === null ? 'border-border bg-muted/30 text-muted-foreground' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'}`}>
-          {payoutBalance === null ? (
-            <>
-              <AlertTriangle className="w-4 h-4" />
-              Paystack balance unavailable — check that real API credentials are configured.
-            </>
-          ) : (
-            <>
-              <Banknote className="w-4 h-4" />
-              Paystack payout balance: ₦{payoutBalance.toLocaleString('en-NG')}
-            </>
-          )}
-        </div>
+        payoutBalance === null ? (
+          <div className="flex items-center gap-2 p-3 rounded-xl border border-border bg-muted/30 text-muted-foreground text-sm">
+            <AlertTriangle className="w-4 h-4" />
+            Paystack balance unavailable — check that real API credentials are configured.
+          </div>
+        ) : (
+          <div className="max-w-xs">
+            <StatCard
+              icon={Banknote}
+              label="Paystack Payout Balance"
+              value={`₦${payoutBalance.toLocaleString('en-NG')}`}
+              hint={lowBalanceThreshold != null && payoutBalance < lowBalanceThreshold ? 'Below the configured low-balance threshold' : undefined}
+              variant={lowBalanceThreshold != null && payoutBalance < lowBalanceThreshold ? 'alert' : 'default'}
+            />
+          </div>
+        )
       )}
       <div className="flex items-center gap-2">
         <span className="text-sm text-muted-foreground">Status:</span>
@@ -106,7 +113,7 @@ export function WithdrawalsTab() {
         <Button variant="outline" size="sm" onClick={refresh}>Refresh</Button>
       </div>
 
-      {loading && <div className="py-8 flex justify-center"><Loader size={28} /></div>}
+      {loading && <TableSkeleton rows={4} cols={5} />}
       {!loading && list.length === 0 && (
         <p className="text-muted-foreground text-sm text-center py-12">No withdrawals in this status.</p>
       )}

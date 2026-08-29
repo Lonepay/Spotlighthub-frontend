@@ -3,11 +3,13 @@
 import { useState, useEffect } from 'react';
 import { vendorInquiries, VendorInquiry } from '@/lib/vendorInquiries';
 import { vendors as vendorsApi, Vendor } from '@/lib/vendors';
+import { storageUrl } from '@/lib/storage';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader } from '@/components/Loader';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { TableSkeleton } from '@/components/dashboard/TableSkeleton';
 import { Mail, Phone, MapPin, Plus, Edit2, Trash2, Store, Globe, Instagram } from 'lucide-react';
 
 const CATEGORY_PRESETS = ['Photography', 'Catering', 'Decor & Styling', 'DJ & Entertainment', 'Makeup & Beauty', 'Event Planning', 'Furniture & Rentals', 'Sound & Lighting', 'Other'];
@@ -31,6 +33,8 @@ export function VendorsTab() {
   const [form, setForm] = useState(emptyForm());
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Vendor | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const refresh = async () => {
     setLoading(true);
@@ -138,13 +142,17 @@ export function VendorsTab() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Delete this vendor listing?')) return;
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await vendorsApi.delete(id);
+      await vendorsApi.delete(deleteTarget.id);
+      setDeleteTarget(null);
       await refreshDirectory();
     } catch {
       alert('Failed to delete vendor listing');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -193,7 +201,7 @@ export function VendorsTab() {
             <Button variant="outline" size="sm" onClick={refresh}>Refresh</Button>
           </div>
 
-          {loading && <div className="py-8 flex justify-center"><Loader size={28} /></div>}
+          {loading && <TableSkeleton rows={5} cols={4} />}
           {!loading && list.length === 0 && (
             <p className="text-muted-foreground text-sm text-center py-12">No vendor inquiries yet.</p>
           )}
@@ -297,7 +305,7 @@ export function VendorsTab() {
             </Card>
           )}
 
-          {loadingDirectory && <div className="py-8 flex justify-center"><Loader size={28} /></div>}
+          {loadingDirectory && <TableSkeleton rows={5} cols={4} />}
           {!loadingDirectory && directory.length === 0 && (
             <p className="text-muted-foreground text-sm text-center py-12">No directory listings yet.</p>
           )}
@@ -306,23 +314,32 @@ export function VendorsTab() {
             {directory.map((v) => (
               <Card key={v.id}>
                 <CardContent className="p-5 flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-semibold flex items-center gap-1.5"><Store className="w-4 h-4 text-primary" /> {v.name}</p>
-                      <Badge variant="outline">{v.category}</Badge>
-                      {!v.is_published && <Badge variant="secondary">Unpublished</Badge>}
-                    </div>
-                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                      <span className="inline-flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {v.city}</span>
-                      <span className="inline-flex items-center gap-1"><Mail className="w-3.5 h-3.5" /> {v.contact_email}</span>
-                      {v.website && <span className="inline-flex items-center gap-1"><Globe className="w-3.5 h-3.5" /> {v.website}</span>}
-                      {v.instagram && <span className="inline-flex items-center gap-1"><Instagram className="w-3.5 h-3.5" /> {v.instagram}</span>}
+                  <div className="flex items-start gap-3 min-w-0">
+                    {v.cover_image ? (
+                      <img src={storageUrl(v.cover_image) || undefined} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0 border border-border" />
+                    ) : (
+                      <div className="w-14 h-14 rounded-lg bg-muted shrink-0 flex items-center justify-center text-muted-foreground">
+                        <Store className="w-5 h-5" />
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold flex items-center gap-1.5"><Store className="w-4 h-4 text-primary" /> {v.name}</p>
+                        <Badge variant="outline">{v.category}</Badge>
+                        {!v.is_published && <Badge variant="secondary">Unpublished</Badge>}
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                        <span className="inline-flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {v.city}</span>
+                        <span className="inline-flex items-center gap-1"><Mail className="w-3.5 h-3.5" /> {v.contact_email}</span>
+                        {v.website && <span className="inline-flex items-center gap-1"><Globe className="w-3.5 h-3.5" /> {v.website}</span>}
+                        {v.instagram && <span className="inline-flex items-center gap-1"><Instagram className="w-3.5 h-3.5" /> {v.instagram}</span>}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <Button size="sm" variant="outline" onClick={() => togglePublished(v)}>{v.is_published ? 'Unpublish' : 'Publish'}</Button>
                     <Button size="sm" variant="outline" onClick={() => openEditForm(v)}><Edit2 className="w-3.5 h-3.5" /></Button>
-                    <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(v.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                    <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteTarget(v)}><Trash2 className="w-3.5 h-3.5" /></Button>
                   </div>
                 </CardContent>
               </Card>
@@ -330,6 +347,17 @@ export function VendorsTab() {
           </div>
         </>
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Delete this vendor listing?"
+        description={deleteTarget ? `"${deleteTarget.name}" will be permanently removed from the public directory.` : undefined}
+        confirmLabel="Delete"
+        destructive
+        loading={deleting}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

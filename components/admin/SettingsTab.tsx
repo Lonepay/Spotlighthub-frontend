@@ -14,7 +14,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Loader } from '@/components/Loader';
-import { Percent, Search, Trash2, Activity, AlertTriangle, Copy, Check, Download, ChevronLeft, ChevronRight, User as UserIcon, CreditCard, Ticket as TicketIcon, ShieldAlert, SlidersHorizontal, ShieldCheck, Lock, Crown } from 'lucide-react';
+import { Percent, Search, Trash2, Activity, AlertTriangle, Copy, Check, Download, ChevronLeft, ChevronRight, User as UserIcon, CreditCard, Ticket as TicketIcon, ShieldAlert, SlidersHorizontal, ShieldCheck, Lock, Crown, Image as ImageIcon } from 'lucide-react';
 
 type SettingsForm = Partial<AdminSettings> & { flutterwave_webhook_secret_hash?: string };
 
@@ -24,6 +24,7 @@ const ACTIVITY_CATEGORY_META: Record<string, { label: string; icon: any }> = {
   payment: { label: 'Payments', icon: CreditCard },
   ticket: { label: 'Tickets', icon: TicketIcon },
   settings: { label: 'Settings', icon: SlidersHorizontal },
+  listing: { label: 'Listing images', icon: ImageIcon },
 };
 
 type SubTab = 'general' | 'seo' | 'webhooks' | 'cache' | 'activity' | 'errors' | 'staff' | 'staff-roles';

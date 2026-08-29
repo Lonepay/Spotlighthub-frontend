@@ -4,6 +4,8 @@ import { Fragment, Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { StatCard } from '@/components/dashboard/StatCard';
+import { PaginationFooter } from '@/components/dashboard/PaginationFooter';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useAuth } from '@/components/AuthProvider';
 import { isStaffRole, StaffRole as StaffRoleType } from '@/lib/auth';
 import { staffRoles as staffRolesApi } from '@/lib/staffRoles';
@@ -30,6 +32,7 @@ import { WithdrawalsTab } from '@/components/admin/WithdrawalsTab';
 import { VendorsTab } from '@/components/admin/VendorsTab';
 import { SupportTicketsTab } from '@/components/admin/SupportTicketsTab';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
+import { storageUrl } from '@/lib/storage';
 import Link from 'next/link';
 
 type AdminTab = 'overview' | 'users' | 'events' | 'kyc' | 'withdrawals' | 'tickets' | 'payments' | 'blog' | 'vendors' | 'settings' | 'support';
@@ -145,6 +148,15 @@ function AdminDashboardPageInner() {
       }
     }
   };
+
+  // Shared confirmation-dialog state for the four destructive "Delete"
+  // actions below (users/events/tickets/blog posts) — only one can be open
+  // at a time, so a single busy flag is enough.
+  const [deleteUserTarget, setDeleteUserTarget] = useState<{ id: number; name: string } | null>(null);
+  const [deleteEventTarget, setDeleteEventTarget] = useState<{ id: number; title: string } | null>(null);
+  const [deleteTicketTarget, setDeleteTicketTarget] = useState<{ id: number; code?: string } | null>(null);
+  const [deleteBlogPostTarget, setDeleteBlogPostTarget] = useState<{ id: number; title: string } | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const [newUser, setNewUser] = useState<{name:string; email:string; role:'attendee'|'organizer'|'admin'|'super-admin'|'developer'|'staff'; staff_role_id: number | null; password:string}>({
     name: '', email: '', role: 'attendee', staff_role_id: null, password: ''
@@ -290,20 +302,9 @@ function AdminDashboardPageInner() {
     </div>
   );
 
-  const paginationControls = (meta: PageMeta, onPageChange: (page: number) => void) => {
-    if (meta.last_page <= 1) return null;
-    return (
-      <div className="flex items-center justify-between pt-4">
-        <span className="text-xs text-muted-foreground">
-          Page {meta.current_page} of {meta.last_page} ({meta.total} total)
-        </span>
-        <div className="flex gap-1">
-          <Button variant="outline" size="sm" disabled={meta.current_page <= 1} onClick={() => onPageChange(meta.current_page - 1)}>Previous</Button>
-          <Button variant="outline" size="sm" disabled={meta.current_page >= meta.last_page} onClick={() => onPageChange(meta.current_page + 1)}>Next</Button>
-        </div>
-      </div>
-    );
-  };
+  const paginationControls = (meta: PageMeta, onPageChange: (page: number) => void) => (
+    <PaginationFooter meta={meta} onPageChange={onPageChange} />
+  );
 
   return (
     <DashboardShell title="Admin Dashboard" description={`${getGreeting()}, ${authUser?.name}`}>
@@ -614,7 +615,7 @@ function AdminDashboardPageInner() {
                                 disabled={!canDeleteUser(u)}
                                 title={!canDeleteUser(u) ? "This account is protected and can't be deleted" : undefined}
                                 className="text-destructive hover:text-destructive hover:bg-destructive/10 disabled:opacity-40 disabled:hover:bg-transparent"
-                                onClick={async()=>{ if(confirm('Delete this user?')) { try{ await admin.deleteUser(u.id); await refreshUsers(); } catch(e){ alert('Failed to delete'); } } }}
+                                onClick={() => setDeleteUserTarget({ id: u.id, name: u.name })}
                               >
                                 <Trash className="w-4 h-4"/> Delete
                               </Button>
@@ -759,7 +760,7 @@ function AdminDashboardPageInner() {
                             variant="ghost"
                             size="sm"
                             className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={async()=>{ if(confirm('Delete this event?')) { try { await admin.deleteEvent(event.id); await refreshEvents(); } catch(e){ alert('Failed to delete'); } } }}
+                            onClick={() => setDeleteEventTarget({ id: event.id, title: event.title })}
                           >
                             <Trash className="w-4 h-4"/> Delete
                           </Button>
@@ -865,10 +866,7 @@ function AdminDashboardPageInner() {
                               variant="ghost"
                               size="sm"
                               className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                              onClick={async () => {
-                                if (!confirm('Delete this ticket? This cannot be undone.')) return;
-                                try { await admin.deleteTicket(ticket.id); await refreshTickets(); } catch (e) { alert('Failed to delete ticket'); }
-                              }}
+                              onClick={() => setDeleteTicketTarget({ id: ticket.id, code: ticket.code })}
                             >
                               <Trash className="w-4 h-4" />
                             </Button>
@@ -1050,10 +1048,19 @@ function AdminDashboardPageInner() {
                   {blogPostsList.map((post: any) => (
                     <div key={post.id} className="p-4 rounded-xl border border-border">
                       <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium truncate">{post.title}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {post.category} &middot; By {post.user?.name || 'Unknown'} &middot; {post.is_published ? 'Published' : 'Draft'}
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          {post.image ? (
+                            <img src={storageUrl(post.image) || undefined} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0 border border-border" />
+                          ) : (
+                            <div className="w-14 h-14 rounded-lg bg-muted shrink-0 flex items-center justify-center text-muted-foreground">
+                              <Newspaper className="w-5 h-5" />
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <div className="font-medium truncate">{post.title}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {post.category} &middot; By {post.user?.name || 'Unknown'} &middot; {post.is_published ? 'Published' : 'Draft'}
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
@@ -1067,7 +1074,7 @@ function AdminDashboardPageInner() {
                             variant="ghost"
                             size="sm"
                             className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={async()=>{ if(confirm('Delete this post?')) { try { await admin.deleteBlogPost(post.id); await refreshBlogPosts(); } catch(e){ alert('Failed to delete'); } } }}
+                            onClick={() => setDeleteBlogPostTarget({ id: post.id, title: post.title })}
                           >
                             <Trash className="w-4 h-4"/> Delete
                           </Button>
@@ -1163,6 +1170,98 @@ function AdminDashboardPageInner() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <ConfirmDialog
+        open={!!deleteUserTarget}
+        onOpenChange={(open) => !open && setDeleteUserTarget(null)}
+        title="Delete this user?"
+        description={deleteUserTarget ? `"${deleteUserTarget.name}" will be permanently removed.` : undefined}
+        confirmLabel="Delete"
+        destructive
+        loading={deleteBusy}
+        onConfirm={async () => {
+          if (!deleteUserTarget) return;
+          setDeleteBusy(true);
+          try {
+            await admin.deleteUser(deleteUserTarget.id);
+            setDeleteUserTarget(null);
+            await refreshUsers();
+          } catch (e) {
+            alert('Failed to delete');
+          } finally {
+            setDeleteBusy(false);
+          }
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!deleteEventTarget}
+        onOpenChange={(open) => !open && setDeleteEventTarget(null)}
+        title="Delete this event?"
+        description={deleteEventTarget ? `"${deleteEventTarget.title}" will be permanently removed.` : undefined}
+        confirmLabel="Delete"
+        destructive
+        loading={deleteBusy}
+        onConfirm={async () => {
+          if (!deleteEventTarget) return;
+          setDeleteBusy(true);
+          try {
+            await admin.deleteEvent(deleteEventTarget.id);
+            setDeleteEventTarget(null);
+            await refreshEvents();
+          } catch (e) {
+            alert('Failed to delete');
+          } finally {
+            setDeleteBusy(false);
+          }
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTicketTarget}
+        onOpenChange={(open) => !open && setDeleteTicketTarget(null)}
+        title="Delete this ticket?"
+        description={`This cannot be undone.${deleteTicketTarget?.code ? ` (${deleteTicketTarget.code})` : ''}`}
+        confirmLabel="Delete"
+        destructive
+        loading={deleteBusy}
+        onConfirm={async () => {
+          if (!deleteTicketTarget) return;
+          setDeleteBusy(true);
+          try {
+            await admin.deleteTicket(deleteTicketTarget.id);
+            setDeleteTicketTarget(null);
+            await refreshTickets();
+          } catch (e) {
+            alert('Failed to delete ticket');
+          } finally {
+            setDeleteBusy(false);
+          }
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!deleteBlogPostTarget}
+        onOpenChange={(open) => !open && setDeleteBlogPostTarget(null)}
+        title="Delete this post?"
+        description={deleteBlogPostTarget ? `"${deleteBlogPostTarget.title}" will be permanently removed.` : undefined}
+        confirmLabel="Delete"
+        destructive
+        loading={deleteBusy}
+        onConfirm={async () => {
+          if (!deleteBlogPostTarget) return;
+          setDeleteBusy(true);
+          try {
+            await admin.deleteBlogPost(deleteBlogPostTarget.id);
+            setDeleteBlogPostTarget(null);
+            await refreshBlogPosts();
+          } catch (e) {
+            alert('Failed to delete');
+          } finally {
+            setDeleteBusy(false);
+          }
+        }}
+      />
     </DashboardShell>
   );
 }

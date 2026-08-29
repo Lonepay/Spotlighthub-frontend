@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
@@ -19,6 +19,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import {
   LayoutDashboard,
   Ticket,
@@ -30,6 +31,8 @@ import {
   X,
   LogOut,
   ChevronDown,
+  ChevronsLeft,
+  ChevronsRight,
   Users,
   Calendar,
   Receipt,
@@ -195,6 +198,22 @@ function DashboardShellInner({
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Desktop-only icon-rail mode, remembered per browser like the theme
+  // preference. Starts false (matching SSR output) and is corrected from
+  // localStorage on mount, rather than read synchronously in the
+  // initializer, to avoid a hydration mismatch against the server render.
+  const [dense, setDense] = useState(false);
+  const [denseHydrated, setDenseHydrated] = useState(false);
+
+  useEffect(() => {
+    setDense(window.localStorage.getItem('sidebar-dense') === '1');
+    setDenseHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (denseHydrated) window.localStorage.setItem('sidebar-dense', dense ? '1' : '0');
+  }, [dense, denseHydrated]);
+
   const role = user?.role || 'attendee';
   const navItems = ['admin', 'super-admin', 'developer'].includes(role)
     ? buildAdminNav(role)
@@ -225,28 +244,42 @@ function DashboardShellInner({
     return initial;
   });
 
-  const navLink = (item: { label: string; href: string; icon: any }, indent = false) => {
+  const navLink = (item: { label: string; href: string; icon: any }, indent = false, isDense = false) => {
     const isActive = isItemActive(item.href);
-    return (
+    const link = (
       <Link
         key={item.href}
         href={item.href}
         onClick={() => setMobileOpen(false)}
-        className={`flex items-center gap-3 px-3 py-2.5 rounded-none text-sm font-medium transition-colors ${indent ? 'ml-3 pl-3 border-l border-border' : ''} ${
+        className={`flex items-center gap-3 px-3 py-2.5 rounded-none text-sm font-medium transition-colors ${
+          isDense ? 'justify-center px-0' : ''
+        } ${indent && !isDense ? 'ml-3 pl-3 border-l border-border' : ''} ${
           isActive
             ? 'bg-primary/10 text-primary'
-            : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+            : 'text-muted-foreground hover:bg-primary/20 hover:text-primary'
         }`}
       >
         <item.icon className="w-4 h-4 shrink-0" />
-        {item.label}
+        {!isDense && <span>{item.label}</span>}
       </Link>
+    );
+
+    if (!isDense) return link;
+
+    return (
+      <Tooltip key={item.href} delayDuration={200}>
+        <TooltipTrigger asChild>{link}</TooltipTrigger>
+        <TooltipContent side="right">{item.label}</TooltipContent>
+      </Tooltip>
     );
   };
 
-  const SidebarContent = (
+  // Rendered twice — once for the desktop rail (which respects `dense`) and
+  // once for the mobile drawer (always full-width) — so dense mode never
+  // leaks into the mobile layout.
+  const renderSidebarContent = (isDense: boolean) => (
     <div className="flex h-full flex-col">
-      <div className="flex items-center h-16 px-5 border-b border-border shrink-0">
+      <div className={`flex items-center h-16 border-b border-border shrink-0 ${isDense ? 'justify-center px-2' : 'px-5'}`}>
         <Link href="/" className="flex items-center">
           <Logo className="h-10 w-auto object-contain" />
         </Link>
@@ -255,7 +288,13 @@ function DashboardShellInner({
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
         {navItems.map((entry) => {
           if (entry.type === 'link') {
-            return navLink(entry);
+            return navLink(entry, false, isDense);
+          }
+
+          if (isDense) {
+            // No room for a collapsible group header at icon-rail width —
+            // flatten straight to the leaf items, each with its own tooltip.
+            return entry.items.map((item) => navLink(item, false, true));
           }
 
           const isOpen = openGroups[entry.label] ?? false;
@@ -264,7 +303,7 @@ function DashboardShellInner({
               <button
                 type="button"
                 onClick={() => setOpenGroups((prev) => ({ ...prev, [entry.label]: !isOpen }))}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-none text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-none text-sm font-medium text-muted-foreground hover:bg-primary/20 hover:text-primary transition-colors"
               >
                 <entry.icon className="w-4 h-4 shrink-0" />
                 <span className="flex-1 text-left">{entry.label}</span>
@@ -283,20 +322,24 @@ function DashboardShellInner({
       <div className="p-3 border-t border-border shrink-0">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="w-full flex items-center gap-3 px-2 py-2 rounded-none hover:bg-secondary transition-colors text-left">
+            <button className={`w-full flex items-center gap-3 py-2 rounded-none hover:bg-secondary transition-colors text-left ${isDense ? 'justify-center px-0' : 'px-2'}`}>
               <Avatar>
                 {user?.avatar_url && <AvatarImage src={user.avatar_url} alt={user.name} />}
                 <AvatarFallback>{user?.name?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
               </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate">{user?.name}</p>
-                <p className="text-xs text-muted-foreground truncate capitalize flex items-center gap-1">
-                  {user?.role === 'developer' && <Crown className="w-3 h-3 text-amber-500 shrink-0" fill="currentColor" />}
-                  {user?.role === 'super-admin' && <Crown className="w-3 h-3 text-slate-400 shrink-0" fill="currentColor" />}
-                  {user?.role}
-                </p>
-              </div>
-              <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+              {!isDense && (
+                <>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">{user?.name}</p>
+                    <p className="text-xs text-muted-foreground truncate capitalize flex items-center gap-1">
+                      {user?.role === 'developer' && <Crown className="w-3 h-3 text-amber-500 shrink-0" fill="currentColor" />}
+                      {user?.role === 'super-admin' && <Crown className="w-3 h-3 text-slate-400 shrink-0" fill="currentColor" />}
+                      {user?.role}
+                    </p>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                </>
+              )}
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
@@ -317,24 +360,37 @@ function DashboardShellInner({
   );
 
   return (
+    <TooltipProvider delayDuration={200}>
     <div className="min-h-screen bg-background">
       <TopProgressBar />
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex lg:fixed lg:inset-y-0 lg:w-64 lg:flex-col border-r border-border bg-card">
-        {SidebarContent}
+      <aside
+        className={`hidden lg:flex lg:fixed lg:inset-y-0 lg:flex-col relative border-r border-border bg-card transition-[width] duration-200 ${
+          dense ? 'lg:w-[72px]' : 'lg:w-64'
+        }`}
+      >
+        {renderSidebarContent(dense)}
+        <button
+          type="button"
+          onClick={() => setDense((v) => !v)}
+          className="absolute -right-3 top-20 hidden lg:flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-card hover:text-primary hover:border-primary/40 transition-colors"
+          aria-label={dense ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {dense ? <ChevronsRight className="w-3.5 h-3.5" /> : <ChevronsLeft className="w-3.5 h-3.5" />}
+        </button>
       </aside>
 
-      {/* Mobile sidebar overlay */}
+      {/* Mobile sidebar overlay — always full-width, unaffected by desktop dense mode */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="fixed inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
           <aside className="fixed inset-y-0 left-0 w-64 bg-card border-r border-border">
-            {SidebarContent}
+            {renderSidebarContent(false)}
           </aside>
         </div>
       )}
 
-      <div className="lg:pl-64 flex flex-col min-h-screen">
+      <div className={`flex flex-col min-h-screen transition-[padding] duration-200 ${dense ? 'lg:pl-[72px]' : 'lg:pl-64'}`}>
         <header className="sticky top-0 z-30 h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8 border-b border-border bg-background/95 backdrop-blur">
           <div className="flex items-center gap-3 min-w-0">
             <button
@@ -356,5 +412,6 @@ function DashboardShellInner({
         <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>
+    </TooltipProvider>
   );
 }
