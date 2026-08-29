@@ -17,9 +17,12 @@ import {
   Film,
   Building2,
   MessageCircle,
+  Clapperboard,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { events, Event, CategoryCount } from '@/lib/events';
+import { movies, Movie } from '@/lib/movies';
+import { venues, Venue } from '@/lib/venues';
 import { storageUrl } from '@/lib/storage';
 import { COMMUNITY_LINK } from '@/lib/constants';
 
@@ -44,6 +47,10 @@ export default function Home() {
   const [pastEvents, setPastEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<CategoryCount[]>([]);
+  const [featuredMovies, setFeaturedMovies] = useState<Movie[]>([]);
+  const [moviesLoading, setMoviesLoading] = useState(true);
+  const [featuredVenues, setFeaturedVenues] = useState<Venue[]>([]);
+  const [venuesLoading, setVenuesLoading] = useState(true);
 
   useEffect(() => {
     events.getAll({ page: 1, sort: 'trending' }).then((data) => {
@@ -56,6 +63,16 @@ export default function Home() {
     }).catch(() => {});
 
     events.getCategories().then((data) => setCategories(data.slice(0, 6))).catch(() => setCategories([]));
+
+    movies.getPublicAll({ page: 1 }).then((data) => {
+      setFeaturedMovies(data.data?.slice(0, 4) || []);
+      setMoviesLoading(false);
+    }).catch(() => setMoviesLoading(false));
+
+    venues.getPublicAll({ page: 1 }).then((data) => {
+      setFeaturedVenues(data.data?.slice(0, 4) || []);
+      setVenuesLoading(false);
+    }).catch(() => setVenuesLoading(false));
   }, []);
 
   return (
@@ -234,6 +251,137 @@ export default function Home() {
           ) : (
             <div className="text-center py-12">
               <p className="text-muted-foreground text-lg">No upcoming events yet. Check back soon!</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Now showing */}
+      <section className="py-20 bg-muted/20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Reveal className="flex justify-between items-center mb-12">
+            <div>
+              <h2 className="text-4xl font-bold mb-2">Now showing</h2>
+              <p className="text-lg text-muted-foreground">Movies with showtimes you can book</p>
+            </div>
+            <Button asChild variant="outline" className="hidden sm:inline-flex">
+              <Link href="/movies">
+                See all movies <ArrowRight className="w-5 h-5" />
+              </Link>
+            </Button>
+          </Reveal>
+
+          {moviesLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="aspect-[2/3] bg-muted rounded-xl mb-4" />
+                  <div className="h-4 bg-muted rounded w-3/4 mb-2" />
+                  <div className="h-4 bg-muted rounded w-1/2" />
+                </div>
+              ))}
+            </div>
+          ) : featuredMovies.length > 0 ? (
+            <RevealGroup className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {featuredMovies.map((movie) => {
+                const poster = storageUrl(movie.poster);
+                const nextShowtime = movie.showtimes?.[0];
+                return (
+                  <RevealItem key={movie.id}>
+                    <Link href={`/movies/${movie.id}`} className="group relative block">
+                      <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-muted shadow-card transition-all duration-300 group-hover:shadow-glow-sm group-hover:scale-[1.02]">
+                        {poster ? (
+                          <Image src={poster} alt={movie.title} fill className="object-cover transition-transform duration-500 group-hover:scale-110" />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-primary p-6 flex items-center justify-center text-center">
+                            <Clapperboard className="w-10 h-10 text-white/50" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-70" />
+                        <div className="absolute bottom-0 left-0 right-0 p-4">
+                          <span className="inline-block px-2 py-1 mb-2 text-xs font-bold text-white bg-primary/80 backdrop-blur-sm rounded-md">
+                            {movie.city}
+                          </span>
+                          <h3 className="text-lg font-bold text-white leading-tight mb-1 line-clamp-2">{movie.title}</h3>
+                          {nextShowtime && (
+                            <div className="flex items-center text-white/80 text-xs space-x-2">
+                              <span>{new Date(nextShowtime.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                              <span>&middot;</span>
+                              <span>{nextShowtime.time}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+                  </RevealItem>
+                );
+              })}
+            </RevealGroup>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground text-lg">No movies with upcoming showtimes yet. Check back soon!</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Popular venues */}
+      <section className="py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Reveal className="flex justify-between items-center mb-12">
+            <div>
+              <h2 className="text-4xl font-bold mb-2">Popular locations</h2>
+              <p className="text-lg text-muted-foreground">Spaces you can book by the day</p>
+            </div>
+            <Button asChild variant="outline" className="hidden sm:inline-flex">
+              <Link href="/venues">
+                See all locations <ArrowRight className="w-5 h-5" />
+              </Link>
+            </Button>
+          </Reveal>
+
+          {venuesLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="aspect-[16/10] bg-muted rounded-xl mb-4" />
+                  <div className="h-4 bg-muted rounded w-3/4 mb-2" />
+                  <div className="h-4 bg-muted rounded w-1/2" />
+                </div>
+              ))}
+            </div>
+          ) : featuredVenues.length > 0 ? (
+            <RevealGroup className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredVenues.map((venue) => {
+                const cover = storageUrl(venue.cover_image);
+                return (
+                  <RevealItem key={venue.id}>
+                    <Link href={`/venues/${venue.id}`} className="group relative block">
+                      <div className="relative aspect-[16/10] overflow-hidden rounded-xl bg-muted shadow-card transition-all duration-300 group-hover:shadow-glow-sm group-hover:scale-[1.02]">
+                        {cover ? (
+                          <Image src={cover} alt={venue.name} fill className="object-cover transition-transform duration-500 group-hover:scale-110" />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-primary p-6 flex items-center justify-center text-center">
+                            <Building2 className="w-10 h-10 text-white/50" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-70" />
+                        <div className="absolute bottom-0 left-0 right-0 p-4">
+                          <span className="inline-block px-2 py-1 mb-2 text-xs font-bold text-white bg-primary/80 backdrop-blur-sm rounded-md">
+                            {venue.city}
+                          </span>
+                          <h3 className="text-lg font-bold text-white leading-tight mb-1 line-clamp-2">{venue.name}</h3>
+                          {venue.tagline && <p className="text-white/80 text-xs line-clamp-1">{venue.tagline}</p>}
+                        </div>
+                      </div>
+                    </Link>
+                  </RevealItem>
+                );
+              })}
+            </RevealGroup>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground text-lg">No locations available yet. Check back soon!</p>
             </div>
           )}
         </div>
