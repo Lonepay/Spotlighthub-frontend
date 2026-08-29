@@ -13,6 +13,10 @@ const TIER_COLORS: Record<string, string> = {
 };
 const DEFAULT_COLOR = 'bg-sky-400 border-sky-500';
 
+// A tap must never wait on the network to feel like it worked — this is how
+// long we batch rapid taps before actually syncing the hold to the server.
+const SYNC_DEBOUNCE_MS = 350;
+
 interface SeatPickerProps {
   movieId: number;
   showtime: MovieShowtime;
@@ -24,18 +28,22 @@ interface SeatPickerProps {
 export function SeatPicker({ movieId, showtime, ticketTiers, sessionToken, onSelectionChange }: SeatPickerProps) {
   const [seats, setSeats] = useState<SeatStatusEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [localSelection, setLocalSelection] = useState<string[]>([]);
   const [holdExpiresAt, setHoldExpiresAt] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
-  const pendingRef = useRef(false);
+
+  // Click handling is synchronous and instant; these refs coordinate the
+  // debounced, serialized network sync that happens in the background.
+  const localSelectionRef = useRef<string[]>([]);
+  const syncedRef = useRef<string[]>([]); // last selection actually confirmed held by the server
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inFlightRef = useRef(false);
+  const dirtyRef = useRef(false); // a newer selection arrived while a sync was in flight
 
   const loadStatus = useCallback(async () => {
     try {
       const data = await seatHolds.status(movieId, showtime.id, sessionToken);
       setSeats(data);
-      const mine = data.filter((s) => s.status === 'held_by_you');
-      const expires = mine[0]?.expires_at ?? null;
-      setHoldExpiresAt(expires);
-      onSelectionChange(mine.map((s) => s.seat_id), expires);
     } catch {
       // ignore transient poll failures — the next tick retries
     } finally {
@@ -55,46 +63,102 @@ export function SeatPicker({ movieId, showtime, ticketTiers, sessionToken, onSel
     };
   }, [loadStatus]);
 
+  // Server truth only overwrites the buyer's own in-progress selection when
+  // nothing is actively being tapped/synced — otherwise a slow poll response
+  // landing mid-tap would stomp on seats the user just picked.
+  useEffect(() => {
+    if (debounceTimerRef.current || inFlightRef.current || dirtyRef.current) return;
+    const mine = seats.filter((s) => s.status === 'held_by_you').map((s) => s.seat_id);
+    localSelectionRef.current = mine;
+    syncedRef.current = mine;
+    setLocalSelection(mine);
+  }, [seats]);
+
   useEffect(() => {
     if (!holdExpiresAt) return;
     const tick = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(tick);
   }, [holdExpiresAt]);
 
+  const runSync = useCallback(async () => {
+    if (inFlightRef.current) {
+      dirtyRef.current = true;
+      return;
+    }
+    inFlightRef.current = true;
+    dirtyRef.current = false;
+    const desired = localSelectionRef.current;
+    const previouslySynced = syncedRef.current;
+    // hold() only ever adds/renews the seats it's given — it never drops
+    // ones missing from the list, so a seat the buyer deselects has to be
+    // released explicitly or it sits reserved for the full 15 minutes.
+    const droppedSeats = previouslySynced.filter((id) => !desired.includes(id));
+
+    try {
+      if (desired.length === 0) {
+        if (previouslySynced.length > 0) {
+          await seatHolds.release(movieId, showtime.id, previouslySynced, sessionToken);
+        }
+        syncedRef.current = [];
+        setHoldExpiresAt(null);
+      } else {
+        const result = await seatHolds.hold(movieId, showtime.id, desired, sessionToken);
+        syncedRef.current = desired;
+        setHoldExpiresAt(result.expires_at);
+        onSelectionChange(desired, result.expires_at);
+        if (droppedSeats.length > 0) {
+          seatHolds.release(movieId, showtime.id, droppedSeats, sessionToken).catch(() => {});
+        }
+      }
+    } catch (error: any) {
+      const conflicts: string[] = error?.response?.data?.conflicts ?? [];
+      if (conflicts.length > 0) {
+        toast.error(conflicts.length > 1 ? 'Some of those seats were just taken.' : 'That seat was just taken.');
+        localSelectionRef.current = localSelectionRef.current.filter((id) => !conflicts.includes(id));
+        setLocalSelection(localSelectionRef.current);
+        dirtyRef.current = true; // retry with the trimmed, non-conflicting selection
+      } else {
+        toast.error('Failed to update seat selection');
+      }
+      loadStatus();
+    } finally {
+      inFlightRef.current = false;
+      if (dirtyRef.current) runSync();
+    }
+  }, [movieId, showtime.id, sessionToken, onSelectionChange, loadStatus]);
+
+  const scheduleSync = useCallback(() => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
+      debounceTimerRef.current = null;
+      runSync();
+    }, SYNC_DEBOUNCE_MS);
+  }, [runSync]);
+
   useEffect(() => {
     // Best-effort release on unmount — not guaranteed on tab close, but the
     // real backstop is the server's own lazy 15-minute expiry either way.
     return () => {
-      const mine = seats.filter((s) => s.status === 'held_by_you').map((s) => s.seat_id);
-      if (mine.length > 0) {
-        seatHolds.release(movieId, showtime.id, mine, sessionToken).catch(() => {});
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      if (syncedRef.current.length > 0) {
+        seatHolds.release(movieId, showtime.id, syncedRef.current, sessionToken).catch(() => {});
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleSeatClick = async (seatId: string, status: SeatStatus) => {
-    if (pendingRef.current || status === 'sold' || status === 'held_by_other') return;
+  const handleSeatClick = (seatId: string, status: SeatStatus) => {
+    if (status === 'sold' || status === 'held_by_other') return;
 
-    pendingRef.current = true;
-    try {
-      if (status === 'held_by_you') {
-        await seatHolds.release(movieId, showtime.id, [seatId], sessionToken);
-      } else {
-        const currentlyMine = seats.filter((s) => s.status === 'held_by_you').map((s) => s.seat_id);
-        await seatHolds.hold(movieId, showtime.id, [...currentlyMine, seatId], sessionToken);
-      }
-      await loadStatus();
-    } catch (error: any) {
-      if (error.response?.status === 409) {
-        toast.error('That seat was just taken — refreshing availability.');
-        await loadStatus();
-      } else {
-        toast.error('Failed to update seat selection');
-      }
-    } finally {
-      pendingRef.current = false;
-    }
+    const next = localSelectionRef.current.includes(seatId)
+      ? localSelectionRef.current.filter((id) => id !== seatId)
+      : [...localSelectionRef.current, seatId];
+    localSelectionRef.current = next;
+    setLocalSelection(next);
+    // Instant feedback for the price/Add-to-cart button — expires_at catches
+    // up once the debounced hold actually confirms with the server.
+    onSelectionChange(next, holdExpiresAt);
+    scheduleSync();
   };
 
   const seatMap = showtime.seat_map;
@@ -107,6 +171,7 @@ export function SeatPicker({ movieId, showtime, ticketTiers, sessionToken, onSel
   }
 
   const liveById = new Map(seats.map((s) => [s.seat_id, s]));
+  const mySelection = new Set(localSelection);
   const secondsLeft = holdExpiresAt ? Math.max(0, Math.floor((new Date(holdExpiresAt).getTime() - now) / 1000)) : null;
 
   return (
@@ -123,7 +188,11 @@ export function SeatPicker({ movieId, showtime, ticketTiers, sessionToken, onSel
             <div className="flex gap-1.5">
               {row.seats.filter((s) => s.enabled).map((seat) => {
                 const live = liveById.get(seat.seat_id);
-                const status: SeatStatus = live?.status ?? 'available';
+                // Own selection is decided locally (instant) — everyone
+                // else's held/sold status still comes from the poll.
+                const status: SeatStatus = mySelection.has(seat.seat_id)
+                  ? 'held_by_you'
+                  : (live?.status === 'held_by_you' ? 'available' : live?.status ?? 'available');
                 const tierLabel = live?.tier_label ?? seat.tier_label ?? row.tier_label ?? '';
                 const colorClass =
                   status === 'sold' ? 'bg-transparent border-dashed border-border cursor-not-allowed'
