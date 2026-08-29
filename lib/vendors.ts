@@ -2,6 +2,7 @@ import api from './api';
 
 export interface Vendor {
   id: number;
+  user_id?: number | null;
   name: string;
   category: string;
   description?: string | null;
@@ -67,5 +68,29 @@ export const vendors = {
 
   async delete(id: number): Promise<void> {
     await api.delete(`/admin/vendors/${id}`);
+  },
+
+  // Self-service vendor account signup — creates the account and the
+  // listing together, storing the token the same way lib/auth.ts's
+  // login/register do so the caller can follow up with refreshUser().
+  async register(formData: FormData): Promise<{ user: any; vendor: Vendor; token: string }> {
+    const { data } = await api.post('/vendors/register', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    localStorage.setItem('token', data.token);
+    return data;
+  },
+
+  async getMyListing(): Promise<Vendor> {
+    const { data } = await api.get('/vendor/my-listing');
+    return data;
+  },
+
+  async updateMyListing(vendorData: FormData): Promise<Vendor> {
+    vendorData.append('_method', 'PUT');
+    const { data } = await api.post('/vendor/my-listing', vendorData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
   },
 };

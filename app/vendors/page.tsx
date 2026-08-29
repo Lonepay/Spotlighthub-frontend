@@ -75,12 +75,12 @@ export default function VendorsPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild variant="hero" size="lg">
-              <a href="#partner-form">
-                Become a partner <ArrowRight className="w-5 h-5" />
-              </a>
+              <Link href="/vendor-signup">
+                Sign up as a vendor <ArrowRight className="w-5 h-5" />
+              </Link>
             </Button>
             <Button asChild variant="glass" size="lg">
-              <a href="/contact">Talk to us</a>
+              <a href="#partner-form">Just leave your details</a>
             </Button>
           </div>
         </div>

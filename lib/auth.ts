@@ -12,7 +12,7 @@ export interface User {
   name: string;
   email: string;
   phone?: string;
-  role?: 'attendee' | 'organizer' | 'admin' | 'super-admin' | 'developer' | 'staff';
+  role?: 'attendee' | 'organizer' | 'admin' | 'super-admin' | 'developer' | 'staff' | 'vendor';
   staff_role_id?: number | null;
   staff_role?: StaffRole | null;
   bio?: string;

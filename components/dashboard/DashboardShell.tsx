@@ -83,6 +83,10 @@ const NAV_BY_ROLE: Record<string, NavEntry[]> = {
     link('Support', '/support', LifeBuoy),
     link('Settings', '/profile', Settings),
   ],
+  vendor: [
+    link('My Listing', '/vendor', Store),
+    link('Settings', '/profile', Settings),
+  ],
 };
 
 const ELEVATED_ROLES = ['super-admin', 'developer'];

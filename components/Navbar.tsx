@@ -148,6 +148,10 @@ export function Navbar() {
                         <Link href="/create-event"><PlusCircle className="w-4 h-4" /> Create Event</Link>
                       </DropdownMenuItem>
                     </>
+                  ) : user.role === 'vendor' ? (
+                    <DropdownMenuItem asChild>
+                      <Link href="/vendor"><Store className="w-4 h-4" /> My Listing</Link>
+                    </DropdownMenuItem>
                   ) : (
                     <DropdownMenuItem asChild>
                       <Link href="/dashboard"><LayoutDashboard className="w-4 h-4" /> Dashboard</Link>
@@ -246,6 +250,11 @@ export function Navbar() {
                           <span>Create Event</span>
                         </Link>
                       </>
+                    ) : user.role === 'vendor' ? (
+                      <Link href="/vendor" className="flex items-center space-x-3 px-3 py-2 rounded-none hover:bg-secondary/50 text-sm text-muted-foreground hover:text-primary font-medium transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                        <Store className="w-4 h-4" />
+                        <span>My Listing</span>
+                      </Link>
                     ) : (
                       <Link href="/dashboard" className="flex items-center space-x-3 px-3 py-2 rounded-none hover:bg-secondary/50 text-sm text-muted-foreground hover:text-primary font-medium transition-colors" onClick={() => setMobileMenuOpen(false)}>
                         <LayoutDashboard className="w-4 h-4" />
