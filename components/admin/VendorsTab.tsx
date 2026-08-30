@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { vendorInquiries, VendorInquiry } from '@/lib/vendorInquiries';
 import { vendors as vendorsApi, Vendor } from '@/lib/vendors';
 import { storageUrl } from '@/lib/storage';
+import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -150,7 +151,7 @@ export function VendorsTab() {
       setDeleteTarget(null);
       await refreshDirectory();
     } catch {
-      alert('Failed to delete vendor listing');
+      toast.error('Failed to delete vendor listing');
     } finally {
       setDeleting(false);
     }
@@ -163,7 +164,7 @@ export function VendorsTab() {
       await vendorsApi.update(v.id, data);
       await refreshDirectory();
     } catch {
-      alert('Failed to update listing');
+      toast.error('Failed to update listing');
     }
   };
 

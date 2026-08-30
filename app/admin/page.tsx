@@ -10,6 +10,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { isStaffRole, StaffRole as StaffRoleType } from '@/lib/auth';
 import { staffRoles as staffRolesApi } from '@/lib/staffRoles';
 import { getGreeting } from '@/lib/utils';
+import { toast } from 'sonner';
 import { admin, AdminDashboard } from '@/lib/admin';
 import { wallet } from '@/lib/wallet';
 import { payments } from '@/lib/payments';
@@ -22,7 +23,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Users, Calendar, Ticket, Award, Plus, Edit, Trash, ChevronUp, ChevronDown, Newspaper, Receipt, Search, Download, Crown, Eye, EyeOff, Phone, Mail, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Users, Calendar, Ticket, Award, Plus, Edit, Trash, ChevronUp, ChevronDown, Newspaper, Receipt, Search, Download, Crown, Eye, EyeOff, Phone, Mail, ShieldCheck, ArrowRight, Wallet } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { SettingsTab } from '@/components/admin/SettingsTab';
 import { DashboardCharts } from '@/components/admin/DashboardCharts';
@@ -73,6 +74,7 @@ function AdminDashboardPageInner() {
     return null;
   };
   const [dashboard, setDashboard] = useState<AdminDashboard | null>(null);
+  const [pendingWithdrawalsCount, setPendingWithdrawalsCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const tabParam = searchParams.get('tab') as AdminTab | null;
   const [activeTab, setActiveTabState] = useState<AdminTab>(
@@ -207,6 +209,10 @@ function AdminDashboardPageInner() {
     } finally {
       setLoading(false);
     }
+
+    // Best-effort — a queue-depth signal for the Overview grid, not required
+    // for the page to work, so a failure here shouldn't block anything else.
+    wallet.adminList('pending').then((data) => setPendingWithdrawalsCount(data.total ?? 0)).catch(() => {});
   };
 
   const refreshUsers = async (page: number = usersPage.current_page, roleOverride?: string) => {
@@ -271,7 +277,10 @@ function AdminDashboardPageInner() {
     );
   }
 
-  if (!dashboard) {
+  // Staff accounts never get a `dashboard` (the platform-overview endpoint
+  // is admin-level only, see the effect above) — that's expected, not a
+  // failure, so only admin-level actors get bounced to this error state.
+  if (!dashboard && !isStaffActor) {
     return (
       <DashboardShell title="Admin Dashboard">
         <p className="text-muted-foreground">Failed to load dashboard</p>
@@ -309,8 +318,9 @@ function AdminDashboardPageInner() {
   return (
     <DashboardShell title="Admin Dashboard" description={`${getGreeting()}, ${authUser?.name}`}>
       <div className="space-y-6">
-        {/* Stats */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Stats — admin-level only; staff never gets a populated `dashboard` */}
+        {dashboard && (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <StatCard
             icon={Users}
             label="Total Users"
@@ -329,11 +339,23 @@ function AdminDashboardPageInner() {
             value={String(dashboard.stats.total_tickets)}
             hint={`${dashboard.stats.total_transactions} transactions`}
           />
+          {pendingWithdrawalsCount != null && (
+            <StatCard
+              icon={Wallet}
+              label="Pending Withdrawals"
+              value={String(pendingWithdrawalsCount)}
+              hint={pendingWithdrawalsCount > 0 ? 'Awaiting review' : 'All caught up'}
+              variant={pendingWithdrawalsCount > 0 ? 'alert' : 'default'}
+            />
+          )}
         </div>
+        )}
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
           {/* Overview */}
           <TabsContent value="overview" className="space-y-6">
+            {dashboard && (
+            <>
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
@@ -437,6 +459,8 @@ function AdminDashboardPageInner() {
                 </CardContent>
               </Card>
             </div>
+            </>
+            )}
           </TabsContent>
 
           {/* Users */}
@@ -525,7 +549,7 @@ function AdminDashboardPageInner() {
                       <Button variant="outline" onClick={()=>setCreatingUser(false)}>Cancel</Button>
                       <Button
                         onClick={async()=>{
-                          try { await admin.createUser(newUser); setNewUser({name:'',email:'',role:'attendee',staff_role_id:null,password:''}); setCreatingUser(false); await refreshUsers(); } catch(e){ alert('Failed to create user'); }
+                          try { await admin.createUser(newUser); setNewUser({name:'',email:'',role:'attendee',staff_role_id:null,password:''}); setCreatingUser(false); await refreshUsers(); } catch(e){ toast.error('Failed to create user'); }
                         }}
                       >Create user</Button>
                     </div>
@@ -582,7 +606,7 @@ function AdminDashboardPageInner() {
                               value={u.role}
                               disabled={!canChangeRoleOf(u)}
                               title={!canChangeRoleOf(u) ? "This account's role is protected" : undefined}
-                              onChange={async(e)=>{ try { await admin.updateUserRole(u.id, e.target.value as any); await refreshUsers(); } catch(err: any){ alert(err?.response?.data?.message || 'Failed to update role'); } }}
+                              onChange={async(e)=>{ try { await admin.updateUserRole(u.id, e.target.value as any); await refreshUsers(); } catch(err: any){ toast.error(err?.response?.data?.message || 'Failed to update role'); } }}
                             >
                               <option value="attendee">Attendee</option>
                               <option value="organizer">Organizer</option>
@@ -711,7 +735,7 @@ function AdminDashboardPageInner() {
                       onChange={async (e) => { setEventCategoryFilter(e.target.value); await refreshEvents(e.target.value); }}
                     >
                       <option value="">All categories</option>
-                      {dashboard.events_by_category.map((cat: any) => (
+                      {(dashboard?.events_by_category ?? []).map((cat: any) => (
                         <option key={cat.category} value={cat.category}>{cat.category}</option>
                       ))}
                     </select>
@@ -854,7 +878,7 @@ function AdminDashboardPageInner() {
                               onChange={async (e) => {
                                 const status = e.target.value as 'valid' | 'checked_in' | 'invalid' | 'revoked';
                                 const reason = (status === 'invalid' || status === 'revoked') ? window.prompt(`Reason for marking this ticket ${status}?`) || undefined : undefined;
-                                try { await tickets.updateStatus(ticket.id, status, reason); await refreshTickets(); } catch (e) { alert('Failed to update ticket status'); }
+                                try { await tickets.updateStatus(ticket.id, status, reason); await refreshTickets(); } catch (e) { toast.error('Failed to update ticket status'); }
                               }}
                             >
                               <option value="valid">Valid</option>
@@ -925,7 +949,7 @@ function AdminDashboardPageInner() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(paymentsList.length? paymentsList : dashboard.recent_payments).map((payment: any) => (
+                    {(paymentsList.length ? paymentsList : (dashboard?.recent_payments ?? [])).map((payment: any) => (
                       <TableRow key={payment.id}>
                         <TableCell>{payment.event?.title}</TableCell>
                         <TableCell className="text-muted-foreground">{payment.user?.name || payment.guest_name}</TableCell>
@@ -939,7 +963,7 @@ function AdminDashboardPageInner() {
                           <select
                             className="h-9 rounded-none border border-input bg-background px-2 text-sm"
                             value={payment.status}
-                            onChange={async(e)=>{ try{ await admin.updatePaymentStatus(payment.id, e.target.value as any); await refreshPayments(); } catch(err){ alert('Failed to update status'); } }}
+                            onChange={async(e)=>{ try{ await admin.updatePaymentStatus(payment.id, e.target.value as any); await refreshPayments(); } catch(err){ toast.error('Failed to update status'); } }}
                           >
                             <option value="pending">pending</option>
                             <option value="success">success</option>
@@ -952,7 +976,7 @@ function AdminDashboardPageInner() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={async()=>{ try { await payments.downloadReceipt(payment.id); } catch(e){ alert('Failed to download receipt'); } }}
+                              onClick={async()=>{ try { await payments.downloadReceipt(payment.id); } catch(e){ toast.error('Failed to download receipt'); } }}
                             >
                               <Receipt className="w-4 h-4" /> Receipt
                             </Button>
@@ -1025,7 +1049,7 @@ function AdminDashboardPageInner() {
                           setCreatingBlogPost(false);
                           setNewBlogPost({title:'',excerpt:'',content:'',category:'General',image:null});
                           await refreshBlogPosts();
-                        } catch(e){ alert('Failed to create post'); }
+                        } catch(e){ toast.error('Failed to create post'); }
                       }}>Publish post</Button>
                     </div>
                   </div>
@@ -1130,7 +1154,7 @@ function AdminDashboardPageInner() {
                                 setEditingBlogPostId(null);
                                 setEditingBlogPost(null);
                                 await refreshBlogPosts();
-                              } catch(e){ alert('Failed to update'); }
+                              } catch(e){ toast.error('Failed to update'); }
                             }}>Save changes</Button>
                           </div>
                         </div>
@@ -1187,7 +1211,7 @@ function AdminDashboardPageInner() {
             setDeleteUserTarget(null);
             await refreshUsers();
           } catch (e) {
-            alert('Failed to delete');
+            toast.error('Failed to delete');
           } finally {
             setDeleteBusy(false);
           }
@@ -1210,7 +1234,7 @@ function AdminDashboardPageInner() {
             setDeleteEventTarget(null);
             await refreshEvents();
           } catch (e) {
-            alert('Failed to delete');
+            toast.error('Failed to delete');
           } finally {
             setDeleteBusy(false);
           }
@@ -1233,7 +1257,7 @@ function AdminDashboardPageInner() {
             setDeleteTicketTarget(null);
             await refreshTickets();
           } catch (e) {
-            alert('Failed to delete ticket');
+            toast.error('Failed to delete ticket');
           } finally {
             setDeleteBusy(false);
           }
@@ -1256,7 +1280,7 @@ function AdminDashboardPageInner() {
             setDeleteBlogPostTarget(null);
             await refreshBlogPosts();
           } catch (e) {
-            alert('Failed to delete');
+            toast.error('Failed to delete');
           } finally {
             setDeleteBusy(false);
           }

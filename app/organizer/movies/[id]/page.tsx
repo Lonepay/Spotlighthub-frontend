@@ -12,8 +12,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Plus, Trash2, Edit2, Calendar, Building, Ticket, Popcorn, Clock, ChevronUp, ChevronDown } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
+import { toast } from 'sonner';
 
 const MOVIE_TIER_PRESETS = ['Regular', 'VIP', 'Premium', 'Recliner'];
 
@@ -55,6 +57,15 @@ export default function OrganizerMovieDetailPage() {
   const [tierForm, setTierForm] = useState(emptyTierForm());
   const [tierError, setTierError] = useState('');
   const [savingTier, setSavingTier] = useState(false);
+
+  // Shared confirmation-dialog state for the four destructive "Delete"
+  // actions below (movie/showtime/addon/tier) — only one can be open at a
+  // time, so a single busy flag is enough.
+  const [deleteMovieTarget, setDeleteMovieTarget] = useState<{ id: number; title: string } | null>(null);
+  const [deleteShowtimeTarget, setDeleteShowtimeTarget] = useState<{ id: number; label: string } | null>(null);
+  const [deleteAddonTarget, setDeleteAddonTarget] = useState<{ id: number; name: string } | null>(null);
+  const [deleteTierTarget, setDeleteTierTarget] = useState<{ id: number; name: string } | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   useEffect(() => {
     if (!user) { router.push('/login'); return; }
@@ -98,19 +109,22 @@ export default function OrganizerMovieDetailPage() {
       setShowEdit(false);
       await load();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to save movie');
+      toast.error(error.response?.data?.message || 'Failed to save movie');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDeleteMovie = async () => {
-    if (!confirm('Delete this movie? This removes all its showtimes, tiers, and add-ons.')) return;
+  const confirmDeleteMovie = async () => {
+    if (!deleteMovieTarget) return;
+    setDeleteBusy(true);
     try {
-      await movies.delete(movieId);
+      await movies.delete(deleteMovieTarget.id);
       router.push('/organizer/movies');
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to delete movie');
+      toast.error(error.response?.data?.message || 'Failed to delete movie');
+    } finally {
+      setDeleteBusy(false);
     }
   };
 
@@ -155,13 +169,17 @@ export default function OrganizerMovieDetailPage() {
     setShowShowtimeForm(true);
   };
 
-  const handleDeleteShowtime = async (id: number) => {
-    if (!confirm('Delete this showtime?')) return;
+  const confirmDeleteShowtime = async () => {
+    if (!deleteShowtimeTarget) return;
+    setDeleteBusy(true);
     try {
-      await movies.deleteShowtime(movieId, id);
+      await movies.deleteShowtime(movieId, deleteShowtimeTarget.id);
+      setDeleteShowtimeTarget(null);
       await load();
     } catch {
-      alert('Failed to delete showtime');
+      toast.error('Failed to delete showtime');
+    } finally {
+      setDeleteBusy(false);
     }
   };
 
@@ -197,13 +215,17 @@ export default function OrganizerMovieDetailPage() {
     setShowAddonForm(true);
   };
 
-  const handleDeleteAddon = async (id: number) => {
-    if (!confirm('Delete this snack/drink option?')) return;
+  const confirmDeleteAddon = async () => {
+    if (!deleteAddonTarget) return;
+    setDeleteBusy(true);
     try {
-      await movies.deleteAddon(movieId, id);
+      await movies.deleteAddon(movieId, deleteAddonTarget.id);
+      setDeleteAddonTarget(null);
       await load();
     } catch {
-      alert('Failed to delete');
+      toast.error('Failed to delete');
+    } finally {
+      setDeleteBusy(false);
     }
   };
 
@@ -240,13 +262,17 @@ export default function OrganizerMovieDetailPage() {
     setShowTierForm(true);
   };
 
-  const handleDeleteTier = async (id: number) => {
-    if (!confirm('Delete this ticket tier?')) return;
+  const confirmDeleteTier = async () => {
+    if (!deleteTierTarget) return;
+    setDeleteBusy(true);
     try {
-      await movies.deleteTier(movieId, id);
+      await movies.deleteTier(movieId, deleteTierTarget.id);
+      setDeleteTierTarget(null);
       await load();
     } catch {
-      alert('Failed to delete tier');
+      toast.error('Failed to delete tier');
+    } finally {
+      setDeleteBusy(false);
     }
   };
 
@@ -259,7 +285,7 @@ export default function OrganizerMovieDetailPage() {
     try {
       await movies.reorderTiers(movieId, reordered.map((t) => t.id));
     } catch {
-      alert('Failed to save the new order');
+      toast.error('Failed to save the new order');
       await load();
     }
   };
@@ -297,7 +323,7 @@ export default function OrganizerMovieDetailPage() {
                   <Button variant="outline" size="sm" onClick={() => (showEdit ? setShowEdit(false) : handleOpenEdit())}>
                     <Edit2 className="w-4 h-4" /> {showEdit ? 'Cancel' : 'Edit'}
                   </Button>
-                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleDeleteMovie}>
+                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteMovieTarget({ id: movie.id, title: movie.title })}>
                     <Trash2 className="w-4 h-4" /> Delete
                   </Button>
                 </div>
@@ -442,7 +468,7 @@ export default function OrganizerMovieDetailPage() {
                     </div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="icon" onClick={() => handleEditShowtime(s)}><Edit2 className="w-4 h-4" /></Button>
-                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDeleteShowtime(s.id)}><Trash2 className="w-4 h-4" /></Button>
+                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteShowtimeTarget({ id: s.id, label: `${s.hall_name} · ${new Date(s.date).toLocaleDateString()} ${s.time}` })}><Trash2 className="w-4 h-4" /></Button>
                     </div>
                   </div>
                 ))}
@@ -511,7 +537,7 @@ export default function OrganizerMovieDetailPage() {
                     </div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="icon" onClick={() => handleEditAddon(a)}><Edit2 className="w-4 h-4" /></Button>
-                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDeleteAddon(a.id)}><Trash2 className="w-4 h-4" /></Button>
+                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteAddonTarget({ id: a.id, name: a.name })}><Trash2 className="w-4 h-4" /></Button>
                     </div>
                   </div>
                 ))}
@@ -593,7 +619,7 @@ export default function OrganizerMovieDetailPage() {
                     </div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="icon" onClick={() => handleEditTier(t)}><Edit2 className="w-4 h-4" /></Button>
-                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDeleteTier(t.id)}><Trash2 className="w-4 h-4" /></Button>
+                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteTierTarget({ id: t.id, name: t.name })}><Trash2 className="w-4 h-4" /></Button>
                     </div>
                   </div>
                 ))}
@@ -604,6 +630,50 @@ export default function OrganizerMovieDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      <ConfirmDialog
+        open={!!deleteMovieTarget}
+        onOpenChange={(open) => !open && setDeleteMovieTarget(null)}
+        title="Delete this movie?"
+        description={deleteMovieTarget ? `"${deleteMovieTarget.title}" will be permanently removed. This removes all its showtimes, tiers, and add-ons.` : undefined}
+        confirmLabel="Delete"
+        destructive
+        loading={deleteBusy}
+        onConfirm={confirmDeleteMovie}
+      />
+
+      <ConfirmDialog
+        open={!!deleteShowtimeTarget}
+        onOpenChange={(open) => !open && setDeleteShowtimeTarget(null)}
+        title="Delete this showtime?"
+        description={deleteShowtimeTarget ? `"${deleteShowtimeTarget.label}" will be permanently removed.` : undefined}
+        confirmLabel="Delete"
+        destructive
+        loading={deleteBusy}
+        onConfirm={confirmDeleteShowtime}
+      />
+
+      <ConfirmDialog
+        open={!!deleteAddonTarget}
+        onOpenChange={(open) => !open && setDeleteAddonTarget(null)}
+        title="Delete this snack/drink option?"
+        description={deleteAddonTarget ? `"${deleteAddonTarget.name}" will be permanently removed.` : undefined}
+        confirmLabel="Delete"
+        destructive
+        loading={deleteBusy}
+        onConfirm={confirmDeleteAddon}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTierTarget}
+        onOpenChange={(open) => !open && setDeleteTierTarget(null)}
+        title="Delete this ticket tier?"
+        description={deleteTierTarget ? `"${deleteTierTarget.name}" will be permanently removed.` : undefined}
+        confirmLabel="Delete"
+        destructive
+        loading={deleteBusy}
+        onConfirm={confirmDeleteTier}
+      />
     </DashboardShell>
   );
 }

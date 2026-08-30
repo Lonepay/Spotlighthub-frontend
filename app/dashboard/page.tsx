@@ -12,6 +12,7 @@ import { user, UserDashboard } from '@/lib/user';
 import { getGreeting } from '@/lib/utils';
 import { storageUrl } from '@/lib/storage';
 import { payments } from '@/lib/payments';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -251,7 +252,7 @@ export default function UserDashboardPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={async () => { try { await payments.downloadReceipt(payment.id); } catch (e) { alert('Failed to download receipt'); } }}
+                            onClick={async () => { try { await payments.downloadReceipt(payment.id); } catch (e) { toast.error('Failed to download receipt'); } }}
                           >
                             <Receipt className="w-4 h-4" /> Receipt
                           </Button>

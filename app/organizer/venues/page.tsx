@@ -9,6 +9,8 @@ import { isStaffRole } from '@/lib/auth';
 import { venues, Venue } from '@/lib/venues';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { toast } from 'sonner';
 import { Plus, Building2, Trash2 } from 'lucide-react';
 
 export default function OrganizerVenuesPage() {
@@ -35,13 +37,20 @@ export default function OrganizerVenuesPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Delete this venue? This removes its pricing tiers too.')) return;
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await venues.delete(id);
+      await venues.delete(deleteTarget.id);
+      setDeleteTarget(null);
       await load();
     } catch {
-      alert('Failed to delete venue');
+      toast.error('Failed to delete venue');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -74,7 +83,7 @@ export default function OrganizerVenuesPage() {
                   <p className="font-medium truncate">{v.name}</p>
                   <p className="text-sm text-muted-foreground truncate">{v.city} &middot; {v.pricing_tiers?.length ?? 0} pricing tier(s)</p>
                 </Link>
-                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0" onClick={() => handleDelete(v.id)}>
+                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0" onClick={() => setDeleteTarget({ id: v.id, name: v.name })}>
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </CardContent>
@@ -82,6 +91,17 @@ export default function OrganizerVenuesPage() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Delete this venue?"
+        description={deleteTarget ? `"${deleteTarget.name}" will be permanently removed. This removes its pricing tiers too.` : undefined}
+        confirmLabel="Delete"
+        destructive
+        loading={deleting}
+        onConfirm={confirmDelete}
+      />
     </DashboardShell>
   );
 }

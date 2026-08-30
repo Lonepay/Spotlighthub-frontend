@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Loader } from '@/components/Loader';
 import { Percent, Search, Trash2, Activity, AlertTriangle, Copy, Check, Download, ChevronLeft, ChevronRight, User as UserIcon, CreditCard, Ticket as TicketIcon, ShieldAlert, SlidersHorizontal, ShieldCheck, Lock, Crown, Image as ImageIcon } from 'lucide-react';
+import { toast } from 'sonner';
 
 type SettingsForm = Partial<AdminSettings> & { flutterwave_webhook_secret_hash?: string };
 
@@ -215,7 +216,7 @@ export function SettingsTab() {
       setSettings(updated);
       setForm(updated);
     } catch {
-      alert('Failed to upload image');
+      toast.error('Failed to upload image');
     } finally {
       setUploadingOgImage(false);
       e.target.value = '';
@@ -728,7 +729,7 @@ export function SettingsTab() {
                         const detail = error?.response?.data?.message
                           || (error?.response?.data?.errors && Object.values(error.response.data.errors).flat().join(' '))
                           || error?.message;
-                        alert(detail ? `Failed to create staff account: ${detail}` : 'Failed to create staff account');
+                        toast.error(detail ? `Failed to create staff account: ${detail}` : 'Failed to create staff account');
                       }
                     }}
                   >
@@ -791,7 +792,7 @@ export function SettingsTab() {
                                   await admin.updateUserRole(u.id, newRole as any);
                                   await refreshStaff();
                                 } catch (err: any) {
-                                  alert(err?.response?.data?.message || 'Failed to update role');
+                                  toast.error(err?.response?.data?.message || 'Failed to update role');
                                 }
                               }}
                             >
@@ -821,7 +822,7 @@ export function SettingsTab() {
                                       setPendingRoleChange(null);
                                       await refreshStaff();
                                     } catch (err: any) {
-                                      alert(err?.response?.data?.message || 'Failed to update role');
+                                      toast.error(err?.response?.data?.message || 'Failed to update role');
                                     }
                                   }}
                                 >
@@ -848,7 +849,7 @@ export function SettingsTab() {
                             await admin.deleteUser(u.id);
                             await refreshStaff();
                           } catch (e: any) {
-                            alert(e?.response?.data?.message || 'Failed to delete');
+                            toast.error(e?.response?.data?.message || 'Failed to delete');
                           }
                         }}
                       >
@@ -931,7 +932,7 @@ export function SettingsTab() {
                         setEditingStaffRoleId(null);
                         await refreshStaffRoles();
                       } catch (err: any) {
-                        alert(err?.response?.data?.message || 'Failed to save staff role');
+                        toast.error(err?.response?.data?.message || 'Failed to save staff role');
                       } finally {
                         setSavingStaffRole(false);
                       }
@@ -984,7 +985,7 @@ export function SettingsTab() {
                             await staffRolesApi.delete(r.id);
                             await refreshStaffRoles();
                           } catch (err: any) {
-                            alert(err?.response?.data?.message || 'Failed to delete staff role');
+                            toast.error(err?.response?.data?.message || 'Failed to delete staff role');
                           }
                         }}
                       >

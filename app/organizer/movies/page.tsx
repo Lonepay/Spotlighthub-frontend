@@ -4,18 +4,22 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useAuth } from '@/components/AuthProvider';
 import { isStaffRole } from '@/lib/auth';
 import { movies, Movie } from '@/lib/movies';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Clapperboard, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function OrganizerMoviesPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [list, setList] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteMovieTarget, setDeleteMovieTarget] = useState<{ id: number; title: string } | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   useEffect(() => {
     if (!user || (user.role !== 'organizer' && !isStaffRole(user.role))) {
@@ -35,13 +39,17 @@ export default function OrganizerMoviesPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Delete this movie? This removes all its showtimes, tiers, and add-ons.')) return;
+  const confirmDeleteMovie = async () => {
+    if (!deleteMovieTarget) return;
+    setDeleteBusy(true);
     try {
-      await movies.delete(id);
+      await movies.delete(deleteMovieTarget.id);
+      setDeleteMovieTarget(null);
       await load();
     } catch {
-      alert('Failed to delete movie');
+      toast.error('Failed to delete movie');
+    } finally {
+      setDeleteBusy(false);
     }
   };
 
@@ -74,7 +82,7 @@ export default function OrganizerMoviesPage() {
                   <p className="font-medium truncate">{m.title}</p>
                   <p className="text-sm text-muted-foreground truncate">{m.city} &middot; {m.showtimes?.length ?? 0} showtime(s) &middot; {m.ticket_tiers?.length ?? 0} tier(s)</p>
                 </Link>
-                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0" onClick={() => handleDelete(m.id)}>
+                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0" onClick={() => setDeleteMovieTarget({ id: m.id, title: m.title })}>
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </CardContent>
@@ -82,6 +90,17 @@ export default function OrganizerMoviesPage() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deleteMovieTarget}
+        onOpenChange={(open) => !open && setDeleteMovieTarget(null)}
+        title="Delete this movie?"
+        description={deleteMovieTarget ? `"${deleteMovieTarget.title}" will be permanently removed. This removes all its showtimes, tiers, and add-ons.` : undefined}
+        confirmLabel="Delete"
+        destructive
+        loading={deleteBusy}
+        onConfirm={confirmDeleteMovie}
+      />
     </DashboardShell>
   );
 }

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Plus, Trash2, Edit2, Tag, Calendar, MapPin, Ticket, Info, ChevronUp, ChevronDown } from 'lucide-react';
 import { sanitize } from '@/lib/sanitize';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -18,6 +19,7 @@ import { tickets as ticketsApi } from '@/lib/tickets';
 import { coupons as couponsApi, Coupon } from '@/lib/coupons';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { RichTextEditor } from '@/components/RichTextEditor';
+import { toast } from 'sonner';
 
 interface TicketVariation {
   id?: number;
@@ -96,6 +98,16 @@ export default function OrganizerEventDetailPage() {
     partner_email: '',
     commission_per_ticket: '' as number | '',
   });
+
+  // Shared confirmation-dialog state for the destructive "Delete" actions
+  // below (partner code/coupon/ticket/variation/event) — only one can be
+  // open at a time, so a single busy flag is enough.
+  const [deletePartnerCodeTarget, setDeletePartnerCodeTarget] = useState<{ id: number; code: string } | null>(null);
+  const [deleteCouponTarget, setDeleteCouponTarget] = useState<{ id: number; code: string } | null>(null);
+  const [deleteTicketTarget, setDeleteTicketTarget] = useState<{ id: number; code?: string } | null>(null);
+  const [deleteVariationTarget, setDeleteVariationTarget] = useState<{ id: number; name: string } | null>(null);
+  const [confirmingDeleteEvent, setConfirmingDeleteEvent] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   useEffect(() => {
     if (!user || (user.role !== 'organizer' && !isStaffRole(user.role))) {
@@ -217,13 +229,17 @@ export default function OrganizerEventDetailPage() {
     setShowPartnerForm(true);
   };
 
-  const handleDeletePartnerCode = async (id: number) => {
-    if (!confirm('Delete this partnership code?')) return;
+  const confirmDeletePartnerCode = async () => {
+    if (!deletePartnerCodeTarget) return;
+    setDeleteBusy(true);
     try {
-      await couponsApi.delete(Number(params.id), id);
+      await couponsApi.delete(Number(params.id), deletePartnerCodeTarget.id);
+      setDeletePartnerCodeTarget(null);
       await loadCoupons();
     } catch (error) {
-      alert('Failed to delete partnership code');
+      toast.error('Failed to delete partnership code');
+    } finally {
+      setDeleteBusy(false);
     }
   };
 
@@ -240,13 +256,17 @@ export default function OrganizerEventDetailPage() {
     setShowCouponForm(true);
   };
 
-  const handleDeleteCoupon = async (id: number) => {
-    if (!confirm('Delete this coupon?')) return;
+  const confirmDeleteCoupon = async () => {
+    if (!deleteCouponTarget) return;
+    setDeleteBusy(true);
     try {
-      await couponsApi.delete(Number(params.id), id);
+      await couponsApi.delete(Number(params.id), deleteCouponTarget.id);
+      setDeleteCouponTarget(null);
       await loadCoupons();
     } catch (error) {
-      alert('Failed to delete coupon');
+      toast.error('Failed to delete coupon');
+    } finally {
+      setDeleteBusy(false);
     }
   };
 
@@ -255,7 +275,7 @@ export default function OrganizerEventDetailPage() {
       await couponsApi.update(Number(params.id), coupon.id, { is_active: !coupon.is_active });
       await loadCoupons();
     } catch (error) {
-      alert('Failed to update coupon');
+      toast.error('Failed to update coupon');
     }
   };
 
@@ -275,17 +295,21 @@ export default function OrganizerEventDetailPage() {
       await ticketsApi.updateStatus(ticketId, status, reason);
       await loadTickets(ticketsPage.current_page);
     } catch (error) {
-      alert('Failed to update ticket status');
+      toast.error('Failed to update ticket status');
     }
   };
 
-  const handleDeleteTicket = async (ticketId: number) => {
-    if (!confirm('Delete this ticket? This cannot be undone.')) return;
+  const confirmDeleteTicket = async () => {
+    if (!deleteTicketTarget) return;
+    setDeleteBusy(true);
     try {
-      await ticketsApi.deleteTicket(ticketId);
+      await ticketsApi.deleteTicket(deleteTicketTarget.id);
+      setDeleteTicketTarget(null);
       await loadTickets(ticketsPage.current_page);
     } catch (error) {
-      alert('Failed to delete ticket');
+      toast.error('Failed to delete ticket');
+    } finally {
+      setDeleteBusy(false);
     }
   };
 
@@ -348,19 +372,21 @@ export default function OrganizerEventDetailPage() {
       setShowEditEvent(false);
       await loadEvent();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to save event');
+      toast.error(error.response?.data?.message || 'Failed to save event');
     } finally {
       setSavingEvent(false);
     }
   };
 
-  const handleDeleteEvent = async () => {
-    if (!confirm('Delete this event? This cannot be undone and will remove all its ticket types and coupons.')) return;
+  const confirmDeleteEvent = async () => {
+    setDeleteBusy(true);
     try {
       await events.delete(Number(params.id));
       router.push('/organizer');
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to delete event');
+      toast.error(error.response?.data?.message || 'Failed to delete event');
+    } finally {
+      setDeleteBusy(false);
     }
   };
 
@@ -417,18 +443,22 @@ export default function OrganizerEventDetailPage() {
     try {
       await events.reorderVariations(Number(params.id), reordered.map((v) => v.id!));
     } catch (error) {
-      alert('Failed to save the new order');
+      toast.error('Failed to save the new order');
       await loadVariations();
     }
   };
 
-  const handleDeleteVariation = async (id: number) => {
-    if (!confirm('Delete this ticket variation?')) return;
+  const confirmDeleteVariation = async () => {
+    if (!deleteVariationTarget) return;
+    setDeleteBusy(true);
     try {
-      await events.deleteVariation(Number(params.id), id);
+      await events.deleteVariation(Number(params.id), deleteVariationTarget.id);
+      setDeleteVariationTarget(null);
       await loadVariations();
     } catch (error) {
-      alert('Failed to delete variation');
+      toast.error('Failed to delete variation');
+    } finally {
+      setDeleteBusy(false);
     }
   };
 
@@ -491,7 +521,7 @@ export default function OrganizerEventDetailPage() {
                       variant="ghost"
                       size="sm"
                       className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={handleDeleteEvent}
+                      onClick={() => setConfirmingDeleteEvent(true)}
                     >
                       <Trash2 className="w-4 h-4" /> Delete
                     </Button>
@@ -857,7 +887,7 @@ export default function OrganizerEventDetailPage() {
                           variant="ghost"
                           size="icon"
                           className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => handleDeleteVariation(variation.id!)}
+                          onClick={() => setDeleteVariationTarget({ id: variation.id!, name: variation.name })}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -1026,7 +1056,7 @@ export default function OrganizerEventDetailPage() {
                           variant="ghost"
                           size="icon"
                           className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => handleDeleteCoupon(coupon.id)}
+                          onClick={() => setDeleteCouponTarget({ id: coupon.id, code: coupon.code })}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -1149,7 +1179,7 @@ export default function OrganizerEventDetailPage() {
                             variant="ghost"
                             size="icon"
                             className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => handleDeletePartnerCode(coupon.id)}
+                            onClick={() => setDeletePartnerCodeTarget({ id: coupon.id, code: coupon.code })}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -1207,7 +1237,7 @@ export default function OrganizerEventDetailPage() {
                           variant="ghost"
                           size="sm"
                           className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => handleDeleteTicket(ticket.id)}
+                          onClick={() => setDeleteTicketTarget({ id: ticket.id, code: ticket.code })}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -1230,6 +1260,61 @@ export default function OrganizerEventDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      <ConfirmDialog
+        open={!!deletePartnerCodeTarget}
+        onOpenChange={(open) => !open && setDeletePartnerCodeTarget(null)}
+        title="Delete this partnership code?"
+        description={deletePartnerCodeTarget ? `"${deletePartnerCodeTarget.code}" will be permanently removed.` : undefined}
+        confirmLabel="Delete"
+        destructive
+        loading={deleteBusy}
+        onConfirm={confirmDeletePartnerCode}
+      />
+
+      <ConfirmDialog
+        open={!!deleteCouponTarget}
+        onOpenChange={(open) => !open && setDeleteCouponTarget(null)}
+        title="Delete this coupon?"
+        description={deleteCouponTarget ? `"${deleteCouponTarget.code}" will be permanently removed.` : undefined}
+        confirmLabel="Delete"
+        destructive
+        loading={deleteBusy}
+        onConfirm={confirmDeleteCoupon}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTicketTarget}
+        onOpenChange={(open) => !open && setDeleteTicketTarget(null)}
+        title="Delete this ticket?"
+        description={`This cannot be undone.${deleteTicketTarget?.code ? ` (${deleteTicketTarget.code})` : ''}`}
+        confirmLabel="Delete"
+        destructive
+        loading={deleteBusy}
+        onConfirm={confirmDeleteTicket}
+      />
+
+      <ConfirmDialog
+        open={!!deleteVariationTarget}
+        onOpenChange={(open) => !open && setDeleteVariationTarget(null)}
+        title="Delete this ticket variation?"
+        description={deleteVariationTarget ? `"${deleteVariationTarget.name}" will be permanently removed.` : undefined}
+        confirmLabel="Delete"
+        destructive
+        loading={deleteBusy}
+        onConfirm={confirmDeleteVariation}
+      />
+
+      <ConfirmDialog
+        open={confirmingDeleteEvent}
+        onOpenChange={setConfirmingDeleteEvent}
+        title="Delete this event?"
+        description="This cannot be undone and will remove all its ticket types and coupons."
+        confirmLabel="Delete"
+        destructive
+        loading={deleteBusy}
+        onConfirm={confirmDeleteEvent}
+      />
     </DashboardShell>
   );
 }

@@ -6,6 +6,7 @@ import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { useAuth } from '@/components/AuthProvider';
 import { events } from '@/lib/events';
 import { coupons as couponsApi } from '@/lib/coupons';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -222,7 +223,7 @@ export default function CreateEventPage() {
       }
 
       if (failures.length > 0) {
-        alert(`Event created, but ${failures.join(' and ')} failed to save. You can add them again from this page.`);
+        toast.error(`Event created, but ${failures.join(' and ')} failed to save. You can add them again from this page.`);
       }
 
       router.push(`/organizer/events/${newEvent.id}`);

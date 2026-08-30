@@ -7,6 +7,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { movies } from '@/lib/movies';
 import type { SeatMapValue } from '@/lib/movies';
 import { SeatMapBuilder } from '@/components/SeatMapBuilder';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -184,7 +185,7 @@ export default function CreateMoviePage() {
       }
 
       if (failures.length > 0) {
-        alert(`Movie created, but ${failures.join(' and ')} failed to save. You can add them again from this page.`);
+        toast.error(`Movie created, but ${failures.join(' and ')} failed to save. You can add them again from this page.`);
       }
 
       router.push(`/organizer/movies/${movie.id}`);

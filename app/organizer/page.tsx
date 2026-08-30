@@ -5,12 +5,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { StatCard } from '@/components/dashboard/StatCard';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useAuth } from '@/components/AuthProvider';
 import { isAdminLevelRole, isStaffRole } from '@/lib/auth';
 import { getGreeting } from '@/lib/utils';
 import { organizer, OrganizerDashboard } from '@/lib/organizer';
 import { payments } from '@/lib/payments';
 import { admin } from '@/lib/admin';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -62,15 +64,26 @@ function OrganizerDashboardPageInner() {
     }
   };
 
-  const handleDeleteEvent = async (e: React.MouseEvent, eventId: number) => {
+  const [deleteEventTarget, setDeleteEventTarget] = useState<{ id: number; title: string } | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+
+  const handleDeleteEvent = (e: React.MouseEvent, eventId: number, title: string) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!confirm('Delete this event? This cannot be undone.')) return;
+    setDeleteEventTarget({ id: eventId, title });
+  };
+
+  const confirmDeleteEvent = async () => {
+    if (!deleteEventTarget) return;
+    setDeleteBusy(true);
     try {
-      await admin.deleteEvent(eventId);
+      await admin.deleteEvent(deleteEventTarget.id);
+      setDeleteEventTarget(null);
       await loadDashboard();
     } catch (err) {
-      alert('Failed to delete event');
+      toast.error('Failed to delete event');
+    } finally {
+      setDeleteBusy(false);
     }
   };
 
@@ -189,7 +202,7 @@ function OrganizerDashboardPageInner() {
                             variant="ghost"
                             size="sm"
                             className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={(e) => handleDeleteEvent(e, event.id)}
+                            onClick={(e) => handleDeleteEvent(e, event.id, event.title)}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -245,7 +258,7 @@ function OrganizerDashboardPageInner() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={async () => { try { await payments.downloadReceipt(payment.id); } catch (e) { alert('Failed to download receipt'); } }}
+                          onClick={async () => { try { await payments.downloadReceipt(payment.id); } catch (e) { toast.error('Failed to download receipt'); } }}
                         >
                           <Receipt className="w-4 h-4" /> Receipt
                         </Button>
@@ -258,6 +271,17 @@ function OrganizerDashboardPageInner() {
           </Card>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!deleteEventTarget}
+        onOpenChange={(open) => !open && setDeleteEventTarget(null)}
+        title="Delete this event?"
+        description={deleteEventTarget ? `"${deleteEventTarget.title}" will be permanently removed. This cannot be undone.` : undefined}
+        confirmLabel="Delete"
+        destructive
+        loading={deleteBusy}
+        onConfirm={confirmDeleteEvent}
+      />
     </DashboardShell>
   );
 }

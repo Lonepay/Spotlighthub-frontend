@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { TableSkeleton } from '@/components/dashboard/TableSkeleton';
+import { toast } from 'sonner';
 import { Check, X, Banknote, Zap, AlertTriangle } from 'lucide-react';
 
 export function WithdrawalsTab() {
@@ -56,7 +57,7 @@ export function WithdrawalsTab() {
       await wallet.adminPayViaPaystack(id);
       await refresh();
     } catch (e: any) {
-      alert(e.response?.data?.message || 'Paystack payout failed');
+      toast.error(e.response?.data?.message || 'Paystack payout failed');
     } finally {
       setPayingId(null);
     }

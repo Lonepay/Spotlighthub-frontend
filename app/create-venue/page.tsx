@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { useAuth } from '@/components/AuthProvider';
 import { venues } from '@/lib/venues';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -111,7 +112,7 @@ export default function CreateVenuePage() {
         );
         const failed = results.filter((r) => r.status === 'rejected').length;
         if (failed > 0) {
-          alert(`Venue created, but ${failed} of ${tiers.length} pricing tier(s) failed to save. You can add them again from this page.`);
+          toast.error(`Venue created, but ${failed} of ${tiers.length} pricing tier(s) failed to save. You can add them again from this page.`);
         }
       }
 

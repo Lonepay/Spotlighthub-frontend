@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { toast } from 'sonner';
 import { Plus, Trash2, Edit2, Calendar, MapPin, BookText } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 
@@ -97,19 +99,29 @@ export default function OrganizerVenueDetailPage() {
       setShowEdit(false);
       await load();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to save venue');
+      toast.error(error.response?.data?.message || 'Failed to save venue');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDeleteVenue = async () => {
-    if (!confirm('Delete this venue? This removes its pricing tiers too.')) return;
+  const [confirmDeleteVenueOpen, setConfirmDeleteVenueOpen] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+
+  const handleDeleteVenue = () => {
+    setConfirmDeleteVenueOpen(true);
+  };
+
+  const confirmDeleteVenue = async () => {
+    setDeleteBusy(true);
     try {
       await venues.delete(venueId);
+      setConfirmDeleteVenueOpen(false);
       router.push('/organizer/venues');
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to delete venue');
+      toast.error(error.response?.data?.message || 'Failed to delete venue');
+    } finally {
+      setDeleteBusy(false);
     }
   };
 
@@ -143,13 +155,23 @@ export default function OrganizerVenueDetailPage() {
     setShowTierForm(true);
   };
 
-  const handleDeleteTier = async (id: number) => {
-    if (!confirm('Delete this pricing tier?')) return;
+  const [deleteTierTarget, setDeleteTierTarget] = useState<{ id: number; name: string } | null>(null);
+
+  const handleDeleteTier = (t: VenuePricingTier) => {
+    setDeleteTierTarget({ id: t.id, name: t.name });
+  };
+
+  const confirmDeleteTier = async () => {
+    if (!deleteTierTarget) return;
+    setDeleteBusy(true);
     try {
-      await venues.deleteTier(venueId, id);
+      await venues.deleteTier(venueId, deleteTierTarget.id);
+      setDeleteTierTarget(null);
       await load();
     } catch {
-      alert('Failed to delete tier');
+      toast.error('Failed to delete tier');
+    } finally {
+      setDeleteBusy(false);
     }
   };
 
@@ -344,7 +366,7 @@ export default function OrganizerVenueDetailPage() {
                     </div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="icon" onClick={() => handleEditTier(t)}><Edit2 className="w-4 h-4" /></Button>
-                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDeleteTier(t.id)}><Trash2 className="w-4 h-4" /></Button>
+                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDeleteTier(t)}><Trash2 className="w-4 h-4" /></Button>
                     </div>
                   </div>
                 ))}
@@ -355,6 +377,28 @@ export default function OrganizerVenueDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      <ConfirmDialog
+        open={confirmDeleteVenueOpen}
+        onOpenChange={setConfirmDeleteVenueOpen}
+        title="Delete this venue?"
+        description={venue ? `"${venue.name}" will be permanently removed. This removes its pricing tiers too.` : undefined}
+        confirmLabel="Delete"
+        destructive
+        loading={deleteBusy}
+        onConfirm={confirmDeleteVenue}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTierTarget}
+        onOpenChange={(open) => !open && setDeleteTierTarget(null)}
+        title="Delete this pricing tier?"
+        description={deleteTierTarget ? `"${deleteTierTarget.name}" will be permanently removed.` : undefined}
+        confirmLabel="Delete"
+        destructive
+        loading={deleteBusy}
+        onConfirm={confirmDeleteTier}
+      />
     </DashboardShell>
   );
 }
