@@ -62,11 +62,12 @@ export function hasPermission(user: User | null | undefined, permission: string)
 }
 
 export const auth = {
-  async register(name: string, email: string, phone: string, password: string, passwordConfirmation: string, role: 'attendee' | 'organizer' | 'admin' = 'attendee'): Promise<AuthResponse> {
+  async register(name: string, email: string, phone: string, password: string, passwordConfirmation: string, role: 'attendee' | 'organizer' | 'admin' = 'attendee', country?: string): Promise<AuthResponse> {
     const { data } = await api.post('/register', {
       name,
       email,
       phone,
+      country,
       password,
       password_confirmation: passwordConfirmation,
       role,

@@ -15,7 +15,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<LoginResult>;
   completeTwoFactorLogin: (email: string, otp: string) => Promise<User>;
-  register: (name: string, email: string, phone: string, password: string, passwordConfirmation: string, role?: 'attendee' | 'organizer' | 'admin') => Promise<void>;
+  register: (name: string, email: string, phone: string, password: string, passwordConfirmation: string, role?: 'attendee' | 'organizer' | 'admin', country?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   locked: boolean;
@@ -98,8 +98,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return response.user;
   };
 
-  const register = async (name: string, email: string, phone: string, password: string, passwordConfirmation: string, role: 'attendee' | 'organizer' | 'admin' = 'attendee') => {
-    const response = await auth.register(name, email, phone, password, passwordConfirmation, role);
+  const register = async (name: string, email: string, phone: string, password: string, passwordConfirmation: string, role: 'attendee' | 'organizer' | 'admin' = 'attendee', country?: string) => {
+    const response = await auth.register(name, email, phone, password, passwordConfirmation, role, country);
     setUser(response.user);
   };
 

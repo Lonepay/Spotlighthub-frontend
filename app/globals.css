@@ -211,3 +211,31 @@ html {
     background-image: var(--gradient-glow);
   }
 }
+
+/* react-phone-number-input ships only layout CSS (style.css), no colors —
+   its bare <input>/<select> are made transparent here so they sit inside
+   PhoneInput's own bordered box (components/ui/phone-input.tsx) and pick
+   up this app's theme tokens automatically in both light and dark mode. */
+.PhoneInputInput {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: inherit;
+  font: inherit;
+  flex: 1;
+  min-width: 0;
+}
+.PhoneInputInput::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+.PhoneInputCountrySelect {
+  background: transparent;
+  color: inherit;
+}
+.PhoneInputCountryIcon {
+  box-shadow: none;
+}
+.PhoneInputCountrySelectArrow {
+  color: hsl(var(--muted-foreground));
+  opacity: 1;
+}

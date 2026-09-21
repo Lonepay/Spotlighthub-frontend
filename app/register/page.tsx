@@ -9,9 +9,10 @@ import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/components/AuthProvider';
-import { Mail, Lock, User, Phone, ArrowRight, Users, Calendar } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Users, Calendar } from 'lucide-react';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function RegisterPage() {
     name: '',
     email: '',
     phone: '',
+    country: 'NG',
     password: '',
     password_confirmation: '',
     role: 'attendee' as 'attendee' | 'organizer' | 'admin',
@@ -39,7 +41,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      await register(formData.name, formData.email, formData.phone, formData.password, formData.password_confirmation, formData.role);
+      await register(formData.name, formData.email, formData.phone, formData.password, formData.password_confirmation, formData.role, formData.country);
       if (formData.role === 'organizer') {
         router.push('/organizer');
       } else if (formData.role === 'admin') {
@@ -153,18 +155,15 @@ export default function RegisterPage() {
 
               <div>
                 <Label htmlFor="reg-phone">Phone number</Label>
-                <div className="relative">
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input
-                    id="reg-phone"
-                    type="tel"
-                    required
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="pl-12"
-                    placeholder="+234 800 000 0000"
-                  />
-                </div>
+                <PhoneInput
+                  id="reg-phone"
+                  required
+                  value={formData.phone}
+                  onChange={(value) => setFormData({ ...formData, phone: value || '' })}
+                  defaultCountry={formData.country}
+                  onCountryChange={(country) => country && setFormData((f) => ({ ...f, country }))}
+                  placeholder="800 000 0000"
+                />
               </div>
 
               <div>
