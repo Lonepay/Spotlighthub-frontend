@@ -24,11 +24,15 @@ export interface AdminSettings {
   flutterwave_webhook_url: string;
   has_paystack_secret_key: boolean;
   paystack_webhook_url: string;
+  has_stripe_secret_key: boolean;
+  stripe_webhook_url: string;
   low_balance_threshold: number | null;
   auto_withdrawal_minimum: number | null;
   auto_withdrawals_enabled: boolean;
   flutterwave_enabled: boolean;
   paystack_enabled: boolean;
+  stripe_enabled: boolean;
+  usd_exchange_rate: number | null;
 }
 
 export interface AdminDashboard {
@@ -174,6 +178,8 @@ export const admin = {
     auto_withdrawals_enabled: boolean;
     flutterwave_enabled: boolean;
     paystack_enabled: boolean;
+    stripe_enabled: boolean;
+    usd_exchange_rate: number | null;
   }>): Promise<AdminSettings> {
     const { data } = await api.put('/admin/settings', payload);
     return data;

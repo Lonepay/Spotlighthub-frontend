@@ -436,6 +436,21 @@ export function SettingsTab() {
                 <span className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white transition-transform ${(form.paystack_enabled ?? true) ? 'translate-x-5' : ''}`} />
               </button>
             </div>
+            <div className="flex items-center justify-between py-2 border-t border-border">
+              <div>
+                <p className="text-sm font-medium">Stripe</p>
+                <p className="text-xs text-muted-foreground">{form.stripe_enabled ?? false ? 'Available at checkout' : 'Hidden from checkout'}</p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={form.stripe_enabled ?? false}
+                onClick={() => setForm({ ...form, stripe_enabled: !(form.stripe_enabled ?? false) })}
+                className={`relative w-12 h-7 rounded-full transition-colors ${(form.stripe_enabled ?? false) ? 'bg-primary' : 'bg-muted'}`}
+              >
+                <span className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white transition-transform ${(form.stripe_enabled ?? false) ? 'translate-x-5' : ''}`} />
+              </button>
+            </div>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? 'Saving...' : saved ? 'Saved' : 'Save changes'}
             </Button>
@@ -513,6 +528,60 @@ export function SettingsTab() {
             <p className="text-xs text-muted-foreground">
               Unlike Flutterwave, Paystack doesn&apos;t support a separate configurable webhook secret — it signs requests with your account&apos;s secret key directly. Set <code>PAYSTACK_PUBLIC_KEY</code> / <code>PAYSTACK_SECRET_KEY</code> in the backend&apos;s .env, then restart the backend.
             </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6 space-y-4 max-w-lg">
+            <div className="flex items-center justify-between">
+              <h3 className="font-display font-semibold">Stripe</h3>
+              <Badge variant={settings.has_stripe_secret_key ? 'default' : 'destructive'}>
+                {settings.has_stripe_secret_key ? 'Configured' : 'Not configured'}
+              </Badge>
+            </div>
+            <div>
+              <Label>Webhook URL</Label>
+              <div className="flex gap-2">
+                <Input readOnly value={settings.stripe_webhook_url} />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => { navigator.clipboard.writeText(settings.stripe_webhook_url); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
+                >
+                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Same URL as the others above — one endpoint handles all three gateways, routed by their signature header. Paste this into Stripe Dashboard → Developers → Webhooks, and select the <code>checkout.session.completed</code> event.
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="usd_exchange_rate">Exchange rate (₦ per $1)</Label>
+              <Input
+                id="usd_exchange_rate"
+                type="number"
+                min={1}
+                step="0.01"
+                placeholder="e.g. 1650"
+                value={form.usd_exchange_rate ?? ''}
+                onChange={(e) => setForm({ ...form, usd_exchange_rate: e.target.value === '' ? null : parseFloat(e.target.value) })}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Every order's Naira total is converted to USD using this rate before it's sent to Stripe. Update it periodically to track the real market rate — Stripe checkout is unavailable if this is unset.
+              </p>
+            </div>
+            {!settings.has_stripe_secret_key && (
+              <p className="text-xs text-destructive">
+                No <code>STRIPE_SECRET_KEY</code> is set in the backend&apos;s .env, so Stripe checkout is unavailable until this is set.
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Set <code>STRIPE_SECRET_KEY</code> / <code>STRIPE_PUBLISHABLE_KEY</code> / <code>STRIPE_WEBHOOK_SECRET</code> in the backend&apos;s .env, then restart the backend. Start with test-mode keys (<code>sk_test_...</code>) to verify before switching to live keys.
+            </p>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? 'Saving...' : saved ? 'Saved' : 'Save changes'}
+            </Button>
           </CardContent>
         </Card>
       </TabsContent>
