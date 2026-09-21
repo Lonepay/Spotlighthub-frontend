@@ -18,6 +18,8 @@ import {
   Building2,
   MessageCircle,
   Clapperboard,
+  Search,
+  CreditCard,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { events, Event, CategoryCount } from '@/lib/events';
@@ -138,6 +140,32 @@ export default function Home() {
             </RevealItem>
           ))}
         </RevealGroup>
+      </section>
+
+      {/* How it works */}
+      <section className="py-20 bg-muted/20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Reveal className="text-center mb-12">
+            <h2 className="text-4xl font-bold mb-2">How it works</h2>
+            <p className="text-lg text-muted-foreground">From browsing to your seat, in three steps</p>
+          </Reveal>
+          <RevealGroup className="grid md:grid-cols-3 gap-8">
+            {[
+              { icon: Search, step: '01', title: 'Browse & discover', desc: 'Events, movies, and locations across Nigeria, all in one place.' },
+              { icon: CreditCard, step: '02', title: 'Book instantly', desc: 'Pay with Paystack, Flutterwave, or Stripe for card payments worldwide.' },
+              { icon: QrCode, step: '03', title: 'Show your ticket', desc: 'A QR code lands in your inbox the moment payment clears — that\'s it.' },
+            ].map((s) => (
+              <RevealItem key={s.step} className="relative glass rounded-2xl p-8 transition-transform duration-300 hover:-translate-y-1 hover:shadow-glow-sm">
+                <span className="absolute top-6 right-6 font-display font-bold text-4xl text-primary/10">{s.step}</span>
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-5">
+                  <s.icon className="w-6 h-6 text-primary-glow" />
+                </div>
+                <h3 className="font-display font-bold text-xl mb-2">{s.title}</h3>
+                <p className="text-muted-foreground">{s.desc}</p>
+              </RevealItem>
+            ))}
+          </RevealGroup>
+        </div>
       </section>
 
       {/* Browse by category */}
