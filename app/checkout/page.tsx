@@ -14,7 +14,7 @@ import { useCart, entryTotal, EventCartEntry, CartEntry } from '@/lib/cart';
 import { payments } from '@/lib/payments';
 import { gateway as gatewayApi, GatewayStatus } from '@/lib/gateway';
 import { coupons, CouponValidation } from '@/lib/coupons';
-import { ArrowLeft, Mail, User as UserIcon, Phone, ShieldCheck, Loader2, CheckCircle2, Receipt, Tag, X, Clapperboard, Building2, CreditCard, Zap, Wallet, Check, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Mail, User as UserIcon, Phone, ShieldCheck, Loader2, CheckCircle2, Receipt, Tag, X, Clapperboard, Building2, CreditCard, Zap, Wallet, Check, AlertTriangle, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 
 function formatNaira(value: number) {
@@ -94,11 +94,14 @@ export default function CheckoutPage() {
   // actually enabled rather than letting the buyer hit a checkout error for
   // a choice they never consciously made.
   useEffect(() => {
-    if (cart.gateway === 'flutterwave' && !feeInfo.flutterwave_enabled && feeInfo.paystack_enabled) {
-      setGateway('paystack');
-    } else if (cart.gateway === 'paystack' && !feeInfo.paystack_enabled && feeInfo.flutterwave_enabled) {
-      setGateway('flutterwave');
-    }
+    const isEnabled: Record<typeof cart.gateway, boolean> = {
+      flutterwave: feeInfo.flutterwave_enabled,
+      paystack: feeInfo.paystack_enabled,
+      stripe: feeInfo.stripe_enabled,
+    };
+    if (isEnabled[cart.gateway]) return;
+    const fallback = (['flutterwave', 'paystack', 'stripe'] as const).find((gw) => isEnabled[gw]);
+    if (fallback) setGateway(fallback);
   }, [feeInfo, cart.gateway, setGateway]);
 
   useEffect(() => {
@@ -386,27 +389,57 @@ export default function CheckoutPage() {
                 <CreditCard className="w-4 h-4 mr-2" />
                 Payment Method
               </label>
-              {feeInfo.flutterwave_enabled || feeInfo.paystack_enabled ? (
-                <div className="grid grid-cols-2 gap-3">
-                  {([
-                    { id: 'flutterwave' as const, label: 'Flutterwave', icon: Zap, enabled: feeInfo.flutterwave_enabled },
-                    { id: 'paystack' as const, label: 'Paystack', icon: Wallet, enabled: feeInfo.paystack_enabled },
-                  ]).filter((gw) => gw.enabled).map((gw) => (
-                    <button
-                      key={gw.id}
-                      type="button"
-                      onClick={() => setGateway(gw.id)}
-                      className={`relative py-3 px-4 rounded-xl text-sm font-bold border-2 transition-all duration-200 ease-smooth flex items-center justify-center gap-2 active:scale-[0.97] ${
-                        cart.gateway === gw.id
-                          ? 'bg-gradient-primary border-transparent text-white shadow-glow-sm'
-                          : 'bg-card border-border text-foreground hover:border-primary/50 hover:-translate-y-0.5'
-                      }`}
-                    >
-                      <gw.icon className="w-4 h-4" />
-                      <span>{gw.label}</span>
-                      {cart.gateway === gw.id && <Check className="w-4 h-4" />}
-                    </button>
-                  ))}
+              {feeInfo.flutterwave_enabled || feeInfo.paystack_enabled || feeInfo.stripe_enabled ? (
+                <div className="space-y-4">
+                  {(feeInfo.flutterwave_enabled || feeInfo.paystack_enabled) && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-2">African payment methods</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        {([
+                          { id: 'flutterwave' as const, label: 'Flutterwave', icon: Zap, enabled: feeInfo.flutterwave_enabled },
+                          { id: 'paystack' as const, label: 'Paystack', icon: Wallet, enabled: feeInfo.paystack_enabled },
+                        ]).filter((gw) => gw.enabled).map((gw) => (
+                          <button
+                            key={gw.id}
+                            type="button"
+                            onClick={() => setGateway(gw.id)}
+                            className={`relative py-3 px-4 rounded-xl text-sm font-bold border-2 transition-all duration-200 ease-smooth flex items-center justify-center gap-2 active:scale-[0.97] ${
+                              cart.gateway === gw.id
+                                ? 'bg-gradient-primary border-transparent text-white shadow-glow-sm'
+                                : 'bg-card border-border text-foreground hover:border-primary/50 hover:-translate-y-0.5'
+                            }`}
+                          >
+                            <gw.icon className="w-4 h-4" />
+                            <span>{gw.label}</span>
+                            {cart.gateway === gw.id && <Check className="w-4 h-4" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {feeInfo.stripe_enabled && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-2">International</p>
+                      <button
+                        type="button"
+                        onClick={() => setGateway('stripe')}
+                        className={`relative w-full py-3 px-4 rounded-xl text-sm font-bold border-2 transition-all duration-200 ease-smooth flex items-center justify-center gap-2 active:scale-[0.97] ${
+                          cart.gateway === 'stripe'
+                            ? 'bg-gradient-primary border-transparent text-white shadow-glow-sm'
+                            : 'bg-card border-border text-foreground hover:border-primary/50 hover:-translate-y-0.5'
+                        }`}
+                      >
+                        <Globe className="w-4 h-4" />
+                        <span>Card (Global)</span>
+                        {feeInfo.usd_exchange_rate ? (
+                          <span className={cart.gateway === 'stripe' ? 'text-white/80' : 'text-muted-foreground'}>
+                            &middot; ≈ ${(total / feeInfo.usd_exchange_rate).toFixed(2)}
+                          </span>
+                        ) : null}
+                        {cart.gateway === 'stripe' && <Check className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="flex items-center gap-2 rounded-xl bg-destructive/10 border border-destructive/30 px-4 py-3 text-sm text-destructive">
@@ -448,7 +481,7 @@ export default function CheckoutPage() {
             size="lg"
             className="w-full"
             onClick={handleSubmit}
-            disabled={submitting || (!isFree && !feeInfo.flutterwave_enabled && !feeInfo.paystack_enabled)}
+            disabled={submitting || (!isFree && !feeInfo.flutterwave_enabled && !feeInfo.paystack_enabled && !feeInfo.stripe_enabled)}
           >
             {submitting ? (
               <>
@@ -463,7 +496,7 @@ export default function CheckoutPage() {
 
           {!isFree && (
             <p className="text-[11px] text-muted-foreground text-center mt-4 flex items-center justify-center gap-1.5">
-              <ShieldCheck className="h-3 w-3" /> Secured by {cart.gateway === 'flutterwave' ? 'Flutterwave' : 'Paystack'} &middot; Seats/dates held for 15 minutes
+              <ShieldCheck className="h-3 w-3" /> Secured by {{ flutterwave: 'Flutterwave', paystack: 'Paystack', stripe: 'Stripe' }[cart.gateway]} &middot; Seats/dates held for 15 minutes
             </p>
           )}
         </div>

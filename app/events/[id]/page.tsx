@@ -8,7 +8,7 @@ import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/lib/cart';
 import { events, Event, TicketVariation } from '@/lib/events';
-import { Calendar, MapPin, Ticket, ArrowLeft, Check, CreditCard, Clock, Star, Info, Minus, Plus, Zap, Wallet, Layers } from 'lucide-react';
+import { Calendar, MapPin, Ticket, ArrowLeft, Check, CreditCard, Clock, Star, Info, Minus, Plus, Zap, Wallet, Layers, Globe } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { sanitize } from '@/lib/sanitize';
@@ -451,10 +451,11 @@ export default function EventDetailPage() {
                     <CreditCard className="w-4 h-4 mr-2" />
                     Payment Method
                   </label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {([
                       { id: 'flutterwave', label: 'Flutterwave', icon: Zap, enabled: gatewayStatus.flutterwave_enabled },
                       { id: 'paystack', label: 'Paystack', icon: Wallet, enabled: gatewayStatus.paystack_enabled },
+                      { id: 'stripe', label: 'Card (Global)', icon: Globe, enabled: gatewayStatus.stripe_enabled },
                     ] as const).filter((gw) => gw.enabled).map((gw) => (
                       <button
                         key={gw.id}
