@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { Event, TicketVariation } from '@/lib/events';
 import { Movie, MovieShowtime, MovieTicketTier } from '@/lib/movies';
 import { Venue, VenuePricingTier } from '@/lib/venues';
+import { PaymentGateway } from '@/lib/gateway';
 
 export interface CartLineItem {
   variation: TicketVariation | null;
@@ -64,7 +65,7 @@ export type CartEntry = EventCartEntry | MovieCartEntry | VenueCartEntry;
 
 export interface Cart {
   entries: CartEntry[];
-  gateway: 'flutterwave' | 'paystack';
+  gateway: PaymentGateway;
   version: 2;
 }
 
@@ -86,7 +87,7 @@ interface CartContextType {
   itemCount: number;
   addEntry: (entry: CartEntry) => void;
   removeEntry: (index: number) => void;
-  setGateway: (gateway: 'flutterwave' | 'paystack') => void;
+  setGateway: (gateway: PaymentGateway) => void;
   clear: () => void;
 }
 
@@ -140,7 +141,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     persist({ ...cart, entries: cart.entries.filter((_, i) => i !== index) });
   };
 
-  const setGateway = (gateway: 'flutterwave' | 'paystack') => {
+  const setGateway = (gateway: PaymentGateway) => {
     persist({ ...cart, gateway });
   };
 

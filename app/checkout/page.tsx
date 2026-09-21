@@ -78,7 +78,7 @@ export default function CheckoutPage() {
   const [attendeePhone, setAttendeePhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [freeSuccess, setFreeSuccess] = useState<{ tickets: any[]; paymentId: number; guestEmail: string } | null>(null);
-  const [feeInfo, setFeeInfo] = useState<GatewayStatus>({ flutterwave_enabled: true, paystack_enabled: true });
+  const [feeInfo, setFeeInfo] = useState<GatewayStatus>({ flutterwave_enabled: true, paystack_enabled: true, stripe_enabled: false });
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<CouponValidation | null>(null);
   const [applyingCoupon, setApplyingCoupon] = useState(false);

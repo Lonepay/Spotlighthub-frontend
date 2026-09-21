@@ -12,7 +12,7 @@ import { NairaSign } from '@/components/icons/NairaSign';
 export default function PricingCalculatorPage() {
   const [amount, setAmount] = useState('5000');
   const [payer, setPayer] = useState<'organizer' | 'attendee'>('organizer');
-  const [feeInfo, setFeeInfo] = useState<GatewayStatus>({ flutterwave_enabled: true, paystack_enabled: true });
+  const [feeInfo, setFeeInfo] = useState<GatewayStatus>({ flutterwave_enabled: true, paystack_enabled: true, stripe_enabled: false });
 
   useEffect(() => {
     gateway.status().then(setFeeInfo).catch(() => {});

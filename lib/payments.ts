@@ -1,10 +1,13 @@
 import api from './api';
 import { CartEntry } from './cart';
+import { PaymentGateway } from './gateway';
 
 export interface Payment {
   id: number;
   reference: string;
   amount: number;
+  currency?: string;
+  charged_amount?: number | null;
   quantity: number;
   status: 'pending' | 'success' | 'failed';
   event_id: number;
@@ -29,7 +32,7 @@ export const payments = {
     email: string,
     attendeeName: string,
     attendeePhone: string,
-    gateway: 'flutterwave' | 'paystack' = 'flutterwave',
+    gateway: PaymentGateway = 'flutterwave',
     bookingDate?: string,
     bookingTime?: string,
     couponCode?: string | null
@@ -57,7 +60,7 @@ export const payments = {
     email: string,
     attendeeName: string,
     attendeePhone: string,
-    gateway: 'flutterwave' | 'paystack' = 'flutterwave',
+    gateway: PaymentGateway = 'flutterwave',
     couponCode?: string | null
   ) {
     // An Event cart entry can carry several ticket-tier lines (e.g. 2x

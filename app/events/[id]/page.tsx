@@ -15,7 +15,7 @@ import { sanitize } from '@/lib/sanitize';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { CountdownTimer } from '@/components/CountdownTimer';
 import { VenueMap } from '@/components/VenueMap';
-import { gateway, GatewayStatus } from '@/lib/gateway';
+import { gateway, GatewayStatus, PaymentGateway } from '@/lib/gateway';
 import { storageUrl } from '@/lib/storage';
 
 export default function EventDetailPage() {
@@ -30,8 +30,8 @@ export default function EventDetailPage() {
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [selectedGateway, setSelectedGateway] = useState<'flutterwave' | 'paystack'>('flutterwave');
-  const [gatewayStatus, setGatewayStatus] = useState<GatewayStatus>({ flutterwave_enabled: true, paystack_enabled: true });
+  const [selectedGateway, setSelectedGateway] = useState<PaymentGateway>('flutterwave');
+  const [gatewayStatus, setGatewayStatus] = useState<GatewayStatus>({ flutterwave_enabled: true, paystack_enabled: true, stripe_enabled: false });
   const [variations, setVariations] = useState<TicketVariation[]>([]);
   // One independent quantity per ticket type — buyers can mix Early Bird,
   // VIP, etc. in the same purchase instead of picking just one.
