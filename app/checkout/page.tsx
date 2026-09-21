@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
@@ -103,6 +103,21 @@ export default function CheckoutPage() {
   // has since disabled that one. Auto-correct to whichever gateway is
   // actually enabled rather than letting the buyer hit a checkout error for
   // a choice they never consciously made.
+  //
+  // Deliberately NOT keyed on cart.gateway — this must react to feeInfo
+  // changing (real data arriving, or an admin disabling a gateway mid-visit),
+  // never to the buyer's OWN tap changing cart.gateway. Depending on
+  // cart.gateway re-ran this effect on every manual selection too, and since
+  // 'paystack' sits before 'stripe' in the fallback order, a tap on Stripe
+  // could get immediately second-guessed back to Paystack on the very same
+  // render pass — the exact "picked Stripe, it stayed on Paystack, had to
+  // tap again" bug. cartGatewayRef always holds the latest value without
+  // being a dependency.
+  const cartGatewayRef = useRef(cart.gateway);
+  useEffect(() => {
+    cartGatewayRef.current = cart.gateway;
+  }, [cart.gateway]);
+
   useEffect(() => {
     if (!feeInfoLoaded) return;
     const isEnabled: Record<typeof cart.gateway, boolean> = {
@@ -110,10 +125,10 @@ export default function CheckoutPage() {
       paystack: feeInfo.paystack_enabled,
       stripe: feeInfo.stripe_enabled,
     };
-    if (isEnabled[cart.gateway]) return;
+    if (isEnabled[cartGatewayRef.current]) return;
     const fallback = (['flutterwave', 'paystack', 'stripe'] as const).find((gw) => isEnabled[gw]);
     if (fallback) setGateway(fallback);
-  }, [feeInfo, feeInfoLoaded, cart.gateway, setGateway]);
+  }, [feeInfo, feeInfoLoaded, setGateway]);
 
   useEffect(() => {
     if (user) {

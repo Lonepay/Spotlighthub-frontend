@@ -82,7 +82,7 @@ export default function VendorDetailPage() {
                 <a href={`tel:${vendor.contact_phone}`}><Phone className="w-4 h-4" /> {vendor.contact_phone}</a>
               </Button>
             )}
-            {vendor.website && (
+            {vendor.website && /^https?:\/\//i.test(vendor.website) && (
               <Button asChild variant="outline">
                 <a href={vendor.website} target="_blank" rel="noopener noreferrer"><Globe className="w-4 h-4" /> Website</a>
               </Button>
