@@ -158,9 +158,7 @@ function buildStaffNav(permissions: string[]): NavEntry[] {
     items.push(link('Blog', '/admin?tab=blog', Newspaper));
     items.push(link('Vendors', '/admin?tab=vendors', Store));
   }
-  // Read-only platform-wide events visibility (via OrganizerController's
-  // isStaff() bypass) — not gated behind a specific permission since every
-  // staff position can reasonably need to look up an organizer's event.
+  // Not permission-gated — any staff position may need to look up an organizer.
   items.push(link('Organizer', '/organizer', Briefcase));
   items.push(link('Explore', '/events', Compass));
   items.push(link('My Profile', '/profile', UserCircle));
@@ -172,10 +170,7 @@ export function DashboardShell(props: {
   description?: string;
   children: React.ReactNode;
 }) {
-  // useSearchParams() below opts this whole subtree into client-only
-  // rendering, which Next.js requires a Suspense boundary for during static
-  // generation — without it the production build fails outright on every
-  // page that renders this shell.
+  // Suspense boundary required: useSearchParams() below needs one for static generation to build.
   return (
     <Suspense fallback={null}>
       <DashboardShellInner {...props} />
@@ -198,10 +193,7 @@ function DashboardShellInner({
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Desktop-only icon-rail mode, remembered per browser like the theme
-  // preference. Starts false (matching SSR output) and is corrected from
-  // localStorage on mount, rather than read synchronously in the
-  // initializer, to avoid a hydration mismatch against the server render.
+  // Desktop icon-rail mode; starts false and corrects from localStorage on mount (avoids SSR mismatch).
   const [dense, setDense] = useState(false);
   const [denseHydrated, setDenseHydrated] = useState(false);
 
@@ -274,9 +266,7 @@ function DashboardShellInner({
     );
   };
 
-  // Rendered twice — once for the desktop rail (which respects `dense`) and
-  // once for the mobile drawer (always full-width) — so dense mode never
-  // leaks into the mobile layout.
+  // Rendered twice: desktop rail (respects `dense`) and mobile drawer (always full-width).
   const renderSidebarContent = (isDense: boolean) => (
     <div className="flex h-full flex-col">
       <div className={`flex items-center h-16 border-b border-border shrink-0 ${isDense ? 'justify-center px-2' : 'px-5'}`}>

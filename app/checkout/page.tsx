@@ -79,12 +79,8 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [freeSuccess, setFreeSuccess] = useState<{ tickets: any[]; paymentId: number; guestEmail: string } | null>(null);
   const [feeInfo, setFeeInfo] = useState<GatewayStatus>({ flutterwave_enabled: true, paystack_enabled: true, stripe_enabled: false });
-  // Stripe's optimistic default above is deliberately pessimistic (false),
-  // unlike Flutterwave/Paystack — so a buyer whose persisted cart.gateway
-  // is already 'stripe' must not get auto-corrected away from it by the
-  // effect below until the real gateway-status response is in; otherwise
-  // it silently bounces them to Flutterwave for a moment, and picking
-  // Stripe again looks like it "needed a second tap" to register.
+  // Tracks whether the real gateway-status fetch has resolved yet, so the
+  // auto-correct effect below doesn't act on the pessimistic Stripe default.
   const [feeInfoLoaded, setFeeInfoLoaded] = useState(false);
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<CouponValidation | null>(null);
@@ -97,22 +93,9 @@ export default function CheckoutPage() {
       .finally(() => setFeeInfoLoaded(true));
   }, []);
 
-  // Movie/Venue detail pages never call setGateway() — only the Event page
-  // does, right before addEntry() — so a cart built from those flows keeps
-  // whatever gateway it defaulted to (or was last set to) even if an admin
-  // has since disabled that one. Auto-correct to whichever gateway is
-  // actually enabled rather than letting the buyer hit a checkout error for
-  // a choice they never consciously made.
-  //
-  // Deliberately NOT keyed on cart.gateway — this must react to feeInfo
-  // changing (real data arriving, or an admin disabling a gateway mid-visit),
-  // never to the buyer's OWN tap changing cart.gateway. Depending on
-  // cart.gateway re-ran this effect on every manual selection too, and since
-  // 'paystack' sits before 'stripe' in the fallback order, a tap on Stripe
-  // could get immediately second-guessed back to Paystack on the very same
-  // render pass — the exact "picked Stripe, it stayed on Paystack, had to
-  // tap again" bug. cartGatewayRef always holds the latest value without
-  // being a dependency.
+  // Auto-corrects away from a disabled/stale persisted gateway. Reads
+  // cart.gateway via a ref rather than as a dependency so a manual tap can't
+  // re-trigger this and get second-guessed back to an earlier fallback.
   const cartGatewayRef = useRef(cart.gateway);
   useEffect(() => {
     cartGatewayRef.current = cart.gateway;

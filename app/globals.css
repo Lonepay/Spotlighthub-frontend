@@ -212,10 +212,7 @@ html {
   }
 }
 
-/* react-phone-number-input ships only layout CSS (style.css), no colors —
-   its bare <input>/<select> are made transparent here so they sit inside
-   PhoneInput's own bordered box (components/ui/phone-input.tsx) and pick
-   up this app's theme tokens automatically in both light and dark mode. */
+/* react-phone-number-input's own CSS has no colors — themed to match PhoneInput's box. */
 .PhoneInputInput {
   background: transparent;
   border: none;

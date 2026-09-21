@@ -16,13 +16,7 @@ export interface PhoneInputProps {
   className?: string;
 }
 
-/**
- * Wraps react-phone-number-input's default export — its own CSS
- * (style.css) only handles internal layout, not colors, so the actual
- * bordered/background box here matches components/ui/input.tsx exactly,
- * and the library's bare <input>/<select> are made transparent to sit
- * inside it (see the .PhoneInput* overrides in app/globals.css).
- */
+// Wraps react-phone-number-input, styled to match Input (see .PhoneInput* overrides in globals.css).
 const PhoneInput = React.forwardRef<HTMLDivElement, PhoneInputProps>(
   ({ id, value, onChange, defaultCountry = 'NG', onCountryChange, placeholder, required, className }, ref) => {
     return (
