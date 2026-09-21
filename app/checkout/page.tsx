@@ -79,12 +79,22 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [freeSuccess, setFreeSuccess] = useState<{ tickets: any[]; paymentId: number; guestEmail: string } | null>(null);
   const [feeInfo, setFeeInfo] = useState<GatewayStatus>({ flutterwave_enabled: true, paystack_enabled: true, stripe_enabled: false });
+  // Stripe's optimistic default above is deliberately pessimistic (false),
+  // unlike Flutterwave/Paystack — so a buyer whose persisted cart.gateway
+  // is already 'stripe' must not get auto-corrected away from it by the
+  // effect below until the real gateway-status response is in; otherwise
+  // it silently bounces them to Flutterwave for a moment, and picking
+  // Stripe again looks like it "needed a second tap" to register.
+  const [feeInfoLoaded, setFeeInfoLoaded] = useState(false);
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<CouponValidation | null>(null);
   const [applyingCoupon, setApplyingCoupon] = useState(false);
 
   useEffect(() => {
-    gatewayApi.status().then(setFeeInfo).catch(() => {});
+    gatewayApi.status()
+      .then(setFeeInfo)
+      .catch(() => {})
+      .finally(() => setFeeInfoLoaded(true));
   }, []);
 
   // Movie/Venue detail pages never call setGateway() — only the Event page
@@ -94,6 +104,7 @@ export default function CheckoutPage() {
   // actually enabled rather than letting the buyer hit a checkout error for
   // a choice they never consciously made.
   useEffect(() => {
+    if (!feeInfoLoaded) return;
     const isEnabled: Record<typeof cart.gateway, boolean> = {
       flutterwave: feeInfo.flutterwave_enabled,
       paystack: feeInfo.paystack_enabled,
@@ -102,7 +113,7 @@ export default function CheckoutPage() {
     if (isEnabled[cart.gateway]) return;
     const fallback = (['flutterwave', 'paystack', 'stripe'] as const).find((gw) => isEnabled[gw]);
     if (fallback) setGateway(fallback);
-  }, [feeInfo, cart.gateway, setGateway]);
+  }, [feeInfo, feeInfoLoaded, cart.gateway, setGateway]);
 
   useEffect(() => {
     if (user) {
@@ -430,7 +441,7 @@ export default function CheckoutPage() {
                         }`}
                       >
                         <Globe className="w-4 h-4" />
-                        <span>Card (Global)</span>
+                        <span>Stripe</span>
                         {feeInfo.usd_exchange_rate ? (
                           <span className={cart.gateway === 'stripe' ? 'text-white/80' : 'text-muted-foreground'}>
                             &middot; ≈ ${(total / feeInfo.usd_exchange_rate).toFixed(2)}

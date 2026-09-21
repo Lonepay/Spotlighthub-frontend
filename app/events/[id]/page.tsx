@@ -455,7 +455,7 @@ export default function EventDetailPage() {
                     {([
                       { id: 'flutterwave', label: 'Flutterwave', icon: Zap, enabled: gatewayStatus.flutterwave_enabled },
                       { id: 'paystack', label: 'Paystack', icon: Wallet, enabled: gatewayStatus.paystack_enabled },
-                      { id: 'stripe', label: 'Card (Global)', icon: Globe, enabled: gatewayStatus.stripe_enabled },
+                      { id: 'stripe', label: 'Stripe', icon: Globe, enabled: gatewayStatus.stripe_enabled },
                     ] as const).filter((gw) => gw.enabled).map((gw) => (
                       <button
                         key={gw.id}
