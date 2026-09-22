@@ -98,7 +98,7 @@ export default function Home() {
             <span className="block text-gradient">One ticket away.</span>
           </h1>
           <p className="text-lg sm:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
-            Book events, movies, and visit-worthy locations across Nigeria — secure checkout, instant tickets.
+            Book events, movies, and visit-worthy locations across the world — secure checkout, instant tickets.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild variant="hero" size="lg">
