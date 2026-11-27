@@ -13,6 +13,88 @@ export interface AdminStats {
   organizer_payout_total: number;
 }
 
+export interface Paginated<T> {
+  data: T[];
+  current_page: number;
+  last_page: number;
+  total: number;
+}
+
+export interface WebhookEventRow {
+  id: number;
+  gateway: 'flutterwave' | 'paystack' | 'stripe' | null;
+  event_type: string | null;
+  signature_valid: boolean;
+  reference: string | null;
+  gateway_transaction_id: string | null;
+  amount: string | null;
+  currency: string | null;
+  payment_id: number | null;
+  outcome: string;
+  detail: string | null;
+  ip: string | null;
+  created_at: string;
+}
+
+export interface FraudFlagRow {
+  id: number;
+  user: { id: number; name: string; email: string; role: string } | null;
+  vendor: { id: number; name: string } | null;
+  email: string | null;
+  phone: string | null;
+  reason: string;
+  flagged_by: { id: number; name: string } | null;
+  lifted_at: string | null;
+  lifted_by: { id: number; name: string } | null;
+  lift_reason: string | null;
+  created_at: string;
+}
+
+export interface PatchAudit {
+  total: number;
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+  unknown: number;
+  packages: string[];
+}
+
+export interface PatchMajor {
+  name: string;
+  current: string;
+  latest: string;
+}
+
+// Shape written by patch.ps1 into backend/storage/app/patch-report.json.
+export interface PatchReport {
+  generated_at: string;
+  generated_by: string;
+  mode: 'check' | 'update' | 'majors';
+  result: 'updated' | 'partial' | 'check_only';
+  backend: { laravel: string | null; audit: PatchAudit; audit_before: PatchAudit | null; majors: PatchMajor[]; tests: string };
+  frontend: { next: string | null; audit: PatchAudit; audit_before: PatchAudit | null; majors: PatchMajor[]; build: string };
+  notes: string[];
+}
+
+// Written on the live server by backend/patch-server.sh.
+export interface ServerPatchRun {
+  ran_at: string;
+  mode: 'check' | 'apply' | 'rollback';
+  result: 'success' | 'check_only' | 'rolled_back' | 'rollback_unhealthy';
+  detail: string;
+  laravel_version: string;
+  php_version: string;
+  git_commit: string;
+}
+
+export interface PatchStatus {
+  server: { php_version: string; laravel_version: string; environment: string; pending_migrations: string[] };
+  checks: { key: string; label: string; ok: boolean; detail: string }[];
+  report: PatchReport | null;
+  server_patch: ServerPatchRun | null;
+}
+
 export interface AdminSettings {
   platform_fee_percentage: number | null;
   platform_flat_fee: number | null;
@@ -206,6 +288,36 @@ export const admin = {
 
   async getActivityLogActions(): Promise<string[]> {
     const { data } = await api.get('/admin/settings/activity-log-actions');
+    return data;
+  },
+
+  async getWebhookEvents(params?: { gateway?: string; outcome?: string; search?: string; page?: number }) {
+    const { data } = await api.get('/admin/settings/webhook-events', { params });
+    return data as { events: Paginated<WebhookEventRow>; last_24h: Record<string, number> };
+  },
+
+  async getWebhookEvent(id: number) {
+    const { data } = await api.get(`/admin/settings/webhook-events/${id}`);
+    return data as WebhookEventRow & { payload: unknown };
+  },
+
+  async getFraudFlags(params?: { status?: 'active' | 'lifted' | 'all'; search?: string; page?: number }) {
+    const { data } = await api.get('/admin/fraud-flags', { params });
+    return data as Paginated<FraudFlagRow>;
+  },
+
+  async createFraudFlag(payload: { target: 'user' | 'vendor' | 'contact'; user_email?: string; vendor_id?: number; email?: string; phone?: string; reason: string }) {
+    const { data } = await api.post('/admin/fraud-flags', payload);
+    return data as FraudFlagRow;
+  },
+
+  async liftFraudFlag(id: number, reason: string) {
+    const { data } = await api.post(`/admin/fraud-flags/${id}/lift`, { reason });
+    return data as FraudFlagRow;
+  },
+
+  async getPatchStatus(): Promise<PatchStatus> {
+    const { data } = await api.get('/admin/settings/patch-status');
     return data;
   },
 

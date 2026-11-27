@@ -54,6 +54,8 @@ import {
   Briefcase,
   Clapperboard,
   Building2,
+  ShieldAlert,
+  ShieldBan,
 } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { TopProgressBar } from '@/components/TopProgressBar';
@@ -107,6 +109,7 @@ function buildAdminNav(role: string): NavEntry[] {
     { label: 'Blog', href: '/admin?tab=blog', icon: Newspaper },
     { label: 'Vendors', href: '/admin?tab=vendors', icon: Store },
     { label: 'Support Tickets', href: '/admin?tab=support', icon: LifeBuoy },
+    { label: 'Fraud Flags', href: '/admin?tab=fraud', icon: ShieldBan },
   ];
 
   // Admin Settings and Roles & Staff Management are super-admin/developer only.
@@ -118,6 +121,7 @@ function buildAdminNav(role: string): NavEntry[] {
       { label: 'SEO', href: '/admin?tab=settings&sub=seo', icon: Globe },
       { label: 'Webhooks', href: '/admin?tab=settings&sub=webhooks', icon: Webhook },
       { label: 'Cache', href: '/admin?tab=settings&sub=cache', icon: Trash2 },
+      { label: 'Patch', href: '/admin?tab=settings&sub=patch', icon: ShieldAlert },
       { label: 'Activity Logs', href: '/admin?tab=settings&sub=activity', icon: Activity },
       { label: 'Error Logs', href: '/admin?tab=settings&sub=errors', icon: AlertTriangle }
     );

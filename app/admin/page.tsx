@@ -32,12 +32,13 @@ import { KycReviewTab } from '@/components/admin/KycReviewTab';
 import { WithdrawalsTab } from '@/components/admin/WithdrawalsTab';
 import { VendorsTab } from '@/components/admin/VendorsTab';
 import { SupportTicketsTab } from '@/components/admin/SupportTicketsTab';
+import { FraudFlagsTab } from '@/components/admin/FraudFlagsTab';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { storageUrl } from '@/lib/storage';
 import Link from 'next/link';
 
-type AdminTab = 'overview' | 'users' | 'events' | 'kyc' | 'withdrawals' | 'tickets' | 'payments' | 'blog' | 'vendors' | 'settings' | 'support';
-const VALID_TABS: AdminTab[] = ['overview', 'users', 'events', 'kyc', 'withdrawals', 'tickets', 'payments', 'blog', 'vendors', 'settings', 'support'];
+type AdminTab = 'overview' | 'users' | 'events' | 'kyc' | 'withdrawals' | 'tickets' | 'payments' | 'blog' | 'vendors' | 'fraud' | 'settings' | 'support';
+const VALID_TABS: AdminTab[] = ['overview', 'users', 'events', 'kyc', 'withdrawals', 'tickets', 'payments', 'blog', 'vendors', 'fraud', 'settings', 'support'];
 
 export default function AdminDashboardPage() {
   // useSearchParams() below requires a Suspense ancestor for Next.js's
@@ -1176,6 +1177,10 @@ function AdminDashboardPageInner() {
 
           <TabsContent value="support">
             <SupportTicketsTab />
+          </TabsContent>
+
+          <TabsContent value="fraud">
+            <FraudFlagsTab />
           </TabsContent>
 
           <TabsContent value="settings">
