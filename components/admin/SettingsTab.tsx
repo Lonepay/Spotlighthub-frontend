@@ -14,6 +14,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Loader } from '@/components/Loader';
+import { PatchTab } from '@/components/admin/PatchTab';
+import { WebhookEventsPanel } from '@/components/admin/WebhookEventsPanel';
 import { Percent, Search, Trash2, Activity, AlertTriangle, Copy, Check, Download, ChevronLeft, ChevronRight, User as UserIcon, CreditCard, Ticket as TicketIcon, ShieldAlert, SlidersHorizontal, ShieldCheck, Lock, Crown, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -28,8 +30,8 @@ const ACTIVITY_CATEGORY_META: Record<string, { label: string; icon: any }> = {
   listing: { label: 'Listing images', icon: ImageIcon },
 };
 
-type SubTab = 'general' | 'seo' | 'webhooks' | 'cache' | 'activity' | 'errors' | 'staff' | 'staff-roles';
-const VALID_SUB_TABS: SubTab[] = ['general', 'seo', 'webhooks', 'cache', 'activity', 'errors', 'staff', 'staff-roles'];
+type SubTab = 'general' | 'seo' | 'webhooks' | 'cache' | 'patch' | 'activity' | 'errors' | 'staff' | 'staff-roles';
+const VALID_SUB_TABS: SubTab[] = ['general', 'seo', 'webhooks', 'cache', 'patch', 'activity', 'errors', 'staff', 'staff-roles'];
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',
@@ -584,6 +586,8 @@ export function SettingsTab() {
             </Button>
           </CardContent>
         </Card>
+
+        <WebhookEventsPanel />
       </TabsContent>
 
       <TabsContent value="cache" className="space-y-4">
@@ -598,6 +602,10 @@ export function SettingsTab() {
             </Button>
           </CardContent>
         </Card>
+      </TabsContent>
+
+      <TabsContent value="patch">
+        <PatchTab />
       </TabsContent>
 
       <TabsContent value="activity" className="space-y-4">

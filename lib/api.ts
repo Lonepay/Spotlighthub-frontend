@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { toast } from 'sonner';
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8888/api',
@@ -22,6 +23,11 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response) {
+      // Fraud-flagged account — browse/search/checkout all return this. One
+      // shared toast id so a page firing several requests shows it once.
+      if (error.response.status === 403 && error.response.data?.code === 'account_restricted' && typeof window !== 'undefined') {
+        toast.error(error.response.data.message, { id: 'account-restricted', duration: 10000 });
+      }
       // Server responded with error
       return Promise.reject(error);
     } else if (error.request) {
