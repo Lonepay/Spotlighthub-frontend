@@ -80,6 +80,12 @@ export function PatchTab() {
                 <h3 className="font-semibold">Last server patch</h3>
                 {status.server_patch && <ServerPatchBadge result={status.server_patch.result} />}
               </div>
+              {status.pending_request && (
+                <p className="text-sm rounded-md border border-border bg-muted/40 px-3 py-2">
+                  Waiting for cron: <code className="font-mono">{status.pending_request.command}</code>, requested{' '}
+                  {new Date(status.pending_request.created_at).toLocaleString()}. It runs within 5 minutes. Refresh to see the result.
+                </p>
+              )}
               {status.server_patch ? (
                 <>
                   <p className="text-sm">{status.server_patch.detail}</p>
@@ -182,11 +188,15 @@ export function PatchTab() {
                 <li>Choose <strong>2) Update</strong>. It backs up lock files, updates within safe version ranges, runs the backend tests and frontend build, and rolls back anything that fails.</li>
                 <li>Commit the lock files and <code className="font-mono">backend/storage/app/patch-report.json</code>, then deploy the code.</li>
                 <li>
-                  On the server (SSH or cPanel Terminal), in the backend folder, run{' '}
-                  <code className="font-mono">bash patch-server.sh apply</code>. It backs up the database and packages, puts the site in maintenance, installs exactly the tested versions, migrates, health-checks, and rolls back automatically on failure.
-                  Add <code className="font-mono">--pull</code> if the server folder is a git checkout.
+                  In cPanel File Manager, create the file <code className="font-mono">storage/app/patch-request</code> in the backend folder, containing the single word{' '}
+                  <code className="font-mono">apply</code>. Within 5 minutes the patch cron runs it: database and package backup, maintenance mode, verify packages, migrate, health check, and automatic rollback on failure. The result appears on this page.
                 </li>
               </ol>
+              <p className="text-xs text-muted-foreground">
+                One-time setup, in cPanel → Cron Jobs, every 5 minutes:{' '}
+                <code className="font-mono break-all">cd /home/&lt;user&gt;/&lt;backend-folder&gt; &amp;&amp; bash patch-server.sh cron &gt;/dev/null 2&gt;&amp;1</code>.
+                With SSH you can instead run <code className="font-mono">bash patch-server.sh apply</code> directly.
+              </p>
               <p className="flex items-start gap-2 text-xs text-muted-foreground pt-1">
                 <ShieldAlert className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                 Updating is deliberately not possible from this page — a hijacked admin account must never be able to run code on the server.
@@ -203,6 +213,7 @@ function ServerPatchBadge({ result }: { result: string }) {
   if (result === 'success') return <Badge variant="outline" className="text-emerald-600 border-emerald-600/40">Applied</Badge>;
   if (result === 'check_only') return <Badge variant="secondary">Check only</Badge>;
   if (result === 'rolled_back') return <Badge variant="destructive">Failed · rolled back</Badge>;
+  if (result === 'rejected') return <Badge variant="destructive">Request rejected</Badge>;
   return <Badge variant="destructive">Needs attention</Badge>;
 }
 

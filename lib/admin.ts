@@ -81,7 +81,7 @@ export interface PatchReport {
 export interface ServerPatchRun {
   ran_at: string;
   mode: 'check' | 'apply' | 'rollback';
-  result: 'success' | 'check_only' | 'rolled_back' | 'rollback_unhealthy';
+  result: 'success' | 'check_only' | 'rolled_back' | 'rollback_unhealthy' | 'rejected';
   detail: string;
   laravel_version: string;
   php_version: string;
@@ -93,6 +93,8 @@ export interface PatchStatus {
   checks: { key: string; label: string; ok: boolean; detail: string }[];
   report: PatchReport | null;
   server_patch: ServerPatchRun | null;
+  // storage/app/patch-request waiting for the next cron run.
+  pending_request: { command: string; created_at: string } | null;
 }
 
 export interface AdminSettings {
