@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,7 +12,7 @@ import { events, EventDonations } from '@/lib/events';
 const naira = (n: number) => new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 2 }).format(n);
 
 /** Organizer: every donation to this event, and what they receive after the platform fee. */
-export function EventDonationsPanel({ eventId, acceptsDonations }: { eventId: number; acceptsDonations: boolean }) {
+export function EventDonationsPanel({ eventId, acceptsDonations, showWhenEmpty = false }: { eventId: number; acceptsDonations: boolean; showWhenEmpty?: boolean }) {
   const [data, setData] = useState<EventDonations | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -35,14 +36,20 @@ export function EventDonationsPanel({ eventId, acceptsDonations }: { eventId: nu
   const page = data?.donations;
 
   // Nothing to show for an event that never took donations.
-  if (!acceptsDonations && !loading && (!totals || totals.count === 0)) return null;
+  if (!showWhenEmpty && !acceptsDonations && !loading && (!totals || totals.count === 0)) return null;
 
   return (
     <Card>
       <CardContent className="p-6 space-y-4">
         <div>
           <h2 className="font-display font-bold text-lg flex items-center gap-2"><Heart className="w-5 h-5" /> Donations</h2>
-          {!acceptsDonations && <p className="text-sm text-muted-foreground">Donations are switched off for this event. Turn them on under Edit Event.</p>}
+          {!acceptsDonations && (
+            <p className="text-sm text-muted-foreground">
+              Donations are switched off for this event.{' '}
+              <Link href={`/organizer/events/${eventId}`} className="text-primary hover:underline">Turn them on under Edit Event</Link>{' '}
+              (tick &ldquo;Accept donations&rdquo;) to show a &ldquo;Donate to show support&rdquo; box on your event page.
+            </p>
+          )}
         </div>
 
         {loading && <div className="py-6 flex justify-center"><Loader size={28} /></div>}

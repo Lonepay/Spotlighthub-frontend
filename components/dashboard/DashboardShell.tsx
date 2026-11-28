@@ -53,6 +53,7 @@ import {
   ShoppingBag,
   LayoutGrid,
   Package,
+  HeartHandshake,
 } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { TopProgressBar } from '@/components/TopProgressBar';
@@ -86,6 +87,7 @@ const NAV_BY_ROLE: Record<string, NavSection[]> = {
       item('Overview', '/organizer', LayoutDashboard),
       item('Create', '/create', PlusCircle),
       item('Attendees', '/organizer/attendees', Contact),
+      item('Donations', '/organizer/donations', HeartHandshake),
       item('Scan Tickets', '/organizer/scan', QrCode),
     ] },
     { title: 'Listings', items: [
@@ -166,6 +168,7 @@ function buildAdminNav(role: string): NavSection[] {
     { title: 'Organizer tools', items: [
       item('Organizer', '/organizer', Briefcase),
       item('Attendees', '/organizer/attendees', Contact),
+      item('Donations', '/organizer/donations', HeartHandshake),
       item('My Movies', '/organizer/movies', Clapperboard),
       item('My Venues', '/organizer/venues', Building2),
       item('Scan Tickets', '/organizer/scan', QrCode),
