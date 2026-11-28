@@ -559,6 +559,27 @@ export function SettingsTab() {
         <Card>
           <CardContent className="pt-6 space-y-3 max-w-lg">
             <h3 className="font-display font-semibold">Gateway keys</h3>
+            <div className="py-2 border-t border-border space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <Label htmlFor="webhook_secret" className="mb-0">Flutterwave secret hash</Label>
+                <Badge variant={settings.has_flutterwave_webhook_secret ? 'default' : 'outline'}>
+                  {settings.has_flutterwave_webhook_secret ? 'Custom secret set' : 'Using FLW_SECRET_KEY'}
+                </Badge>
+              </div>
+              <PasswordInput
+                id="webhook_secret"
+                placeholder={settings.has_flutterwave_webhook_secret ? '•••••••• set — enter a new value to replace' : 'Not set — falls back to FLW_SECRET_KEY'}
+                value={form.flutterwave_webhook_secret_hash ?? ''}
+                onChange={(e) => setForm({ ...form, flutterwave_webhook_secret_hash: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Must exactly match the &quot;Secret hash&quot; in Flutterwave Dashboard → Settings → Webhooks. Flutterwave sends it with every
+                webhook so we know the payment confirmation is genuine.
+              </p>
+              <Button size="sm" onClick={handleSave} disabled={saving}>
+                {saving ? 'Saving...' : saved ? 'Saved' : 'Save secret'}
+              </Button>
+            </div>
             <div className="flex items-center justify-between py-2 border-t border-border text-sm">
               <span>Paystack</span>
               <Badge variant={settings.has_paystack_secret_key ? 'default' : 'destructive'}>{settings.has_paystack_secret_key ? 'Configured' : 'Not configured'}</Badge>
@@ -583,12 +604,7 @@ export function SettingsTab() {
 
         <Card>
           <CardContent className="pt-6 space-y-4 max-w-lg">
-            <div className="flex items-center justify-between">
-              <h3 className="font-display font-semibold">Flutterwave</h3>
-              <Badge variant={settings.has_flutterwave_webhook_secret ? 'default' : 'outline'}>
-                {settings.has_flutterwave_webhook_secret ? 'Custom secret set' : 'Using FLW_SECRET_KEY'}
-              </Badge>
-            </div>
+            <h3 className="font-display font-semibold">Flutterwave</h3>
             <div>
               <Label>Webhook URL</Label>
               <div className="flex gap-2">
@@ -599,19 +615,7 @@ export function SettingsTab() {
               </div>
               <p className="text-xs text-muted-foreground mt-1">Flutterwave Dashboard → Settings → Webhooks.</p>
             </div>
-            <div>
-              <Label htmlFor="webhook_secret">Webhook secret hash</Label>
-              <PasswordInput
-                id="webhook_secret"
-                placeholder={settings.has_flutterwave_webhook_secret ? '•••••••• set — enter a new value to replace' : 'Not set — falls back to FLW_SECRET_KEY'}
-                value={form.flutterwave_webhook_secret_hash ?? ''}
-                onChange={(e) => setForm({ ...form, flutterwave_webhook_secret_hash: e.target.value })}
-              />
-              <p className="text-xs text-muted-foreground mt-1">Must exactly match the &quot;Secret hash&quot; configured in Flutterwave&apos;s dashboard.</p>
-            </div>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? 'Saving...' : saved ? 'Saved' : 'Save changes'}
-            </Button>
+            <p className="text-xs text-muted-foreground">The secret hash Flutterwave signs with is set under Payment Settings.</p>
           </CardContent>
         </Card>
 
