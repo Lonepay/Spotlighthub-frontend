@@ -67,7 +67,12 @@ export function hasPermission(user: User | null | undefined, permission: string)
 }
 
 export const auth = {
-  async register(name: string, email: string, phone: string, password: string, passwordConfirmation: string, role: 'attendee' | 'organizer' | 'admin' = 'attendee', country?: string): Promise<AuthResponse> {
+  /** Step one of signing up: email a code that proves the address is theirs. */
+  async sendRegistrationCode(email: string): Promise<void> {
+    await api.post('/register/send-code', { email });
+  },
+
+  async register(name: string, email: string, phone: string, password: string, passwordConfirmation: string, role: 'attendee' | 'organizer' | 'admin' = 'attendee', country?: string, emailCode?: string): Promise<AuthResponse> {
     const { data } = await api.post('/register', {
       name,
       email,
@@ -76,6 +81,7 @@ export const auth = {
       password,
       password_confirmation: passwordConfirmation,
       role,
+      email_code: emailCode,
     });
     if (data.token) {
       localStorage.setItem('token', data.token);
