@@ -1,6 +1,7 @@
 import api from './api';
 import { CartEntry } from './cart';
 import { PaymentGateway } from './gateway';
+import { promoters } from './promoters';
 
 export interface Payment {
   id: number;
@@ -68,14 +69,22 @@ export const payments = {
     // item per line, so expand those out; Movie/Venue entries map 1:1.
     const expanded: Record<string, unknown>[] = entries.flatMap((entry): Record<string, unknown>[] => {
       if (entry.type === 'event') {
-        return entry.items.map((line) => ({
+        const lines: Record<string, unknown>[] = entry.items.map((line) => ({
           type: 'event',
           event_id: entry.event.id,
           variation_id: line.variation?.id,
           quantity: line.quantity,
           booking_date: entry.selectedDate,
           booking_time: entry.selectedTime,
+          // From a promoter link (?ref=CODE) for this event, if any.
+          promoter_code: promoters.refFor(entry.event.id),
         }));
+        // Optional donation added at checkout - its own line, priced
+        // and fee'd separately server-side.
+        if (entry.event.donations_open && entry.donationAmount && entry.donationAmount > 0) {
+          lines.push({ type: 'donation', event_id: entry.event.id, amount: entry.donationAmount });
+        }
+        return lines;
       }
       if (entry.type === 'movie') {
         return [{
@@ -104,6 +113,30 @@ export const payments = {
       coupon_code: couponCode ?? undefined,
     });
     return data;
+  },
+
+  /** "Donate to show support": a donation on its own, no ticket. */
+  async donate(
+    eventId: number,
+    amount: number,
+    donor: { email: string; name: string; phone: string; message?: string; anonymous?: boolean },
+    gateway: PaymentGateway
+  ) {
+    const { data } = await api.post('/payments/initialize', {
+      entries: [{
+        type: 'donation',
+        event_id: eventId,
+        amount,
+        donor_name: donor.name,
+        message: donor.message || undefined,
+        is_anonymous: donor.anonymous ?? false,
+      }],
+      email: donor.email,
+      attendee_name: donor.name,
+      attendee_phone: donor.phone,
+      gateway,
+    });
+    return data as { authorization_url?: string; payment?: { id: number; reference: string } };
   },
 
   async verify(transactionId: string) {

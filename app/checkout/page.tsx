@@ -71,7 +71,7 @@ function estimateAttendeeFeePortion(entries: CartEntry[], platformFeeAmount: num
 export default function CheckoutPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { cart, clear, setGateway } = useCart();
+  const { cart, clear, setGateway, setDonation } = useCart();
 
   const [email, setEmail] = useState('');
   const [attendeeName, setAttendeeName] = useState('');
@@ -218,7 +218,12 @@ export default function CheckoutPage() {
     ? Math.round((discountedSubtotal * (feeInfo.platform_fee_percentage ?? 0) / 100 + (feeInfo.platform_flat_fee ?? 0)) * 100) / 100
     : 0;
   const serviceFee = estimateAttendeeFeePortion(cart.entries, platformFeeAmount);
-  const total = discountedSubtotal + serviceFee;
+  // Optional donations ride on top: never discounted, no service fee.
+  const donationTotal = cart.entries.reduce(
+    (sum, e) => sum + (e.type === 'event' && e.event.donations_open ? (e.donationAmount ?? 0) : 0),
+    0
+  );
+  const total = discountedSubtotal + serviceFee + donationTotal;
   const isFree = total <= 0;
 
   const handleApplyCoupon = async () => {
@@ -245,6 +250,13 @@ export default function CheckoutPage() {
   const handleSubmit = async () => {
     if (!email || !attendeeName || !attendeePhone) {
       toast.error('Please fill in all attendee details');
+      return;
+    }
+    const badDonation = cart.entries.find(
+      (e) => e.type === 'event' && e.donationAmount !== undefined && e.donationAmount > 0 && (e.donationAmount < 100 || e.donationAmount > 5_000_000)
+    );
+    if (badDonation) {
+      toast.error('Donations must be between ₦100 and ₦5,000,000');
       return;
     }
 
@@ -313,6 +325,24 @@ export default function CheckoutPage() {
                     <>
                       <div className="text-sm font-medium truncate">{entry.event.title}</div>
                       <div className="text-xs text-muted-foreground">{entry.selectedDate}{entry.selectedTime ? ` ${entry.selectedTime}` : ''}</div>
+                      {entry.event.donations_open && (
+                        <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                          <span className="shrink-0">Add a donation (optional) ₦</span>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            min={100}
+                            max={5000000}
+                            placeholder="0"
+                            value={entry.donationAmount ?? ''}
+                            onChange={(e) => {
+                              const v = e.target.value === '' ? undefined : Number(e.target.value);
+                              setDonation(idx, v !== undefined && Number.isFinite(v) && v > 0 ? v : undefined);
+                            }}
+                            className="w-28 rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
+                          />
+                        </label>
+                      )}
                     </>
                   )}
                   {entry.type === 'movie' && (
@@ -459,7 +489,7 @@ export default function CheckoutPage() {
           )}
 
           <div className="py-6 space-y-2 text-sm">
-            {(serviceFee > 0 || discountAmount > 0 || cart.entries.length > 1) && (
+            {(serviceFee > 0 || discountAmount > 0 || donationTotal > 0 || cart.entries.length > 1) && (
               <>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Subtotal</span>
@@ -475,6 +505,12 @@ export default function CheckoutPage() {
                   <div className="flex justify-between text-muted-foreground">
                     <span>Service fee</span>
                     <span>{formatNaira(serviceFee)}</span>
+                  </div>
+                )}
+                {donationTotal > 0 && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Donation</span>
+                    <span>{formatNaira(donationTotal)}</span>
                   </div>
                 )}
               </>

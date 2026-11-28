@@ -20,22 +20,18 @@ export function StatCard({
   return (
     <Card
       className={cn(
-        'p-5 shadow-none transition-all hover:shadow-lg hover:-translate-y-0.5',
-        isAlert && 'bg-destructive text-destructive-foreground border-transparent'
+        'p-5 shadow-none flex flex-col gap-3 min-w-0',
+        isAlert && 'bg-destructive/10 border-destructive/30'
       )}
     >
-      <div className="flex items-center justify-between mb-3">
-        <span className={cn('text-sm font-medium text-muted-foreground', isAlert && 'text-destructive-foreground/80')}>
-          {label}
-        </span>
-        <div className={cn('w-9 h-9 rounded-lg bg-muted flex items-center justify-center', isAlert && 'bg-white/20')}>
-          <Icon className={cn('w-4 h-4 text-foreground', isAlert && 'text-destructive-foreground')} />
-        </div>
+      <span className={cn('text-sm font-medium text-muted-foreground flex items-center gap-2', isAlert && 'text-destructive')}>
+        <Icon className="w-4 h-4 shrink-0" />
+        {label}
+      </span>
+      <div className={cn('font-display font-bold text-[1.75rem] leading-9 sm:text-[2.25rem] sm:leading-[2.75rem] tabular-nums truncate', isAlert && 'text-destructive')}>
+        {value}
       </div>
-      <div className="text-2xl font-display font-bold">{value}</div>
-      {hint && (
-        <p className={cn('text-xs text-muted-foreground mt-1', isAlert && 'text-destructive-foreground/80')}>{hint}</p>
-      )}
+      {hint && <p className={cn('text-xs text-muted-foreground', isAlert && 'text-destructive/80')}>{hint}</p>}
     </Card>
   );
 }

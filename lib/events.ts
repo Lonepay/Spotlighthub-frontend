@@ -23,9 +23,39 @@ export interface Event {
     is_verified?: boolean;
   };
   available_tickets?: number;
+  tickets_count?: number;
   fee_payer?: 'organizer' | 'attendee';
+  accepts_donations?: boolean;
+  // Server-computed: donations switched on AND the event hasn't ended.
+  donations_open?: boolean;
+  guests?: EventGuest[];
   created_at: string;
   updated_at: string;
+}
+
+export interface EventGuest {
+  id: number;
+  event_id: number;
+  name: string;
+  role?: string | null;
+  image?: string | null;
+  display_order: number;
+}
+
+export interface DonationRow {
+  id: number;
+  donor: string; // "Anonymous" when the donor asked
+  email: string | null;
+  message: string | null;
+  amount: number;
+  fee_amount: number;
+  net_amount: number;
+  created_at: string;
+}
+
+export interface EventDonations {
+  totals: { count: number; gross: number; fees: number; net: number };
+  donations: { data: DonationRow[]; current_page: number; last_page: number; total: number };
 }
 
 export interface EventFilters {
@@ -113,6 +143,30 @@ export const events = {
   async updateVariation(eventId: number, variationId: number, payload: Partial<{ name: string; description: string; price: number; quantity: number }>): Promise<TicketVariation> {
     const { data } = await api.put(`/events/${eventId}/variations/${variationId}`, payload);
     return data.data || data;
+  },
+
+  // Featured guests / lineup (organizer or admin).
+  async addGuest(eventId: number, guest: FormData): Promise<EventGuest> {
+    const { data } = await api.post(`/events/${eventId}/guests`, guest, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
+  },
+
+  async updateGuest(eventId: number, guestId: number, guest: FormData): Promise<EventGuest> {
+    const { data } = await api.post(`/events/${eventId}/guests/${guestId}`, guest, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
+  },
+
+  async deleteGuest(eventId: number, guestId: number): Promise<void> {
+    await api.delete(`/events/${eventId}/guests/${guestId}`);
+  },
+
+  async getDonations(eventId: number, page = 1): Promise<EventDonations> {
+    const { data } = await api.get(`/organizer/events/${eventId}/donations`, { params: { page } });
+    return data;
   },
 
   async deleteVariation(eventId: number, variationId: number): Promise<void> {

@@ -95,6 +95,12 @@ export default function OrganizerWalletPage() {
   return (
     <DashboardShell title="Wallet" description="Your earnings and withdrawal history">
       <div className="space-y-6">
+        {summary.debt > 0 && (
+          <div className="border border-destructive/40 bg-destructive/10 p-4 text-sm">
+            <p className="font-semibold text-destructive">You owe ₦{summary.debt.toLocaleString('en-NG')}</p>
+            <p className="text-muted-foreground">A fraudulent order was reversed after its money had already been withdrawn. New sales clear this first; withdrawals are paused until it&apos;s covered. Contact support with any questions.</p>
+          </div>
+        )}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard icon={NairaSign} label="Available Balance" value={`₦${summary.balance.toLocaleString('en-NG')}`} />
           <StatCard icon={TrendingUp} label="Total Earned" value={`₦${summary.total_earned.toLocaleString('en-NG')}`} />

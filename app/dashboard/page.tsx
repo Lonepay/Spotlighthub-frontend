@@ -20,6 +20,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { DonutBreakdown } from '@/components/charts/DonutBreakdown';
 import { Ticket, Calendar, TrendingUp, ArrowRight, Clock, Heart, Receipt } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
+import { eventPath } from '@/lib/eventLink';
 
 export default function UserDashboardPage() {
   const router = useRouter();
@@ -104,7 +105,7 @@ export default function UserDashboardPage() {
                   {dashboard.upcoming_events.map((ticket: any) => (
                     <Link
                       key={ticket.id}
-                      href={`/events/${ticket.event_id}`}
+                      href={eventPath({ id: ticket.event_id, title: ticket.event?.title })}
                       className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/40 transition-colors"
                     >
                       {ticket.event?.image && (
@@ -193,7 +194,7 @@ export default function UserDashboardPage() {
                       </div>
                     </div>
                     <Button asChild variant="ghost" size="sm">
-                      <Link href={`/events/${ticket.event_id}`}>View event</Link>
+                      <Link href={eventPath({ id: ticket.event_id, title: ticket.event?.title })}>View event</Link>
                     </Button>
                   </div>
                 ))}

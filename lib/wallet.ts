@@ -5,6 +5,8 @@ export interface WalletSummary {
   total_earned: number;
   total_withdrawn: number;
   pending_withdrawals: number;
+  // Owed back after a reversal took money already withdrawn; blocks payouts.
+  debt: number;
 }
 
 export interface Withdrawal {

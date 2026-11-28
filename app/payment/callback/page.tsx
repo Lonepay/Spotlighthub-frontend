@@ -27,7 +27,7 @@ function PaymentCallbackContent() {
   const { clear } = useCart();
   const [status, setStatus] = useState<'loading' | 'success' | 'failed'>('loading');
   const [message, setMessage] = useState('Hang tight while we confirm your payment.');
-  const [result, setResult] = useState<{ tickets: any[]; paymentId: number; guestEmail?: string } | null>(null);
+  const [result, setResult] = useState<{ tickets: any[]; paymentId: number; guestEmail?: string; donationOnly?: boolean } | null>(null);
 
   useEffect(() => {
     const reference = searchParams.get('reference') || searchParams.get('transaction_id');
@@ -43,18 +43,24 @@ function PaymentCallbackContent() {
         const response = await payments.verify(reference);
 
         if (response.status === 'success') {
+          const issued = response.tickets || [];
+          // A donation on its own issues no tickets.
+          const donationOnly = issued.length === 0;
           setStatus('success');
-          setMessage('Your tickets have been issued.');
+          setMessage(donationOnly
+            ? 'Thank you for your donation! Your receipt is on its way to your email.'
+            : 'Your tickets have been issued.');
           clear();
 
           const isLoggedIn = !!response.payment?.user_id;
           setResult({
-            tickets: response.tickets || [],
+            tickets: issued,
             paymentId: response.payment?.id,
             guestEmail: isLoggedIn ? undefined : response.payment?.guest_email,
+            donationOnly,
           });
 
-          if (isLoggedIn) {
+          if (isLoggedIn && !donationOnly) {
             setTimeout(() => {
               router.push('/my-tickets');
             }, 3000);
@@ -92,10 +98,10 @@ function PaymentCallbackContent() {
                 <div className="w-16 h-16 bg-emerald-500/15 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Check className="w-8 h-8 text-emerald-500" />
                 </div>
-                <h2 className="font-display text-2xl font-bold mb-2">You're in 🎉</h2>
+                <h2 className="font-display text-2xl font-bold mb-2">{result?.donationOnly ? 'Thank you 💛' : "You're in 🎉"}</h2>
                 <p className="text-muted-foreground mb-6">{message}</p>
 
-                {user ? (
+                {user && !result?.donationOnly ? (
                   <p className="text-sm text-muted-foreground">Redirecting to your tickets…</p>
                 ) : (
                   result && (

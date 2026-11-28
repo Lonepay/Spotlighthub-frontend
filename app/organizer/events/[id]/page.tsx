@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Plus, Trash2, Edit2, Tag, Calendar, MapPin, Ticket, Info, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Edit2, Tag, Calendar, MapPin, Ticket, Info, ChevronUp, ChevronDown, Users } from 'lucide-react';
 import { sanitize } from '@/lib/sanitize';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +20,11 @@ import { coupons as couponsApi, Coupon } from '@/lib/coupons';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { RichTextEditor } from '@/components/RichTextEditor';
 import { toast } from 'sonner';
+import { ShareEvent } from '@/components/events/ShareEvent';
+import { EventGuestsManager } from '@/components/organizer/EventGuestsManager';
+import { EventDonationsPanel } from '@/components/organizer/EventDonationsPanel';
+import { EventPromotersPanel } from '@/components/organizer/EventPromotersPanel';
+import Link from 'next/link';
 
 interface TicketVariation {
   id?: number;
@@ -39,6 +44,11 @@ export default function OrganizerEventDetailPage() {
   const { user } = useAuth();
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
+  // Arrived straight from "create event" (?created=1): lead with the share link.
+  const [justCreated, setJustCreated] = useState(false);
+  useEffect(() => {
+    setJustCreated(new URLSearchParams(window.location.search).get('created') === '1');
+  }, []);
   const [variations, setVariations] = useState<TicketVariation[]>([]);
   const [soldTickets, setSoldTickets] = useState<any[]>([]);
   const [ticketsPage, setTicketsPage] = useState({ current_page: 1, last_page: 1 });
@@ -70,6 +80,7 @@ export default function OrganizerEventDetailPage() {
     total_tickets: '',
     is_virtual: false,
     fee_payer: 'organizer' as 'organizer' | 'attendee',
+    accepts_donations: false,
   });
 
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -345,6 +356,7 @@ export default function OrganizerEventDetailPage() {
       total_tickets: String(event.total_tickets ?? ''),
       is_virtual: !!event.is_virtual,
       fee_payer: event.fee_payer || 'organizer',
+      accepts_donations: !!event.accepts_donations,
     });
     setEventImage(null);
     setShowEditEvent(true);
@@ -365,6 +377,7 @@ export default function OrganizerEventDetailPage() {
       data.append('total_tickets', eventForm.total_tickets);
       data.append('is_virtual', eventForm.is_virtual ? '1' : '0');
       data.append('fee_payer', eventForm.fee_payer);
+      data.append('accepts_donations', eventForm.accepts_donations ? '1' : '0');
       if (eventImage) {
         data.append('image', eventImage);
       }
@@ -497,9 +510,27 @@ export default function OrganizerEventDetailPage() {
   return (
     <DashboardShell title={event.title} description="Manage event details and ticket types">
       <div className="space-y-6">
-        <Button variant="ghost" size="sm" onClick={() => router.back()}>
-          &larr; Back to events
-        </Button>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Button variant="ghost" size="sm" onClick={() => router.back()}>
+            &larr; Back to events
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/organizer/attendees?event=${event.id}`}><Users className="w-4 h-4" /> Attendees &amp; export</Link>
+          </Button>
+        </div>
+
+        {/* Share link - front and centre right after the event is created */}
+        <Card className={justCreated ? 'border-2 border-primary' : undefined}>
+          <CardContent className="p-6 space-y-3">
+            <div>
+              <h2 className="font-display font-bold text-lg">{justCreated ? '🎉 Your event is live. Share it!' : 'Share your event'}</h2>
+              <p className="text-sm text-muted-foreground">
+                The link shows your event&apos;s name, and its preview on WhatsApp, Facebook and X shows your event image.
+              </p>
+            </div>
+            <ShareEvent event={event} />
+          </CardContent>
+        </Card>
 
         {/* Event Header */}
         <Card>
@@ -657,6 +688,20 @@ export default function OrganizerEventDetailPage() {
                     </button>
                   </div>
                 </div>
+
+                <label htmlFor="edit-accepts-donations" className="flex items-start gap-3 rounded-xl border-2 border-border px-4 py-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    id="edit-accepts-donations"
+                    className="mt-1"
+                    checked={eventForm.accepts_donations}
+                    onChange={(e) => setEventForm({ ...eventForm, accepts_donations: e.target.checked })}
+                  />
+                  <span className="text-sm font-medium">
+                    Accept donations
+                    <span className="block text-xs text-muted-foreground font-normal mt-0.5">Shows &quot;Donate to show support&quot; on your event page and lets buyers add a donation at checkout.</span>
+                  </span>
+                </label>
 
                 <div>
                   <Label htmlFor="edit-image">Replace event image (optional)</Label>
@@ -1195,6 +1240,14 @@ export default function OrganizerEventDetailPage() {
               )}
             </CardContent>
           </Card>
+        )}
+
+        {(user?.id === event.user_id || isAdminLevelRole(user?.role) || hasPermission(user, 'operations')) && (
+          <>
+            <EventGuestsManager eventId={event.id} guests={event.guests ?? []} onChange={loadEvent} />
+            <EventDonationsPanel eventId={event.id} acceptsDonations={!!event.accepts_donations} />
+            <EventPromotersPanel event={event} />
+          </>
         )}
 
         <Card>
