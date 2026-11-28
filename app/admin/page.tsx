@@ -492,6 +492,7 @@ function AdminDashboardPageInner() {
                       <option value="">All roles</option>
                       <option value="attendee">Attendees</option>
                       <option value="organizer">Organizers</option>
+                      <option value="vendor">Vendors</option>
                       <option value="admin">Admins</option>
                       <option value="support">Support</option>
                       {isElevatedActor && <option value="staff">Staff (Admin+)</option>}
@@ -623,6 +624,8 @@ function AdminDashboardPageInner() {
                             >
                               <option value="attendee">Attendee</option>
                               <option value="organizer">Organizer</option>
+                              <option value="vendor">Vendor</option>
+                              {u.role === 'staff' && <option value="staff">Staff</option>}
                               <option value="admin">Admin</option>
                               <option value="super-admin">Super Admin</option>
                               {/* Only the developer can see/assign the developer role — this option is rendered for a
@@ -921,12 +924,17 @@ function AdminDashboardPageInner() {
                         </TableCell>
                         <TableCell className="text-right text-sm tabular-nums whitespace-nowrap">
                           {Number(ticket.price) > 0 ? `₦${Number(ticket.price).toLocaleString('en-NG')}` : 'Free'}
+                          {ticket.price_source === 'list' && <div className="text-[11px] text-muted-foreground" title="This order is too old to record what was paid per ticket">list price</div>}
                         </TableCell>
                         <TableCell className="text-xs whitespace-nowrap">
                           {ticket.payment ? (
                             <>
                               <div className="font-medium text-sm tabular-nums">₦{Number(ticket.payment.amount).toLocaleString('en-NG')}</div>
-                              <div className="text-muted-foreground">{ticket.payment.tickets_count} ticket{ticket.payment.tickets_count === 1 ? '' : 's'} · {ticket.payment.reference}</div>
+                              <div className="text-muted-foreground">
+                                {ticket.payment.tickets_count} ticket{ticket.payment.tickets_count === 1 ? '' : 's'}
+                                {Number(ticket.payment.fees) > 0 ? ` · incl. ₦${Number(ticket.payment.fees).toLocaleString('en-NG')} fees` : ''}
+                                {' · '}{ticket.payment.reference}
+                              </div>
                             </>
                           ) : '—'}
                         </TableCell>
