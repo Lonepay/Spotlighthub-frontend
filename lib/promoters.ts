@@ -67,6 +67,12 @@ export const promoters = {
     return data;
   },
 
+  /** A promoter code typed in at checkout: who it credits and for which event. */
+  async lookup(code: string): Promise<{ code: string; event_id: number; name: string }> {
+    const { data } = await api.get(`/promoters/${encodeURIComponent(code.trim().toUpperCase())}`);
+    return data;
+  },
+
   async mine(): Promise<{ totals: { tickets: number; commission: number }; links: PromoterRow[] }> {
     const { data } = await api.get('/promoter/links');
     return data;

@@ -3,10 +3,12 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, auth, LoginResult, requiresTwoFactor } from '@/lib/auth';
+import { passkeys } from '@/lib/passkeys';
 
-// 20 minutes of no mouse/keyboard/touch/scroll activity locks the app and
-// requires a fresh emailed OTP to keep going — the Sanctum token itself
-// stays valid the whole time, this is a UI gate, not a real logout.
+// 20 minutes of no mouse/keyboard/touch/scroll activity locks the app. The
+// emailed code is only sent when the person taps to continue - not the
+// moment it locks, which flooded inboxes for anyone who left a tab open.
+// The Sanctum token itself stays valid the whole time; this is a UI gate.
 const IDLE_LIMIT_MS = 20 * 60 * 1000;
 const ACTIVITY_EVENTS = ['mousedown', 'keydown', 'scroll', 'touchstart'] as const;
 
@@ -15,7 +17,8 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<LoginResult>;
   completeTwoFactorLogin: (email: string, otp: string) => Promise<User>;
-  register: (name: string, email: string, phone: string, password: string, passwordConfirmation: string, role?: 'attendee' | 'organizer' | 'admin', country?: string) => Promise<void>;
+  loginWithPasskey: () => Promise<User>;
+  register: (name: string, email: string, phone: string, password: string, passwordConfirmation: string, role?: 'attendee' | 'organizer' | 'admin', country?: string, emailCode?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   locked: boolean;
@@ -52,18 +55,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
     ACTIVITY_EVENTS.forEach((evt) => window.addEventListener(evt, markActive, { passive: true }));
 
-    const interval = setInterval(async () => {
+    const interval = setInterval(() => {
       if (Date.now() - lastActivityRef.current >= IDLE_LIMIT_MS && !lockingRef.current) {
-        lockingRef.current = true;
         setLocked(true);
-        try {
-          await auth.lockSession();
-        } catch {
-          // Even if the email fails to send, the app stays locked — the
-          // user can trigger a resend from the lock screen itself.
-        } finally {
-          lockingRef.current = false;
-        }
       }
     }, 30_000);
 
@@ -98,8 +92,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return response.user;
   };
 
-  const register = async (name: string, email: string, phone: string, password: string, passwordConfirmation: string, role: 'attendee' | 'organizer' | 'admin' = 'attendee', country?: string) => {
-    const response = await auth.register(name, email, phone, password, passwordConfirmation, role, country);
+  const loginWithPasskey = async () => {
+    const signedIn = await passkeys.signIn();
+    setUser(signedIn);
+    return signedIn;
+  };
+
+  const register = async (name: string, email: string, phone: string, password: string, passwordConfirmation: string, role: 'attendee' | 'organizer' | 'admin' = 'attendee', country?: string, emailCode?: string) => {
+    const response = await auth.register(name, email, phone, password, passwordConfirmation, role, country, emailCode);
     setUser(response.user);
   };
 
@@ -111,7 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, completeTwoFactorLogin, register, logout, refreshUser, locked, unlockSession }}>
+    <AuthContext.Provider value={{ user, loading, login, completeTwoFactorLogin, loginWithPasskey, register, logout, refreshUser, locked, unlockSession }}>
       {children}
     </AuthContext.Provider>
   );

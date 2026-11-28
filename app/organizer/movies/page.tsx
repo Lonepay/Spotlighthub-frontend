@@ -12,22 +12,24 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Clapperboard, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { loginHref } from '@/lib/redirect';
 
 export default function OrganizerMoviesPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [list, setList] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteMovieTarget, setDeleteMovieTarget] = useState<{ id: number; title: string } | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
 
   useEffect(() => {
+    if (authLoading) return; // a reload starts with no user while the auth check runs
     if (!user || (user.role !== 'organizer' && !isStaffRole(user.role))) {
-      router.push('/login');
+      router.push(loginHref());
       return;
     }
     load();
-  }, [user]);
+  }, [user, authLoading]);
 
   const load = async () => {
     try {

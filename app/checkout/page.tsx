@@ -10,11 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/components/AuthProvider';
-import { useCart, entryTotal, EventCartEntry, CartEntry } from '@/lib/cart';
+import { useCart, entryTotal, EventCartEntry, CartEntry, ProductCartEntry } from '@/lib/cart';
+import { promoters } from '@/lib/promoters';
 import { payments } from '@/lib/payments';
-import { gateway as gatewayApi, GatewayStatus } from '@/lib/gateway';
+import { gateway as gatewayApi, GatewayStatus, estimateFee } from '@/lib/gateway';
 import { coupons, CouponValidation } from '@/lib/coupons';
-import { ArrowLeft, Mail, User as UserIcon, Phone, ShieldCheck, Loader2, CheckCircle2, Receipt, Tag, X, Clapperboard, Building2, CreditCard, Zap, Wallet, Check, AlertTriangle, Globe } from 'lucide-react';
+import { ArrowLeft, Mail, User as UserIcon, Phone, ShieldCheck, Loader2, CheckCircle2, Receipt, Tag, X, Clapperboard, Building2, ShoppingBag, Truck, Store, CreditCard, Zap, Wallet, Check, AlertTriangle, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 
 function formatNaira(value: number) {
@@ -47,10 +48,12 @@ function estimateAttendeeFeePortion(entries: CartEntry[], platformFeeAmount: num
       organizerId = entry.movie.user_id;
       count = entry.seatIds.length;
       feePayer = entry.movie.fee_payer ?? 'organizer';
-    } else {
+    } else if (entry.type === 'venue') {
       organizerId = entry.venue.user_id;
       count = 1;
       feePayer = entry.venue.fee_payer ?? 'organizer';
+    } else {
+      continue; // products: no ticket fee
     }
 
     if (organizerId == null || count <= 0) continue;
@@ -71,7 +74,7 @@ function estimateAttendeeFeePortion(entries: CartEntry[], platformFeeAmount: num
 export default function CheckoutPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { cart, clear, setGateway, setDonation } = useCart();
+  const { cart, clear, setGateway, setDonation, setDelivery } = useCart();
 
   const [email, setEmail] = useState('');
   const [attendeeName, setAttendeeName] = useState('');
@@ -85,6 +88,8 @@ export default function CheckoutPage() {
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<CouponValidation | null>(null);
   const [applyingCoupon, setApplyingCoupon] = useState(false);
+  // A promoter's code typed in by hand (instead of arriving via their link).
+  const [appliedPromoter, setAppliedPromoter] = useState<{ code: string; name: string } | null>(null);
 
   useEffect(() => {
     gatewayApi.status()
@@ -207,36 +212,57 @@ export default function CheckoutPage() {
   const primaryEventEntry = cart.entries.find((e): e is EventCartEntry => e.type === 'event');
 
   const eventSubtotal = cart.entries.filter((e) => e.type === 'event').reduce((sum, e) => sum + entryTotal(e), 0);
-  const otherSubtotal = cart.entries.filter((e) => e.type !== 'event').reduce((sum, e) => sum + entryTotal(e), 0);
+  const otherSubtotal = cart.entries.filter((e) => e.type !== 'event' && e.type !== 'product').reduce((sum, e) => sum + entryTotal(e), 0);
+
+  // Products: one handover choice per vendor, at that vendor's flat delivery fee.
+  const productEntries = cart.entries.filter((e): e is ProductCartEntry => e.type === 'product');
+  const productSubtotal = productEntries.reduce((sum, e) => sum + entryTotal(e), 0);
+  const productVendors = Array.from(new Map(productEntries.map((e) => [e.product.vendor_id, e.product])).values());
+  const deliveryFor = (v: ProductCartEntry['product']) =>
+    cart.deliveries?.[String(v.vendor_id)] ?? { method: v.offers_pickup ? 'pickup' as const : 'delivery' as const };
+  const deliveryTotal = productVendors.reduce((sum, v) => sum + (deliveryFor(v).method === 'delivery' ? v.delivery_fee : 0), 0);
   const discountAmount = appliedCoupon?.discount_amount ?? 0;
   const subtotal = eventSubtotal + otherSubtotal;
   const discountedSubtotal = Math.max(0, subtotal - discountAmount);
+  const shownSubtotal = subtotal + productSubtotal;
 
   // Platform fee on the whole cart, then split per-organizer by
   // ticket-count share — matches PaymentController::initializeMulti exactly.
-  const platformFeeAmount = discountedSubtotal > 0
-    ? Math.round((discountedSubtotal * (feeInfo.platform_fee_percentage ?? 0) / 100 + (feeInfo.platform_flat_fee ?? 0)) * 100) / 100
-    : 0;
+  // Stripe (USD cards) has its own fee schedule; Naira gateways use the platform fee.
+  const platformFeeAmount = estimateFee(discountedSubtotal, cart.gateway, feeInfo);
   const serviceFee = estimateAttendeeFeePortion(cart.entries, platformFeeAmount);
   // Optional donations ride on top: never discounted, no service fee.
   const donationTotal = cart.entries.reduce(
     (sum, e) => sum + (e.type === 'event' && e.event.donations_open ? (e.donationAmount ?? 0) : 0),
     0
   );
-  const total = discountedSubtotal + serviceFee + donationTotal;
+  const total = discountedSubtotal + serviceFee + donationTotal + productSubtotal + deliveryTotal;
   const isFree = total <= 0;
 
+  // Coupon and partnership codes are checked against the event first; if
+  // it isn't one, it may be a promoter's code for an event in the cart.
   const handleApplyCoupon = async () => {
-    if (!couponInput.trim() || !primaryEventEntry) return;
+    const code = couponInput.trim();
+    if (!code || !primaryEventEntry) return;
     setApplyingCoupon(true);
     try {
       const itemsPayload = primaryEventEntry.items.map((i) => ({ variationId: i.variation?.id, quantity: i.quantity }));
-      const result = await coupons.validate(primaryEventEntry.event.id, couponInput.trim(), itemsPayload);
+      const result = await coupons.validate(primaryEventEntry.event.id, code, itemsPayload);
       setAppliedCoupon(result);
-      toast.success(`Coupon applied — ${formatNaira(result.discount_amount)} off`);
-    } catch (error: any) {
-      setAppliedCoupon(null);
-      toast.error(error.response?.data?.message || 'Invalid coupon code');
+      setCouponInput('');
+      toast.success(result.discount_amount > 0 ? `Code applied — ${formatNaira(result.discount_amount)} off` : 'Partner code applied');
+    } catch (couponError: any) {
+      try {
+        const promo = await promoters.lookup(code);
+        const inCart = cart.entries.some((e) => e.type === 'event' && e.event.id === promo.event_id);
+        if (!inCart) throw new Error('not for this cart');
+        promoters.rememberRef(promo.event_id, promo.code);
+        setAppliedPromoter({ code: promo.code, name: promo.name });
+        setCouponInput('');
+        toast.success(`Promoter code applied — your purchase supports ${promo.name}`);
+      } catch {
+        toast.error(couponError.response?.data?.message || 'That code isn\'t valid for the tickets in your cart');
+      }
     } finally {
       setApplyingCoupon(false);
     }
@@ -259,6 +285,14 @@ export default function CheckoutPage() {
       toast.error('Donations must be between ₦100 and ₦5,000,000');
       return;
     }
+    const missingAddress = productVendors.find((v) => {
+      const choice = deliveryFor(v);
+      return choice.method === 'delivery' && (choice.address ?? '').trim().length < 10;
+    });
+    if (missingAddress) {
+      toast.error(`Enter a full delivery address for your ${missingAddress.vendor_name} order`);
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -268,7 +302,8 @@ export default function CheckoutPage() {
         attendeeName,
         attendeePhone,
         cart.gateway,
-        appliedCoupon?.code
+        appliedCoupon?.code,
+        Object.fromEntries(productVendors.map((v) => [String(v.vendor_id), deliveryFor(v)]))
       );
 
       if (response.is_free) {
@@ -319,6 +354,7 @@ export default function CheckoutPage() {
                   {entry.type === 'event' && <span className="text-xs font-bold text-primary">{entry.items.reduce((s, i) => s + i.quantity, 0)}</span>}
                   {entry.type === 'movie' && <Clapperboard className="w-4 h-4 text-primary" />}
                   {entry.type === 'venue' && <Building2 className="w-4 h-4 text-primary" />}
+                  {entry.type === 'product' && <ShoppingBag className="w-4 h-4 text-primary" />}
                 </div>
                 <div className="min-w-0 flex-1">
                   {entry.type === 'event' && (
@@ -349,6 +385,12 @@ export default function CheckoutPage() {
                     <>
                       <div className="text-sm font-medium truncate">{entry.movie.title} — {entry.seatIds.length} seat{entry.seatIds.length > 1 ? 's' : ''}</div>
                       <div className="text-xs text-muted-foreground">{new Date(entry.showtime.date).toLocaleDateString()} {entry.showtime.time} · Seats {entry.seatIds.join(', ')}</div>
+                    </>
+                  )}
+                  {entry.type === 'product' && (
+                    <>
+                      <div className="text-sm font-medium truncate">{entry.quantity} × {entry.product.name}</div>
+                      <div className="text-xs text-muted-foreground">from {entry.product.vendor_name}</div>
                     </>
                   )}
                   {entry.type === 'venue' && (
@@ -398,10 +440,54 @@ export default function CheckoutPage() {
             </div>
           </div>
 
+          {productVendors.map((v) => {
+            const choice = deliveryFor(v);
+            return (
+              <div key={v.vendor_id} className="py-6 border-b border-border/50 space-y-3">
+                <div className="font-display font-semibold flex items-center gap-2"><Store className="w-4 h-4" /> How to get your {v.vendor_name} order</div>
+                <div className="grid grid-cols-2 gap-3">
+                  {v.offers_pickup && (
+                    <button type="button" onClick={() => setDelivery(v.vendor_id, { method: 'pickup' })}
+                      className={`p-3 rounded-xl border-2 text-left text-sm ${choice.method === 'pickup' ? 'border-primary bg-primary/5' : 'border-border'}`}>
+                      <div className="font-medium flex items-center gap-1.5"><Store className="w-4 h-4" /> Pickup · Free</div>
+                      {v.pickup_address && <div className="text-xs text-muted-foreground mt-1">{v.pickup_address}</div>}
+                    </button>
+                  )}
+                  {v.offers_delivery && (
+                    <button type="button" onClick={() => setDelivery(v.vendor_id, { method: 'delivery', address: choice.address })}
+                      className={`p-3 rounded-xl border-2 text-left text-sm ${choice.method === 'delivery' ? 'border-primary bg-primary/5' : 'border-border'}`}>
+                      <div className="font-medium flex items-center gap-1.5"><Truck className="w-4 h-4" /> Delivery · {v.delivery_fee > 0 ? formatNaira(v.delivery_fee) : 'Free'}</div>
+                      {v.delivery_note && <div className="text-xs text-muted-foreground mt-1">{v.delivery_note}</div>}
+                    </button>
+                  )}
+                </div>
+                {choice.method === 'delivery' && (
+                  <div>
+                    <Label htmlFor={`address-${v.vendor_id}`}>Delivery address *</Label>
+                    <textarea
+                      id={`address-${v.vendor_id}`}
+                      rows={2}
+                      maxLength={500}
+                      value={choice.address ?? ''}
+                      onChange={(e) => setDelivery(v.vendor_id, { method: 'delivery', address: e.target.value })}
+                      placeholder="House number, street, area, city"
+                      className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
           {primaryEventEntry && eventSubtotal > 0 && (
             <div className="py-6 border-b border-border/50">
-              <Label htmlFor="coupon-code">Coupon code</Label>
-              <p className="text-xs text-muted-foreground mb-1.5">Applies to {primaryEventEntry.event.title} only.</p>
+              <Label htmlFor="coupon-code">Coupon, partner or promoter code</Label>
+              <p className="text-xs text-muted-foreground mb-1.5">Got a code from a partner or promoter of {primaryEventEntry.event.title}? Paste it here so they get credit for your purchase.</p>
+              {appliedPromoter && (
+                <div className="flex items-center justify-between mb-2 rounded-lg bg-primary/5 border border-primary/30 px-3 py-2">
+                  <span className="flex items-center gap-2 text-sm font-medium"><Tag className="h-4 w-4 text-primary" /> {appliedPromoter.code} · supports {appliedPromoter.name}</span>
+                </div>
+              )}
               {appliedCoupon ? (
                 <div className="flex items-center justify-between mt-1 rounded-lg bg-primary/5 border border-primary/30 px-3 py-2">
                   <span className="flex items-center gap-2 text-sm font-medium">
@@ -489,11 +575,11 @@ export default function CheckoutPage() {
           )}
 
           <div className="py-6 space-y-2 text-sm">
-            {(serviceFee > 0 || discountAmount > 0 || donationTotal > 0 || cart.entries.length > 1) && (
+            {(serviceFee > 0 || discountAmount > 0 || donationTotal > 0 || deliveryTotal > 0 || cart.entries.length > 1) && (
               <>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Subtotal</span>
-                  <span>{formatNaira(subtotal)}</span>
+                  <span>{formatNaira(shownSubtotal)}</span>
                 </div>
                 {discountAmount > 0 && (
                   <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
@@ -503,7 +589,7 @@ export default function CheckoutPage() {
                 )}
                 {serviceFee > 0 && (
                   <div className="flex justify-between text-muted-foreground">
-                    <span>Service fee</span>
+                    <span>{cart.gateway === 'stripe' ? 'Card processing & service fee' : 'Service fee'}</span>
                     <span>{formatNaira(serviceFee)}</span>
                   </div>
                 )}
@@ -511,6 +597,12 @@ export default function CheckoutPage() {
                   <div className="flex justify-between text-muted-foreground">
                     <span>Donation</span>
                     <span>{formatNaira(donationTotal)}</span>
+                  </div>
+                )}
+                {deliveryTotal > 0 && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Delivery</span>
+                    <span>{formatNaira(deliveryTotal)}</span>
                   </div>
                 )}
               </>

@@ -1,18 +1,18 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Navbar } from '@/components/Navbar';
-import { Footer } from '@/components/Footer';
-import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/components/AuthProvider';
+import { AuthShell } from '@/components/auth/AuthShell';
 import { isStaffRole, requiresTwoFactor } from '@/lib/auth';
-import { Mail, Lock, ArrowRight, ShieldCheck } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Fingerprint, Loader2, AlertCircle } from 'lucide-react';
+import { safeNext } from '@/lib/redirect';
+import { passkeysSupported, passkeyErrorMessage } from '@/lib/passkeys';
 
 export default function LoginPage() {
   return (
@@ -25,21 +25,31 @@ export default function LoginPage() {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, completeTwoFactorLogin } = useAuth();
+  const { login, completeTwoFactorLogin, loginWithPasskey } = useAuth();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [otp, setOtp] = useState('');
   const [pendingTwoFactorEmail, setPendingTwoFactorEmail] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<'' | 'password' | 'passkey' | 'otp'>('');
+  // Checked after mount: the server render can't know the browser's support.
+  const [canUsePasskey, setCanUsePasskey] = useState(false);
+  useEffect(() => setCanUsePasskey(passkeysSupported()), []);
 
-  const goToDashboard = (role?: string) => {
-    const next = searchParams.get('next');
-    if (next) {
+  // Back to the page that sent you here (same-site paths only), else your home.
+  const next = safeNext(searchParams.get('next'));
+
+  const goToDashboard = (role?: string, mustChangePassword?: boolean) => {
+    // A password an admin generated: choose your own first, then carry on.
+    if (mustChangePassword) {
+      router.push(`/profile/security?change_password=1${next ? `&next=${encodeURIComponent(next)}` : ''}`);
+    } else if (next) {
       router.push(next);
     } else if (role === 'organizer') {
       router.push('/organizer');
     } else if (isStaffRole(role)) {
       router.push('/admin');
+    } else if (role === 'vendor') {
+      router.push('/vendor');
     } else {
       router.push('/dashboard');
     }
@@ -48,20 +58,32 @@ function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
-
+    setLoading('password');
     try {
       const result = await login(formData.email, formData.password);
       if (requiresTwoFactor(result)) {
         setPendingTwoFactorEmail(result.email);
       } else {
-        goToDashboard(result.user.role);
+        goToDashboard(result.user.role, result.user.must_change_password);
       }
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Invalid credentials';
-      setError(errorMessage);
+      setError(err.response?.data?.message || err.message || 'Invalid credentials');
     } finally {
-      setLoading(false);
+      setLoading('');
+    }
+  };
+
+  // No email or password: the browser offers the passkeys it has for Spotlighticket.
+  const handlePasskey = async () => {
+    setError('');
+    setLoading('passkey');
+    try {
+      const user = await loginWithPasskey();
+      goToDashboard(user.role, user.must_change_password);
+    } catch (err: any) {
+      setError(passkeyErrorMessage(err, 'Could not sign in with a passkey'));
+    } finally {
+      setLoading('');
     }
   };
 
@@ -69,136 +91,119 @@ function LoginForm() {
     e.preventDefault();
     if (!pendingTwoFactorEmail) return;
     setError('');
-    setLoading(true);
-
+    setLoading('otp');
     try {
       const user = await completeTwoFactorLogin(pendingTwoFactorEmail, otp);
-      goToDashboard(user.role);
+      goToDashboard(user.role, user.must_change_password);
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Invalid or expired code';
-      setError(errorMessage);
+      setError(err.response?.data?.message || err.message || 'Invalid or expired code');
     } finally {
-      setLoading(false);
+      setLoading('');
     }
   };
 
-  return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <div className="flex-1 flex items-center justify-center py-20 px-4">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center mb-4">
-              <Logo className="h-16 w-auto object-contain" />
-            </div>
-            <h1 className="text-4xl font-bold mb-2">Welcome back</h1>
-            <p className="text-muted-foreground">Sign in to your account to continue</p>
-          </div>
-
-          <div className="glass rounded-2xl shadow-card p-8">
-            {error && (
-              <div className="mb-6 p-4 bg-destructive/10 border border-destructive/30 rounded-xl text-destructive text-sm">
-                {error}
-              </div>
-            )}
-
-            {pendingTwoFactorEmail ? (
-              <form onSubmit={handleVerifyOtp} className="space-y-6">
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-primary/5 border border-primary/20">
-                  <ShieldCheck className="w-5 h-5 text-primary mt-0.5 shrink-0" />
-                  <p className="text-sm text-muted-foreground">
-                    We emailed a 6-digit code to <span className="font-medium text-foreground">{pendingTwoFactorEmail}</span>.
-                    Enter it below to finish signing in.
-                  </p>
-                </div>
-
-                <div>
-                  <Label htmlFor="login-otp">Verification code</Label>
-                  <Input
-                    id="login-otp"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    required
-                    maxLength={6}
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                    placeholder="123456"
-                    className="text-center text-lg tracking-[0.5em]"
-                  />
-                </div>
-
-                <Button type="submit" disabled={loading || otp.length !== 6} variant="hero" size="lg" className="w-full">
-                  {loading ? 'Verifying...' : 'Verify & sign in'}
-                  {!loading && <ArrowRight className="w-5 h-5" />}
-                </Button>
-
-                <button
-                  type="button"
-                  onClick={() => { setPendingTwoFactorEmail(null); setOtp(''); setError(''); }}
-                  className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Back to sign in
-                </button>
-              </form>
-            ) : (
-              <>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div>
-                    <Label htmlFor="login-email">Email address</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <Input
-                        id="login-email"
-                        type="email"
-                        required
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="pl-12"
-                        placeholder="you@example.com"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center mb-1.5">
-                      <Label htmlFor="login-password" className="mb-0">Password</Label>
-                      <Link href="/forgot-password" className="text-xs text-primary-glow hover:underline">
-                        Forgot password?
-                      </Link>
-                    </div>
-                    <div className="relative">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
-                      <PasswordInput
-                        id="login-password"
-                        required
-                        value={formData.password}
-                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        className="pl-12"
-                        placeholder="••••••••"
-                      />
-                    </div>
-                  </div>
-
-                  <Button type="submit" disabled={loading} variant="hero" size="lg" className="w-full">
-                    {loading ? 'Signing in...' : 'Sign in'}
-                    {!loading && <ArrowRight className="w-5 h-5" />}
-                  </Button>
-                </form>
-
-                <div className="mt-6 text-center">
-                  <p className="text-muted-foreground text-sm">
-                    Don't have an account?{' '}
-                    <Link href="/register" className="text-primary-glow hover:underline font-semibold">
-                      Sign up
-                    </Link>
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-      <Footer />
+  const errorBox = error && (
+    <div role="alert" className="mb-6 flex items-start gap-2.5 rounded-xl border border-destructive/30 bg-destructive/10 p-3.5 text-sm text-destructive">
+      <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" /> <span>{error}</span>
     </div>
+  );
+
+  if (pendingTwoFactorEmail) {
+    return (
+      <AuthShell title="Check your email" subtitle={`We sent a 6-digit code to ${pendingTwoFactorEmail}.`}>
+        {errorBox}
+        <form onSubmit={handleVerifyOtp} className="space-y-6">
+          <div>
+            <Label htmlFor="login-otp">Verification code</Label>
+            <Input
+              id="login-otp"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              autoFocus
+              required
+              maxLength={6}
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+              placeholder="••••••"
+              className="h-14 text-center text-2xl tracking-[0.6em] font-mono"
+            />
+          </div>
+          <Button type="submit" disabled={!!loading || otp.length !== 6} variant="hero" size="lg" className="w-full h-12">
+            {loading === 'otp' ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Verify & sign in <ArrowRight className="h-5 w-5" /></>}
+          </Button>
+          <button
+            type="button"
+            onClick={() => { setPendingTwoFactorEmail(null); setOtp(''); setError(''); }}
+            className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Use a different account
+          </button>
+        </form>
+      </AuthShell>
+    );
+  }
+
+  return (
+    <AuthShell title="Welcome back" subtitle="Sign in to get your tickets, manage events and get paid.">
+      {errorBox}
+
+      {canUsePasskey && (
+        <>
+          <Button type="button" variant="outline" size="lg" className="w-full h-12" onClick={handlePasskey} disabled={!!loading}>
+            {loading === 'passkey' ? <Loader2 className="h-5 w-5 animate-spin" /> : <Fingerprint className="h-5 w-5" />}
+            Sign in with a passkey
+          </Button>
+          <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-wider text-muted-foreground">
+            <span className="h-px flex-1 bg-border" /> or with email <span className="h-px flex-1 bg-border" />
+          </div>
+        </>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div>
+          <Label htmlFor="login-email">Email</Label>
+          <Input
+            id="login-email"
+            type="email"
+            autoComplete="email webauthn"
+            required
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            className="h-12"
+            placeholder="you@example.com"
+          />
+        </div>
+
+        <div>
+          <div className="flex justify-between items-center mb-1.5">
+            <Label htmlFor="login-password" className="mb-0">Password</Label>
+            <Link href="/forgot-password" className="text-sm font-medium text-primary hover:underline">Forgot password?</Link>
+          </div>
+          <PasswordInput
+            id="login-password"
+            autoComplete="current-password"
+            required
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            className="h-12"
+            placeholder="Your password"
+          />
+        </div>
+
+        <Button type="submit" disabled={!!loading} variant="hero" size="lg" className="w-full h-12">
+          {loading === 'password' ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Sign in <ArrowRight className="h-5 w-5" /></>}
+        </Button>
+      </form>
+
+      <p className="mt-8 text-center text-sm text-muted-foreground">
+        New to Spotlighticket?{' '}
+        <Link href={next ? `/register?next=${encodeURIComponent(next)}` : '/register'} className="font-semibold text-primary hover:underline">
+          Create an account
+        </Link>
+      </p>
+      <p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+        <ShieldCheck className="h-3.5 w-3.5" /> We&apos;ll never share your details.
+      </p>
+    </AuthShell>
   );
 }

@@ -97,6 +97,23 @@ export interface PatchStatus {
   pending_request: { command: string; created_at: string } | null;
 }
 
+export interface WalletLookup {
+  user: { id: number; name: string; email: string; role: string };
+  balance: number;
+  debt: number;
+  total_earned: number;
+}
+
+export interface WalletAdjustmentRow {
+  id: number;
+  amount: string; // + credit, - debit
+  purpose: string;
+  reference: string | null;
+  created_at: string;
+  user: { id: number; name: string; email: string; role: string } | null;
+  creator: { id: number; name: string } | null;
+}
+
 export interface ReversalPreview {
   payment: {
     id: number;
@@ -131,6 +148,12 @@ export interface AdminSettings {
   platform_flat_fee: number | null;
   // null = same as platform_fee_percentage
   donation_fee_percentage: number | null;
+  // Platform cut of product sales; null = same as platform_fee_percentage
+  marketplace_fee_percentage: number | null;
+  // Stripe (USD cards): charge % + flat $, of which Spotlight keeps share %
+  stripe_fee_percentage: number;
+  stripe_fee_flat_usd: number;
+  stripe_platform_share_percentage: number;
   site_title: string | null;
   site_description: string | null;
   site_keywords: string | null;
@@ -252,6 +275,27 @@ export const admin = {
     return data;
   },
 
+  /** A new password for a locked-out user, returned once (optionally emailed to them). */
+  async generatePassword(userId: number, sendEmail: boolean) {
+    const { data } = await api.post(`/admin/users/${userId}/generate-password`, { send_email: sendEmail });
+    return data as { password: string; emailed: boolean; sessions_signed_out: number };
+  },
+
+  async lookupWallet(email: string): Promise<WalletLookup> {
+    const { data } = await api.get('/admin/wallet-adjustments/lookup', { params: { email } });
+    return data;
+  },
+
+  async getWalletAdjustments(params?: { page?: number; user_id?: number }) {
+    const { data } = await api.get('/admin/wallet-adjustments', { params });
+    return data as Paginated<WalletAdjustmentRow>;
+  },
+
+  async adjustWallet(payload: { user_id: number; direction: 'credit' | 'debit'; amount: number; purpose: string; reference?: string }) {
+    const { data } = await api.post('/admin/wallet-adjustments', payload);
+    return data as { adjustment: WalletAdjustmentRow; wallet: WalletLookup };
+  },
+
   async getReversalPreview(paymentId: number): Promise<ReversalPreview> {
     const { data } = await api.get(`/admin/payments/${paymentId}/reversal`);
     return data;
@@ -295,6 +339,10 @@ export const admin = {
     platform_fee_percentage: number | null;
     platform_flat_fee: number | null;
     donation_fee_percentage: number | null;
+    marketplace_fee_percentage: number | null;
+    stripe_fee_percentage: number;
+    stripe_fee_flat_usd: number;
+    stripe_platform_share_percentage: number;
     site_title: string | null;
     site_description: string | null;
     site_keywords: string | null;

@@ -21,6 +21,7 @@ import { DonutBreakdown } from '@/components/charts/DonutBreakdown';
 import { Ticket, Calendar, TrendingUp, ArrowRight, Clock, Heart, Receipt } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { eventPath } from '@/lib/eventLink';
+import { loginHref } from '@/lib/redirect';
 
 export default function UserDashboardPage() {
   const router = useRouter();
@@ -31,7 +32,7 @@ export default function UserDashboardPage() {
   useEffect(() => {
     if (!authLoading) {
       if (!authUser) {
-        router.push('/login');
+        router.push(loginHref());
       } else if (authUser.role === 'organizer') {
         router.push('/organizer');
       } else if (isStaffRole(authUser.role)) {

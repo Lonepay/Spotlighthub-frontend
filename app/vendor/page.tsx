@@ -13,12 +13,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Store, Clock, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
+import { DeliverySettingsCard } from '@/components/vendor/DeliverySettingsCard';
+import { loginHref } from '@/lib/redirect';
 
 const CATEGORY_PRESETS = ['Photography', 'Catering', 'Decor & Styling', 'DJ & Entertainment', 'Makeup & Beauty', 'Event Planning', 'Furniture & Rentals', 'Sound & Lighting', 'Other'];
 
 export default function VendorMyListingPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -30,11 +32,12 @@ export default function VendorMyListingPage() {
   });
 
   useEffect(() => {
-    if (!user) { router.push('/login'); return; }
+    if (authLoading) return; // a reload starts with no user while the auth check runs
+    if (!user) { router.push(loginHref()); return; }
     if (user.role !== 'vendor') { router.push('/dashboard'); return; }
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, authLoading]);
 
   const load = async () => {
     try {
@@ -94,7 +97,7 @@ export default function VendorMyListingPage() {
   const cover = storageUrl(vendor.cover_image);
 
   return (
-    <DashboardShell title="My Listing" description="Edit your directory listing">
+    <DashboardShell title="My Listing" description="Your storefront details, and how buyers get their orders">
       <div className="max-w-2xl space-y-6">
         <div className="flex items-center gap-3">
           {vendor.is_published ? (
@@ -189,6 +192,8 @@ export default function VendorMyListingPage() {
             </form>
           </CardContent>
         </Card>
+
+        <DeliverySettingsCard vendor={vendor} />
       </div>
     </DashboardShell>
   );

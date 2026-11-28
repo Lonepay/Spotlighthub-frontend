@@ -1,5 +1,8 @@
 import api from './api';
 
+// Last good /user response, used only when the server can't be reached.
+const USER_CACHE_KEY = 'auth_user';
+
 export interface StaffRole {
   id: number;
   name: string;
@@ -18,6 +21,8 @@ export interface User {
   bio?: string;
   avatar_url?: string | null;
   two_factor_enabled?: boolean;
+  // Set when an admin generated their password: they should choose their own.
+  must_change_password?: boolean;
 }
 
 export interface AuthResponse {
@@ -62,7 +67,12 @@ export function hasPermission(user: User | null | undefined, permission: string)
 }
 
 export const auth = {
-  async register(name: string, email: string, phone: string, password: string, passwordConfirmation: string, role: 'attendee' | 'organizer' | 'admin' = 'attendee', country?: string): Promise<AuthResponse> {
+  /** Step one of signing up: email a code that proves the address is theirs. */
+  async sendRegistrationCode(email: string): Promise<void> {
+    await api.post('/register/send-code', { email });
+  },
+
+  async register(name: string, email: string, phone: string, password: string, passwordConfirmation: string, role: 'attendee' | 'organizer' | 'admin' = 'attendee', country?: string, emailCode?: string): Promise<AuthResponse> {
     const { data } = await api.post('/register', {
       name,
       email,
@@ -71,6 +81,7 @@ export const auth = {
       password,
       password_confirmation: passwordConfirmation,
       role,
+      email_code: emailCode,
     });
     if (data.token) {
       localStorage.setItem('token', data.token);
@@ -120,13 +131,37 @@ export const auth = {
       await api.post('/logout');
     } finally {
       localStorage.removeItem('token');
+      localStorage.removeItem(USER_CACHE_KEY);
     }
   },
 
+  /**
+   * The signed-in user. Only a 401 means "logged out" (and clears the
+   * token); a network blip, a slow server or a 503 during a deploy is
+   * retried, then falls back to the last known user so nobody is bounced
+   * to the login page while their token is still valid.
+   */
   async getUser(): Promise<User | null> {
+    if (!localStorage.getItem('token')) return null;
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const { data } = await api.get('/user');
+        localStorage.setItem(USER_CACHE_KEY, JSON.stringify(data));
+        return data;
+      } catch (error: any) {
+        if (error?.response?.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem(USER_CACHE_KEY);
+          return null;
+        }
+        await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+      }
+    }
+
     try {
-      const { data } = await api.get('/user');
-      return data;
+      const cached = localStorage.getItem(USER_CACHE_KEY);
+      return cached ? (JSON.parse(cached) as User) : null;
     } catch {
       return null;
     }

@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import api from '@/lib/api';
 import { auth } from '@/lib/auth';
 import { Save, Loader2, Camera, Trash2 } from 'lucide-react';
+import { loginHref } from '@/lib/redirect';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -52,7 +53,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push('/login');
+      router.push(loginHref());
     } else if (user) {
       setName(user.name);
       setEmail(user.email);

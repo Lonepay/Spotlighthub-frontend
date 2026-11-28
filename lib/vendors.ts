@@ -1,4 +1,5 @@
 import api from './api';
+import type { Product, PortfolioItem } from './shop';
 
 export interface Vendor {
   id: number;
@@ -13,6 +14,15 @@ export interface Vendor {
   website?: string | null;
   instagram?: string | null;
   is_published: boolean;
+  is_verified?: boolean;
+  offers_pickup?: boolean;
+  pickup_address?: string | null;
+  offers_delivery?: boolean;
+  delivery_fee?: number | string;
+  delivery_note?: string | null;
+  product_count?: number;
+  products?: Product[];
+  portfolio_items?: PortfolioItem[];
   created_at: string;
   updated_at: string;
 }

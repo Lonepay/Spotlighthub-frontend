@@ -50,9 +50,16 @@ import {
   Contact,
   Megaphone,
   Home,
+  ShoppingBag,
+  LayoutGrid,
+  Package,
+  HeartHandshake,
+  CreditCard,
+  Scale,
 } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { TopProgressBar } from '@/components/TopProgressBar';
+import { AnnouncementTicker } from '@/components/dashboard/AnnouncementTicker';
 
 type NavItem = { label: string; href: string; icon: any };
 type NavSection = { title: string; items: NavItem[] };
@@ -64,10 +71,12 @@ const NAV_BY_ROLE: Record<string, NavSection[]> = {
     { title: 'Tickets', items: [
       item('Overview', '/dashboard', LayoutDashboard),
       item('My Tickets', '/my-tickets', Ticket),
+      item('My Orders', '/my-orders', ShoppingBag),
       item('My Promotions', '/promoter', Megaphone),
     ] },
     { title: 'Discover', items: [
       item('Explore', '/events', Compass),
+      item('Shop', '/shop', Store),
       item('Pricing', '/pricing', NairaSign),
     ] },
     { title: 'Account', items: [
@@ -80,6 +89,7 @@ const NAV_BY_ROLE: Record<string, NavSection[]> = {
       item('Overview', '/organizer', LayoutDashboard),
       item('Create', '/create', PlusCircle),
       item('Attendees', '/organizer/attendees', Contact),
+      item('Donations', '/organizer/donations', HeartHandshake),
       item('Scan Tickets', '/organizer/scan', QrCode),
     ] },
     { title: 'Listings', items: [
@@ -99,8 +109,19 @@ const NAV_BY_ROLE: Record<string, NavSection[]> = {
     ] },
   ],
   vendor: [
-    { title: 'Listing', items: [
+    { title: 'Storefront', items: [
       item('My Listing', '/vendor', Store),
+      item('Products', '/vendor/products', ShoppingBag),
+      item('Portfolio', '/vendor/portfolio', LayoutGrid),
+      item('Orders', '/vendor/orders', Package),
+    ] },
+    { title: 'Money', items: [
+      item('Wallet', '/organizer/wallet', Wallet),
+      item('Verification', '/vendor/verification', BadgeCheck),
+    ] },
+    { title: 'More', items: [
+      item('Shop', '/shop', Compass),
+      item('Support', '/support', LifeBuoy),
       item('Settings', '/profile', Settings),
     ] },
   ],
@@ -123,6 +144,7 @@ function buildAdminNav(role: string): NavSection[] {
       item('Withdrawals', '/admin?tab=withdrawals', Wallet),
     ] },
     { title: 'Content & support', items: [
+      item('Announcements', '/admin?tab=announcements', Megaphone),
       item('Blog', '/admin?tab=blog', Newspaper),
       item('Vendors', '/admin?tab=vendors', Store),
       item('Support Tickets', '/admin?tab=support', LifeBuoy),
@@ -136,7 +158,9 @@ function buildAdminNav(role: string): NavSection[] {
       item('Manage Staff Roles', '/admin?tab=settings&sub=staff-roles', LifeBuoy),
       item('General & Fees', '/admin?tab=settings&sub=general', Percent),
       item('SEO', '/admin?tab=settings&sub=seo', Globe),
+      item('Payment Settings', '/admin?tab=settings&sub=payments', CreditCard),
       item('Webhooks', '/admin?tab=settings&sub=webhooks', Webhook),
+      item('Wallet Adjustments', '/admin?tab=wallet', Scale),
       item('Cache', '/admin?tab=settings&sub=cache', Trash2),
       item('Patch', '/admin?tab=settings&sub=patch', ShieldAlert),
       item('Activity Logs', '/admin?tab=settings&sub=activity', Activity),
@@ -148,6 +172,7 @@ function buildAdminNav(role: string): NavSection[] {
     { title: 'Organizer tools', items: [
       item('Organizer', '/organizer', Briefcase),
       item('Attendees', '/organizer/attendees', Contact),
+      item('Donations', '/organizer/donations', HeartHandshake),
       item('My Movies', '/organizer/movies', Clapperboard),
       item('My Venues', '/organizer/venues', Building2),
       item('Scan Tickets', '/organizer/scan', QrCode),
@@ -454,6 +479,13 @@ function DashboardShellInner({
             </DropdownMenu>
           </div>
         </header>
+
+        {user?.must_change_password && (
+          <Link href="/profile/security?change_password=1" className="block px-4 sm:px-6 py-2.5 text-sm bg-amber-500/15 border-b border-border hover:bg-amber-500/20">
+            <strong>Choose your own password.</strong> Yours was set by our team — change it now in Security settings →
+          </Link>
+        )}
+        {user && <AnnouncementTicker key={user.id} />}
 
         <main className="flex-1 w-full max-w-[1536px] mx-auto px-4 py-6 sm:p-6 flex flex-col gap-10">
           <div className="flex flex-wrap items-start justify-between gap-4">

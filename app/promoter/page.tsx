@@ -16,6 +16,7 @@ import { NairaSign } from '@/components/icons/NairaSign';
 import { promoters, PromoterRow } from '@/lib/promoters';
 import { eventUrl } from '@/lib/eventLink';
 import { storageUrl } from '@/lib/storage';
+import { loginHref } from '@/lib/redirect';
 
 const naira = (n: number) => new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(n);
 
@@ -28,7 +29,7 @@ export default function PromoterPage() {
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
-      router.push('/login');
+      router.push(loginHref());
       return;
     }
     promoters.mine().then(setData).catch(() => setData({ totals: { tickets: 0, commission: 0 }, links: [] }));

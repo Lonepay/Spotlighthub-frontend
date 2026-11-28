@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from './AuthProvider';
 import { auth } from '@/lib/auth';
 import { Button } from './ui/button';
@@ -15,8 +15,29 @@ export function SessionLockOverlay() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [resending, setResending] = useState(false);
+  // The code is only emailed once they tap "Continue".
+  const [codeSent, setCodeSent] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  // Next lock starts again at "Continue".
+  useEffect(() => {
+    if (!locked) setCodeSent(false);
+  }, [locked]);
 
   if (!locked) return null;
+
+  const sendCode = async () => {
+    setSending(true);
+    setError('');
+    try {
+      await auth.lockSession();
+      setCodeSent(true);
+    } catch {
+      setError("Couldn't send the code. Please try again.");
+    } finally {
+      setSending(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,11 +68,32 @@ export function SessionLockOverlay() {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/95 backdrop-blur-sm p-4">
       <div className="w-full max-w-md glass rounded-2xl shadow-elevated p-8">
+        {!codeSent ? (
+          <div className="space-y-6 text-center">
+            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+              <ShieldCheck className="w-7 h-7 text-primary" />
+            </div>
+            <div>
+              <h2 className="font-display font-bold text-2xl mb-1">Still there, {user?.name?.split(' ')[0] ?? 'there'}?</h2>
+              <p className="text-sm text-muted-foreground">
+                We paused your session after a while without activity. Continue and we&apos;ll email a code to{' '}
+                <span className="font-medium text-foreground">{user?.email}</span>.
+              </p>
+            </div>
+            {error && <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-xl text-destructive text-sm">{error}</div>}
+            <Button type="button" onClick={sendCode} disabled={sending} variant="hero" size="lg" className="w-full">
+              {sending ? 'Sending code…' : 'Continue'}
+            </Button>
+            <button type="button" onClick={logout} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-destructive transition-colors">
+              <LogOut className="w-3.5 h-3.5" /> Log out instead
+            </button>
+          </div>
+        ) : (
+        <>
         <div className="flex items-start gap-3 p-4 rounded-xl bg-primary/5 border border-primary/20 mb-6">
           <ShieldCheck className="w-5 h-5 text-primary mt-0.5 shrink-0" />
           <p className="text-sm text-muted-foreground">
-            You've been inactive for a while. For your security, enter the code we emailed to{' '}
-            <span className="font-medium text-foreground">{user?.email}</span> to keep going.
+            Enter the code we just emailed to <span className="font-medium text-foreground">{user?.email}</span> to keep going.
           </p>
         </div>
 
@@ -100,6 +142,8 @@ export function SessionLockOverlay() {
             </button>
           </div>
         </form>
+        </>
+        )}
       </div>
     </div>
   );

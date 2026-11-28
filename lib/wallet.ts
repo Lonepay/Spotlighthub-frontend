@@ -25,6 +25,13 @@ export interface Withdrawal {
   user?: { id: number; name: string; email: string };
 }
 
+export interface GatewayBalances {
+  balance: number | null; // Paystack (payouts are sent from it)
+  paystack: number | null;
+  flutterwave: { available: number; ledger: number } | null; // NGN
+  stripe: { available: number; pending: number } | null; // USD
+}
+
 export interface Bank {
   name: string;
   code: string;
@@ -86,9 +93,10 @@ export const wallet = {
     return data as Withdrawal;
   },
 
+  /** Each gateway account's balance; null = not configured or unreachable. */
   async adminPayoutBalance() {
     const { data } = await api.get('/admin/withdrawals-payout-balance');
-    return data as { balance: number | null };
+    return data as GatewayBalances;
   },
 
   async adminOrganizerOverview(userId: number) {

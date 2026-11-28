@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useAuth } from './AuthProvider';
 import { isStaffRole } from '@/lib/auth';
 import { useCart } from '@/lib/cart';
+import { loginHref } from '@/lib/redirect';
+import { usePathname } from 'next/navigation';
 import { ThemeToggle } from './ThemeToggle';
 import { Logo } from './Logo';
 import { Button } from './ui/button';
@@ -38,10 +40,9 @@ import {
   Info,
   ChevronDown,
   Clapperboard,
-  MapPin,
-} from 'lucide-react';
+  MapPin, ShoppingBag } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 // Kept inline in the desktop bar — the essentials for browsing/finding a
 // ticket. Everything else lives in the "More" dropdown so the bar doesn't
@@ -56,6 +57,7 @@ const NAV_LINKS = [
 // Blog dropped from nav entirely (still reachable via the Footer/direct URL)
 // per explicit feedback that the bar felt cluttered.
 const MORE_LINKS = [
+  { href: '/shop', label: 'Shop', icon: ShoppingBag },
   { href: '/organizers', label: 'Organizers', icon: Building2 },
   { href: '/vendors', label: 'Vendors', icon: Store },
   { href: '/pricing', label: 'Pricing', icon: NairaSign },
@@ -69,6 +71,10 @@ export function Navbar() {
   const { user, logout } = useAuth();
   const { itemCount } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // "Log in" brings you back to this page afterwards.
+  const pathname = usePathname();
+  const [loginLink, setLoginLink] = useState('/login');
+  useEffect(() => setLoginLink(loginHref()), [pathname]);
 
   return (
     <nav className="glass sticky top-0 z-50">
@@ -172,7 +178,7 @@ export function Navbar() {
             ) : (
               <div className="flex items-center space-x-2">
                 <Button asChild variant="ghost">
-                  <Link href="/login">Log in</Link>
+                  <Link href={loginLink}>Log in</Link>
                 </Button>
                 <Button asChild variant="hero">
                   <Link href="/register">Sign up</Link>
@@ -282,7 +288,7 @@ export function Navbar() {
               ) : (
                 <div className="grid grid-cols-2 gap-3">
                   <Button asChild variant="outline" onClick={() => setMobileMenuOpen(false)}>
-                    <Link href="/login">Log in</Link>
+                    <Link href={loginLink}>Log in</Link>
                   </Button>
                   <Button asChild variant="hero" onClick={() => setMobileMenuOpen(false)}>
                     <Link href="/register">Sign up</Link>

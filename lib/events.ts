@@ -26,6 +26,14 @@ export interface Event {
   tickets_count?: number;
   fee_payer?: 'organizer' | 'attendee';
   accepts_donations?: boolean;
+  // false = hidden from the public and not on sale (nothing deleted)
+  is_published?: boolean;
+  unpublished_at?: string | null;
+  // Organizer stopped sales (the event stays listed)
+  sales_paused?: boolean;
+  // open | paused | ended | unpublished - tickets sell until 24h after the event date
+  sales_status?: 'open' | 'paused' | 'ended' | 'unpublished';
+  sales_close_at?: string | null;
   // Server-computed: donations switched on AND the event hasn't ended.
   donations_open?: boolean;
   guests?: EventGuest[];
@@ -128,6 +136,18 @@ export const events = {
 
   async delete(id: number) {
     await api.delete(`/events/${id}`);
+  },
+
+  /** Stop or restart ticket sales (organizer, super-admin or developer only). */
+  async setSalesPaused(id: number, paused: boolean): Promise<{ sales_paused: boolean; sales_status: Event['sales_status'] }> {
+    const { data } = await api.put(`/events/${id}/sales`, { paused });
+    return data;
+  },
+
+  /** Hide an event from the public and stop sales, or bring it back. */
+  async setPublished(id: number, isPublished: boolean): Promise<{ is_published: boolean; unpublished_at: string | null }> {
+    const { data } = await api.put(`/events/${id}/publish`, { is_published: isPublished });
+    return data;
   },
 
   async getVariations(id: number): Promise<TicketVariation[]> {

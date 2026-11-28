@@ -16,6 +16,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Plus, Trash2, Edit2, Calendar, Building, Ticket, Popcorn, Clock, ChevronUp, ChevronDown } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { toast } from 'sonner';
+import { loginHref } from '@/lib/redirect';
 
 const MOVIE_TIER_PRESETS = ['Regular', 'VIP', 'Premium', 'Recliner'];
 
@@ -26,7 +27,7 @@ const emptyTierForm = () => ({ name: '', description: '', price: 0, quantity: 0 
 export default function OrganizerMovieDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const movieId = Number(params.id);
 
   const [movie, setMovie] = useState<Movie | null>(null);
@@ -68,9 +69,10 @@ export default function OrganizerMovieDetailPage() {
   const [deleteBusy, setDeleteBusy] = useState(false);
 
   useEffect(() => {
-    if (!user) { router.push('/login'); return; }
+    if (authLoading) return; // a reload starts with no user while the auth check runs
+    if (!user) { router.push(loginHref()); return; }
     load();
-  }, [params.id, user]);
+  }, [params.id, user, authLoading]);
 
   const load = async () => {
     try {

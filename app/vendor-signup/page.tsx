@@ -6,6 +6,8 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { useAuth } from '@/components/AuthProvider';
 import { vendors } from '@/lib/vendors';
+import { auth } from '@/lib/auth';
+import { EmailCodeStep } from '@/components/auth/EmailCodeStep';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,6 +23,8 @@ export default function VendorSignupPage() {
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
   const [coverImage, setCoverImage] = useState<File | null>(null);
+  // Step two: the code we emailed, proving the address is theirs.
+  const [awaitingCode, setAwaitingCode] = useState(false);
 
   const [form, setForm] = useState({
     name: '', email: '', phone: '', password: '', password_confirmation: '',
@@ -39,17 +43,36 @@ export default function VendorSignupPage() {
 
     setLoading(true);
     try {
+      await auth.sendRegistrationCode(form.email.trim());
+      setAwaitingCode(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err: any) {
+      setError(errorText(err, 'Could not send the confirmation code. Please try again.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const errorText = (err: any, fallback: string) =>
+    err.response?.data?.message
+    || (err.response?.data?.errors && Object.values(err.response.data.errors).flat().join(' '))
+    || fallback;
+
+  // Step two: create the account and listing with the emailed code.
+  const handleCreate = async (code: string) => {
+    setError('');
+    setLoading(true);
+    try {
       const data = new FormData();
-      Object.entries(form).forEach(([key, value]) => data.append(key, value));
+      Object.entries(form).forEach(([key, value]) => data.append(key, key === 'email' ? value.trim() : value));
+      data.append('email_code', code);
       if (coverImage) data.append('cover_image', coverImage);
 
       await vendors.register(data);
       await refreshUser();
       setDone(true);
     } catch (err: any) {
-      const detail = err.response?.data?.message
-        || (err.response?.data?.errors && Object.values(err.response.data.errors).flat().join(' '));
-      setError(detail || 'Failed to sign up. Please try again.');
+      setError(errorText(err, 'Failed to sign up. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -90,6 +113,20 @@ export default function VendorSignupPage() {
             <p className="text-muted-foreground">Create your account and list your business — reviewed by our team, then live in the public directory.</p>
           </div>
 
+          {awaitingCode ? (
+            <div className="glass rounded-2xl p-6 sm:p-8 space-y-6">
+              {error && (
+                <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-xl text-destructive text-sm">{error}</div>
+              )}
+              <EmailCodeStep
+                email={form.email.trim()}
+                busy={loading}
+                submitLabel="Create my vendor account"
+                onSubmit={handleCreate}
+                onBack={() => { setAwaitingCode(false); setError(''); }}
+              />
+            </div>
+          ) : (
           <form onSubmit={handleSubmit} className="glass rounded-2xl p-6 sm:p-8 space-y-8">
             {error && (
               <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-xl text-destructive text-sm">{error}</div>
@@ -190,9 +227,10 @@ export default function VendorSignupPage() {
             </div>
 
             <Button type="submit" variant="hero" size="lg" disabled={loading} className="w-full">
-              {loading ? 'Creating your account…' : 'Sign up as a vendor'}
+              {loading ? 'Sending your code…' : 'Continue'}
             </Button>
           </form>
+          )}
         </div>
       </section>
 

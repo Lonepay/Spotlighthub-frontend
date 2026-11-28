@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { wallet, Withdrawal } from '@/lib/wallet';
+import { wallet, Withdrawal, GatewayBalances } from '@/lib/wallet';
 import { admin } from '@/lib/admin';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -17,7 +17,8 @@ export function WithdrawalsTab() {
   const [loading, setLoading] = useState(true);
   const [rejectingId, setRejectingId] = useState<number | null>(null);
   const [reason, setReason] = useState('');
-  const [payoutBalance, setPayoutBalance] = useState<number | null | undefined>(undefined);
+  // undefined = loading; each gateway's figure is null when unavailable.
+  const [balances, setBalances] = useState<GatewayBalances | null | undefined>(undefined);
   const [lowBalanceThreshold, setLowBalanceThreshold] = useState<number | null>(null);
   const [payingId, setPayingId] = useState<number | null>(null);
 
@@ -37,7 +38,7 @@ export function WithdrawalsTab() {
   }, [statusFilter]);
 
   useEffect(() => {
-    wallet.adminPayoutBalance().then((r) => setPayoutBalance(r.balance)).catch(() => setPayoutBalance(null));
+    wallet.adminPayoutBalance().then(setBalances).catch(() => setBalances(null));
     admin.getSettings().then((s) => setLowBalanceThreshold(s.low_balance_threshold)).catch(() => setLowBalanceThreshold(null));
   }, []);
 
@@ -80,23 +81,41 @@ export function WithdrawalsTab() {
 
   return (
     <div className="space-y-4">
-      {payoutBalance !== undefined && (
-        payoutBalance === null ? (
-          <div className="flex items-center gap-2 p-3 rounded-xl border border-border bg-muted/30 text-muted-foreground text-sm">
-            <AlertTriangle className="w-4 h-4" />
-            Paystack balance unavailable — check that real API credentials are configured.
-          </div>
-        ) : (
-          <div className="max-w-xs">
+      {balances !== undefined && (
+        <div className="grid sm:grid-cols-3 gap-4">
+          {/* Paystack sends payouts, so its low-balance warning matters most. */}
+          {balances?.paystack != null ? (
             <StatCard
               icon={Banknote}
-              label="Paystack Payout Balance"
-              value={`₦${payoutBalance.toLocaleString('en-NG')}`}
-              hint={lowBalanceThreshold != null && payoutBalance < lowBalanceThreshold ? 'Below the configured low-balance threshold' : undefined}
-              variant={lowBalanceThreshold != null && payoutBalance < lowBalanceThreshold ? 'alert' : 'default'}
+              label="Paystack · payout balance"
+              value={`₦${balances.paystack.toLocaleString('en-NG')}`}
+              hint={lowBalanceThreshold != null && balances.paystack < lowBalanceThreshold ? 'Below the configured low-balance threshold' : 'Withdrawals are paid from this'}
+              variant={lowBalanceThreshold != null && balances.paystack < lowBalanceThreshold ? 'alert' : 'default'}
             />
-          </div>
-        )
+          ) : (
+            <BalanceUnavailable gateway="Paystack" />
+          )}
+          {balances?.flutterwave ? (
+            <StatCard
+              icon={Banknote}
+              label="Flutterwave · available"
+              value={`₦${balances.flutterwave.available.toLocaleString('en-NG')}`}
+              hint={`Ledger ₦${balances.flutterwave.ledger.toLocaleString('en-NG')} (incl. unsettled)`}
+            />
+          ) : (
+            <BalanceUnavailable gateway="Flutterwave" />
+          )}
+          {balances?.stripe ? (
+            <StatCard
+              icon={Banknote}
+              label="Stripe · available"
+              value={`$${balances.stripe.available.toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+              hint={`Pending $${balances.stripe.pending.toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+            />
+          ) : (
+            <BalanceUnavailable gateway="Stripe" />
+          )}
+        </div>
       )}
       <div className="flex items-center gap-2">
         <span className="text-sm text-muted-foreground">Status:</span>
@@ -181,6 +200,15 @@ export function WithdrawalsTab() {
           </Card>
         ))}
       </div>
+    </div>
+  );
+}
+
+function BalanceUnavailable({ gateway }: { gateway: string }) {
+  return (
+    <div className="flex items-start gap-2 p-4 rounded-[0.7rem] border border-border text-muted-foreground text-sm">
+      <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+      <span>{gateway} balance unavailable - check its API keys in Payment Settings.</span>
     </div>
   );
 }

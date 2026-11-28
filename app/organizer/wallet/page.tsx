@@ -98,7 +98,7 @@ export default function OrganizerWalletPage() {
         {summary.debt > 0 && (
           <div className="border border-destructive/40 bg-destructive/10 p-4 text-sm">
             <p className="font-semibold text-destructive">You owe ₦{summary.debt.toLocaleString('en-NG')}</p>
-            <p className="text-muted-foreground">A fraudulent order was reversed after its money had already been withdrawn. New sales clear this first; withdrawals are paused until it&apos;s covered. Contact support with any questions.</p>
+            <p className="text-muted-foreground">Money was taken back after it had already been withdrawn (a reversed order or an adjustment; see the entry below). New earnings clear this first; withdrawals are paused until it&apos;s covered. Contact support with any questions.</p>
           </div>
         )}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -210,7 +210,10 @@ export default function OrganizerWalletPage() {
                     <TableCell className="text-muted-foreground">{e.description}</TableCell>
                     <TableCell>₦{Number(e.gross_amount).toLocaleString('en-NG')}</TableCell>
                     <TableCell className="text-muted-foreground">₦{Number(e.commission_amount).toLocaleString('en-NG')}</TableCell>
-                    <TableCell className="font-semibold text-emerald-600 dark:text-emerald-400">₦{Number(e.amount).toLocaleString('en-NG')}</TableCell>
+                    {/* Debits (reversals, admin debits, promoter commission) show in red with a minus. */}
+                    <TableCell className={`font-semibold ${Number(e.amount) < 0 ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                      {Number(e.amount) < 0 ? '−' : ''}₦{Math.abs(Number(e.amount)).toLocaleString('en-NG')}
+                    </TableCell>
                     <TableCell className="text-sm text-muted-foreground">{new Date(e.created_at).toLocaleDateString()}</TableCell>
                   </TableRow>
                 ))}

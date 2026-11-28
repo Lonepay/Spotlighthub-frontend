@@ -63,11 +63,40 @@ export interface VenueCartEntry {
   sessionToken: string;
 }
 
-export type CartEntry = EventCartEntry | MovieCartEntry | VenueCartEntry;
+export interface ProductCartEntry {
+  type: 'product';
+  // Snapshot for display; the price charged is always re-read server-side.
+  product: {
+    id: number;
+    name: string;
+    price: number;
+    image: string | null;
+    stock: number | null;
+    vendor_id: number;
+    vendor_name: string;
+    // The vendor's handover options, for the checkout estimate.
+    offers_pickup: boolean;
+    pickup_address: string | null;
+    offers_delivery: boolean;
+    delivery_fee: number;
+    delivery_note: string | null;
+  };
+  quantity: number;
+}
+
+export type CartEntry = EventCartEntry | MovieCartEntry | VenueCartEntry | ProductCartEntry;
+
+/** How one vendor's products reach the buyer, chosen at checkout. */
+export interface DeliveryChoice {
+  method: 'pickup' | 'delivery';
+  address?: string;
+}
 
 export interface Cart {
   entries: CartEntry[];
   gateway: PaymentGateway;
+  // vendor_id -> pickup or delivery
+  deliveries?: Record<string, DeliveryChoice>;
   version: 2;
 }
 
@@ -75,6 +104,9 @@ export interface Cart {
 export function entryTotal(entry: CartEntry): number {
   if (entry.type === 'event') {
     return entry.items.reduce((sum, i) => sum + (i.variation ? i.variation.price : entry.event.price) * i.quantity, 0);
+  }
+  if (entry.type === 'product') {
+    return entry.product.price * entry.quantity;
   }
   if (entry.type === 'movie') {
     const seatsTotal = entry.seatIds.reduce((sum, id) => sum + estimateSeatPrice(entry, id), 0);
@@ -90,6 +122,8 @@ interface CartContextType {
   addEntry: (entry: CartEntry) => void;
   removeEntry: (index: number) => void;
   setDonation: (index: number, amount: number | undefined) => void;
+  setQuantity: (index: number, quantity: number) => void;
+  setDelivery: (vendorId: number, choice: DeliveryChoice) => void;
   setGateway: (gateway: PaymentGateway) => void;
   clear: () => void;
 }
@@ -103,6 +137,7 @@ const EMPTY_CART: Cart = { entries: [], gateway: 'flutterwave', version: 2 };
 function entryKey(entry: CartEntry): string {
   if (entry.type === 'event') return `event-${entry.event.id}`;
   if (entry.type === 'movie') return `movie-${entry.showtime.id}`;
+  if (entry.type === 'product') return `product-${entry.product.id}`;
   return `venue-${entry.venue.id}-${entry.bookingDate}`;
 }
 
@@ -136,8 +171,31 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addEntry = (entry: CartEntry) => {
     const key = entryKey(entry);
+    const existing = cart.entries.find((e) => entryKey(e) === key);
+    // Adding the same product again adds to its quantity (up to stock).
+    if (entry.type === 'product' && existing?.type === 'product') {
+      const cap = entry.product.stock ?? 100;
+      const merged = { ...entry, quantity: Math.min(existing.quantity + entry.quantity, cap, 100) };
+      persist({ ...cart, entries: cart.entries.map((e) => (entryKey(e) === key ? merged : e)) });
+      return;
+    }
     const withoutExisting = cart.entries.filter((e) => entryKey(e) !== key);
     persist({ ...cart, entries: [...withoutExisting, entry] });
+  };
+
+  const setQuantity = (index: number, quantity: number) => {
+    persist({
+      ...cart,
+      entries: cart.entries.map((e, i) => {
+        if (i !== index || e.type !== 'product') return e;
+        const cap = Math.min(e.product.stock ?? 100, 100);
+        return { ...e, quantity: Math.max(1, Math.min(quantity, cap)) };
+      }),
+    });
+  };
+
+  const setDelivery = (vendorId: number, choice: DeliveryChoice) => {
+    persist({ ...cart, deliveries: { ...(cart.deliveries ?? {}), [String(vendorId)]: choice } });
   };
 
   const removeEntry = (index: number) => {
@@ -163,11 +221,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const itemCount = cart.entries.reduce((sum, entry) => {
     if (entry.type === 'event') return sum + entry.items.reduce((s, i) => s + i.quantity, 0);
     if (entry.type === 'movie') return sum + entry.seatIds.length;
+    if (entry.type === 'product') return sum + entry.quantity;
     return sum + 1;
   }, 0);
 
   return (
-    <CartContext.Provider value={{ cart, itemCount, addEntry, removeEntry, setDonation, setGateway, clear }}>
+    <CartContext.Provider value={{ cart, itemCount, addEntry, removeEntry, setDonation, setQuantity, setDelivery, setGateway, clear }}>
       {children}
     </CartContext.Provider>
   );

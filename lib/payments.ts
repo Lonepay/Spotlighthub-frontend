@@ -1,5 +1,5 @@
 import api from './api';
-import { CartEntry } from './cart';
+import { CartEntry, DeliveryChoice } from './cart';
 import { PaymentGateway } from './gateway';
 import { promoters } from './promoters';
 
@@ -62,7 +62,8 @@ export const payments = {
     attendeeName: string,
     attendeePhone: string,
     gateway: PaymentGateway = 'flutterwave',
-    couponCode?: string | null
+    couponCode?: string | null,
+    deliveries?: Record<string, DeliveryChoice>
   ) {
     // An Event cart entry can carry several ticket-tier lines (e.g. 2x
     // Regular + 1x VIP) — the backend's per-entry loop expects one "event"
@@ -95,6 +96,9 @@ export const payments = {
           session_token: entry.sessionToken,
         }];
       }
+      if (entry.type === 'product') {
+        return [{ type: 'product', product_id: entry.product.id, quantity: entry.quantity }];
+      }
       return [{
         type: 'venue',
         venue_id: entry.venue.id,
@@ -103,6 +107,13 @@ export const payments = {
         session_token: entry.sessionToken,
       }];
     });
+
+    // One pickup-or-delivery line per vendor whose products are in the cart.
+    const vendorIds = Array.from(new Set(entries.flatMap((e) => (e.type === 'product' ? [e.product.vendor_id] : []))));
+    for (const vendorId of vendorIds) {
+      const choice = deliveries?.[String(vendorId)];
+      expanded.push({ type: 'delivery', vendor_id: vendorId, method: choice?.method, address: choice?.address });
+    }
 
     const { data } = await api.post('/payments/initialize', {
       entries: expanded,

@@ -14,6 +14,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, MapPin, Upload, ArrowRight, Loader2, Info, FileText, Ticket, Image as ImageIcon, Trash2, Plus, X, Tag } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { RichTextEditor } from '@/components/RichTextEditor';
+import { loginHref } from '@/lib/redirect';
 
 const BASE_CATEGORIES = ['Movie', 'Concert', 'Conference', 'Workshop', 'Sports', 'Theater', 'Festival'];
 const TIER_PRESETS = ['Regular', 'VIP', 'VVIP', 'Early Bird', 'Table', 'Group', 'Student', 'Season Pass'];
@@ -49,7 +50,7 @@ function SectionHeader({ icon: Icon, title, subtitle }: { icon: any; title: stri
 
 export default function CreateEventPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -93,8 +94,10 @@ export default function CreateEventPage() {
   }, []);
 
   // Redirect if not authenticated
+  // Wait for the auth check: a reload starts with no user while it's in flight.
+  if (authLoading) return null;
   if (typeof window !== 'undefined' && !user) {
-    router.push('/login');
+    router.push(loginHref());
     return null;
   }
 

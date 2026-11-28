@@ -1,16 +1,20 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { safeNext } from '@/lib/redirect';
+import { PasskeysSection } from '@/components/profile/PasskeysSection';
 import { Button } from '@/components/ui/button';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import api from '@/lib/api';
 import { auth } from '@/lib/auth';
 import { useAuth } from '@/components/AuthProvider';
-import { Save, Loader2, ShieldCheck, Mail } from 'lucide-react';
+import { Save, Loader2, ShieldCheck, Mail, KeyRound } from 'lucide-react';
 
 export default function SecurityPage() {
   const { user, refreshUser } = useAuth();
+  const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newPasswordConfirmation, setNewPasswordConfirmation] = useState('');
@@ -45,6 +49,11 @@ export default function SecurityPage() {
       setCurrentPassword('');
       setNewPassword('');
       setNewPasswordConfirmation('');
+      const hadTemporary = user?.must_change_password;
+      await refreshUser();
+      // Came here straight from signing in with a generated password: carry on to where they were going.
+      const next = safeNext(new URLSearchParams(window.location.search).get('next'));
+      if (hadTemporary && next) router.push(next);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to update password');
     } finally {
@@ -72,8 +81,18 @@ export default function SecurityPage() {
     <div>
       <div className="mb-6">
         <h2 className="font-display font-bold text-xl mb-1">Security Settings</h2>
-        <p className="text-muted-foreground text-sm">Manage your password and security preferences.</p>
+        <p className="text-muted-foreground text-sm">Manage your password, two-factor sign-in and passkeys.</p>
       </div>
+
+      {user?.must_change_password && (
+        <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/30 px-4 py-3 rounded-lg mb-6 text-sm">
+          <KeyRound className="w-4 h-4 mt-0.5 shrink-0 text-amber-600" />
+          <p>
+            <strong>Choose your own password.</strong> Your current one was set by the Spotlighticket team. Enter it as the
+            current password below, then pick a new one only you know.
+          </p>
+        </div>
+      )}
 
       {success && (
         <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-4 py-3 rounded-lg mb-6 text-sm">
@@ -184,6 +203,8 @@ export default function SecurityPage() {
           </Button>
         )}
       </div>
+
+      <PasskeysSection />
     </div>
   );
 }
