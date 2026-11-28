@@ -35,6 +35,7 @@ import { SupportTicketsTab } from '@/components/admin/SupportTicketsTab';
 import { FraudFlagsTab } from '@/components/admin/FraudFlagsTab';
 import { AnnouncementsTab } from '@/components/admin/AnnouncementsTab';
 import { WalletAdjustmentsTab } from '@/components/admin/WalletAdjustmentsTab';
+import { RevenueBreakdownCard } from '@/components/admin/RevenueBreakdownCard';
 import { ReversePaymentDialog } from '@/components/admin/ReversePaymentDialog';
 import { GeneratePasswordDialog } from '@/components/admin/GeneratePasswordDialog';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
@@ -338,7 +339,7 @@ function AdminDashboardPageInner() {
             icon={Users}
             label="Total Users"
             value={String(dashboard.stats.total_users)}
-            hint={`${dashboard.stats.total_organizers} organizers, ${dashboard.stats.total_attendees} attendees`}
+            hint={`${dashboard.stats.total_attendees} attendees · ${dashboard.stats.total_organizers} organizers · ${dashboard.stats.total_vendors ?? 0} vendors · ${dashboard.stats.total_team ?? 0} team`}
           />
           <StatCard icon={Calendar} label="Total Events" value={String(dashboard.stats.total_events)} />
           <StatCard
@@ -350,7 +351,7 @@ function AdminDashboardPageInner() {
             icon={Ticket}
             label="Tickets Sold"
             value={String(dashboard.stats.total_tickets)}
-            hint={`${dashboard.stats.total_transactions} transactions`}
+            hint={`${dashboard.stats.total_transactions} paid orders · excludes revoked`}
           />
           {pendingWithdrawalsCount != null && (
             <StatCard
@@ -369,31 +370,7 @@ function AdminDashboardPageInner() {
           <TabsContent value="overview" className="space-y-6">
             {dashboard && (
             <>
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-display font-bold text-lg">Revenue Breakdown</h2>
-                  <span className="text-xs text-muted-foreground">{dashboard.stats.platform_fee_percentage}% platform fee</span>
-                </div>
-                <div className="grid sm:grid-cols-3 gap-3">
-                  <div className="p-4 rounded-lg border border-border">
-                    <div className="text-sm font-medium mb-1 text-muted-foreground">Total Revenue</div>
-                    <div className="text-xl font-display font-bold">₦{dashboard.stats.total_revenue.toLocaleString('en-NG', { maximumFractionDigits: 0 })}</div>
-                  </div>
-                  <div className="p-4 rounded-lg border border-border">
-                    <div className="text-sm font-medium mb-1 text-muted-foreground">Platform Fee</div>
-                    <div className="text-xl font-display font-bold">₦{dashboard.stats.platform_fee_total.toLocaleString('en-NG', { maximumFractionDigits: 0 })}</div>
-                  </div>
-                  <div className="p-4 rounded-lg border border-border">
-                    <div className="text-sm font-medium mb-1 text-muted-foreground">Organizer Payouts</div>
-                    <div className="text-xl font-display font-bold">₦{dashboard.stats.organizer_payout_total.toLocaleString('en-NG', { maximumFractionDigits: 0 })}</div>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground mt-3">
-                  Adjust the fee percentage under Settings → General &amp; Fees.
-                </p>
-              </CardContent>
-            </Card>
+            {dashboard.revenue_breakdown && <RevenueBreakdownCard data={dashboard.revenue_breakdown} />}
 
             <Card>
               <CardContent className="p-6">
@@ -924,7 +901,8 @@ function AdminDashboardPageInner() {
                         </TableCell>
                         <TableCell className="text-right text-sm tabular-nums whitespace-nowrap">
                           {Number(ticket.price) > 0 ? `₦${Number(ticket.price).toLocaleString('en-NG')}` : 'Free'}
-                          {ticket.price_source === 'list' && <div className="text-[11px] text-muted-foreground" title="This order is too old to record what was paid per ticket">list price</div>}
+                          {ticket.price_source === 'average' && <div className="text-[11px] text-muted-foreground" title="This older order didn't record a price per ticket, so its ticket money is shared evenly">order average</div>}
+                          {ticket.price_source === 'list' && <div className="text-[11px] text-muted-foreground" title="No order to go on">list price</div>}
                         </TableCell>
                         <TableCell className="text-xs whitespace-nowrap">
                           {ticket.payment ? (

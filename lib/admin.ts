@@ -4,6 +4,8 @@ export interface AdminStats {
   total_users: number;
   total_organizers: number;
   total_attendees: number;
+  total_vendors: number;
+  total_team: number; // admins, developers, staff
   total_events: number;
   total_tickets: number;
   total_revenue: number;
@@ -173,8 +175,23 @@ export interface AdminSettings {
   usd_exchange_rate: number | null;
 }
 
+/** Where successful-payment money went; the parts add up to revenue. */
+export interface RevenueBreakdown {
+  revenue: number;
+  credited_to_accounts: number;
+  spotlight_fees: number;
+  spotlight_fee_parts: { tickets: number; donations: number; shop: number; partner_commission_paid: number };
+  card_processing: number;
+  awaiting_delivery: number;
+  // Paid orders from before earnings were linked to orders
+  older_orders: { count: number; amount: number; unlinked_credits: number };
+  unmatched: number;
+  refunded: { count: number; amount: number };
+}
+
 export interface AdminDashboard {
   stats: AdminStats;
+  revenue_breakdown?: RevenueBreakdown;
   recent_users: any[];
   recent_events: any[];
   recent_payments: any[];
