@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/components/AuthProvider';
 import { useCart, entryTotal, EventCartEntry, CartEntry, ProductCartEntry } from '@/lib/cart';
+import { promoters } from '@/lib/promoters';
 import { payments } from '@/lib/payments';
 import { gateway as gatewayApi, GatewayStatus } from '@/lib/gateway';
 import { coupons, CouponValidation } from '@/lib/coupons';
@@ -87,6 +88,8 @@ export default function CheckoutPage() {
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<CouponValidation | null>(null);
   const [applyingCoupon, setApplyingCoupon] = useState(false);
+  // A promoter's code typed in by hand (instead of arriving via their link).
+  const [appliedPromoter, setAppliedPromoter] = useState<{ code: string; name: string } | null>(null);
 
   useEffect(() => {
     gatewayApi.status()
@@ -237,17 +240,30 @@ export default function CheckoutPage() {
   const total = discountedSubtotal + serviceFee + donationTotal + productSubtotal + deliveryTotal;
   const isFree = total <= 0;
 
+  // Coupon and partnership codes are checked against the event first; if
+  // it isn't one, it may be a promoter's code for an event in the cart.
   const handleApplyCoupon = async () => {
-    if (!couponInput.trim() || !primaryEventEntry) return;
+    const code = couponInput.trim();
+    if (!code || !primaryEventEntry) return;
     setApplyingCoupon(true);
     try {
       const itemsPayload = primaryEventEntry.items.map((i) => ({ variationId: i.variation?.id, quantity: i.quantity }));
-      const result = await coupons.validate(primaryEventEntry.event.id, couponInput.trim(), itemsPayload);
+      const result = await coupons.validate(primaryEventEntry.event.id, code, itemsPayload);
       setAppliedCoupon(result);
-      toast.success(`Coupon applied — ${formatNaira(result.discount_amount)} off`);
-    } catch (error: any) {
-      setAppliedCoupon(null);
-      toast.error(error.response?.data?.message || 'Invalid coupon code');
+      setCouponInput('');
+      toast.success(result.discount_amount > 0 ? `Code applied — ${formatNaira(result.discount_amount)} off` : 'Partner code applied');
+    } catch (couponError: any) {
+      try {
+        const promo = await promoters.lookup(code);
+        const inCart = cart.entries.some((e) => e.type === 'event' && e.event.id === promo.event_id);
+        if (!inCart) throw new Error('not for this cart');
+        promoters.rememberRef(promo.event_id, promo.code);
+        setAppliedPromoter({ code: promo.code, name: promo.name });
+        setCouponInput('');
+        toast.success(`Promoter code applied — your purchase supports ${promo.name}`);
+      } catch {
+        toast.error(couponError.response?.data?.message || 'That code isn\'t valid for the tickets in your cart');
+      }
     } finally {
       setApplyingCoupon(false);
     }
@@ -466,8 +482,13 @@ export default function CheckoutPage() {
 
           {primaryEventEntry && eventSubtotal > 0 && (
             <div className="py-6 border-b border-border/50">
-              <Label htmlFor="coupon-code">Coupon code</Label>
-              <p className="text-xs text-muted-foreground mb-1.5">Applies to {primaryEventEntry.event.title} only.</p>
+              <Label htmlFor="coupon-code">Coupon, partner or promoter code</Label>
+              <p className="text-xs text-muted-foreground mb-1.5">Got a code from a partner or promoter of {primaryEventEntry.event.title}? Paste it here so they get credit for your purchase.</p>
+              {appliedPromoter && (
+                <div className="flex items-center justify-between mb-2 rounded-lg bg-primary/5 border border-primary/30 px-3 py-2">
+                  <span className="flex items-center gap-2 text-sm font-medium"><Tag className="h-4 w-4 text-primary" /> {appliedPromoter.code} · supports {appliedPromoter.name}</span>
+                </div>
+              )}
               {appliedCoupon ? (
                 <div className="flex items-center justify-between mt-1 rounded-lg bg-primary/5 border border-primary/30 px-3 py-2">
                   <span className="flex items-center gap-2 text-sm font-medium">
