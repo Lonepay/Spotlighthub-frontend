@@ -901,7 +901,8 @@ function AdminDashboardPageInner() {
                         </TableCell>
                         <TableCell className="text-right text-sm tabular-nums whitespace-nowrap">
                           {Number(ticket.price) > 0 ? `₦${Number(ticket.price).toLocaleString('en-NG')}` : 'Free'}
-                          {ticket.price_source === 'list' && <div className="text-[11px] text-muted-foreground" title="This order is too old to record what was paid per ticket">list price</div>}
+                          {ticket.price_source === 'average' && <div className="text-[11px] text-muted-foreground" title="This older order didn't record a price per ticket, so its ticket money is shared evenly">order average</div>}
+                          {ticket.price_source === 'list' && <div className="text-[11px] text-muted-foreground" title="No order to go on">list price</div>}
                         </TableCell>
                         <TableCell className="text-xs whitespace-nowrap">
                           {ticket.payment ? (
