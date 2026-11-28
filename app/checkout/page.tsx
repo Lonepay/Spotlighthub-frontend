@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/components/AuthProvider';
 import { useCart, entryTotal, EventCartEntry, CartEntry, ProductCartEntry } from '@/lib/cart';
 import { promoters } from '@/lib/promoters';
+import { TicketHolders, invalidHolder } from '@/components/checkout/TicketHolders';
 import { payments } from '@/lib/payments';
 import { gateway as gatewayApi, GatewayStatus, estimateFee } from '@/lib/gateway';
 import { coupons, CouponValidation } from '@/lib/coupons';
@@ -74,7 +75,7 @@ function estimateAttendeeFeePortion(entries: CartEntry[], platformFeeAmount: num
 export default function CheckoutPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { cart, clear, setGateway, setDonation, setDelivery } = useCart();
+  const { cart, clear, setGateway, setDonation, setDelivery, setAttendees } = useCart();
 
   const [email, setEmail] = useState('');
   const [attendeeName, setAttendeeName] = useState('');
@@ -285,6 +286,14 @@ export default function CheckoutPage() {
       toast.error('Donations must be between ₦100 and ₦5,000,000');
       return;
     }
+    for (const e of cart.entries) {
+      if (e.type !== 'event') continue;
+      const bad = invalidHolder(e);
+      if (bad) {
+        toast.error(`Ticket ${bad} for ${e.event.title}: enter a name and a valid email, or leave both blank to keep it.`);
+        return;
+      }
+    }
     const missingAddress = productVendors.find((v) => {
       const choice = deliveryFor(v);
       return choice.method === 'delivery' && (choice.address ?? '').trim().length < 10;
@@ -361,6 +370,7 @@ export default function CheckoutPage() {
                     <>
                       <div className="text-sm font-medium truncate">{entry.event.title}</div>
                       <div className="text-xs text-muted-foreground">{entry.selectedDate}{entry.selectedTime ? ` ${entry.selectedTime}` : ''}</div>
+                      <TicketHolders entry={entry} buyerName={attendeeName} onChange={(list) => setAttendees(idx, list)} />
                       {entry.event.donations_open && (
                         <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                           <span className="shrink-0">Add a donation (optional) ₦</span>
