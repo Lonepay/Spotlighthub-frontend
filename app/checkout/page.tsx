@@ -13,7 +13,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { useCart, entryTotal, EventCartEntry, CartEntry, ProductCartEntry } from '@/lib/cart';
 import { promoters } from '@/lib/promoters';
 import { payments } from '@/lib/payments';
-import { gateway as gatewayApi, GatewayStatus } from '@/lib/gateway';
+import { gateway as gatewayApi, GatewayStatus, estimateFee } from '@/lib/gateway';
 import { coupons, CouponValidation } from '@/lib/coupons';
 import { ArrowLeft, Mail, User as UserIcon, Phone, ShieldCheck, Loader2, CheckCircle2, Receipt, Tag, X, Clapperboard, Building2, ShoppingBag, Truck, Store, CreditCard, Zap, Wallet, Check, AlertTriangle, Globe } from 'lucide-react';
 import { toast } from 'sonner';
@@ -228,9 +228,8 @@ export default function CheckoutPage() {
 
   // Platform fee on the whole cart, then split per-organizer by
   // ticket-count share — matches PaymentController::initializeMulti exactly.
-  const platformFeeAmount = discountedSubtotal > 0
-    ? Math.round((discountedSubtotal * (feeInfo.platform_fee_percentage ?? 0) / 100 + (feeInfo.platform_flat_fee ?? 0)) * 100) / 100
-    : 0;
+  // Stripe (USD cards) has its own fee schedule; Naira gateways use the platform fee.
+  const platformFeeAmount = estimateFee(discountedSubtotal, cart.gateway, feeInfo);
   const serviceFee = estimateAttendeeFeePortion(cart.entries, platformFeeAmount);
   // Optional donations ride on top: never discounted, no service fee.
   const donationTotal = cart.entries.reduce(
@@ -590,7 +589,7 @@ export default function CheckoutPage() {
                 )}
                 {serviceFee > 0 && (
                   <div className="flex justify-between text-muted-foreground">
-                    <span>Service fee</span>
+                    <span>{cart.gateway === 'stripe' ? 'Card processing & service fee' : 'Service fee'}</span>
                     <span>{formatNaira(serviceFee)}</span>
                   </div>
                 )}
