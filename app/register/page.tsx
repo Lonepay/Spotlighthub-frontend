@@ -3,17 +3,21 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Navbar } from '@/components/Navbar';
-import { Footer } from '@/components/Footer';
-import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/components/AuthProvider';
-import { Mail, Lock, User, ArrowRight, Users, Calendar } from 'lucide-react';
+import { AuthShell } from '@/components/auth/AuthShell';
+import { PasswordStrength } from '@/components/auth/PasswordStrength';
+import { ArrowRight, Ticket, CalendarPlus, Store, Check, Loader2, AlertCircle } from 'lucide-react';
 import { safeNext } from '@/lib/redirect';
+
+const ACCOUNT_TYPES = [
+  { role: 'attendee' as const, icon: Ticket, title: 'Go to events', body: 'Buy tickets, keep them in one place' },
+  { role: 'organizer' as const, icon: CalendarPlus, title: 'Host events', body: 'Sell tickets and get paid' },
+];
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -32,6 +36,8 @@ export default function RegisterPage() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const mismatch = formData.password_confirmation.length > 0 && formData.password !== formData.password_confirmation;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,9 +65,7 @@ export default function RegisterPage() {
     } catch (err: any) {
       if (err.response?.data) {
         if (err.response.data.errors) {
-          const errors = err.response.data.errors;
-          const errorMessages = Object.values(errors).flat().join(', ');
-          setError(errorMessages);
+          setError(Object.values(err.response.data.errors).flat().join(', '));
         } else {
           setError(err.response.data.message || 'Registration failed');
         }
@@ -76,152 +80,104 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <div className="flex-1 flex items-center justify-center py-20 px-4">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center mb-4">
-              <Logo className="h-16 w-auto object-contain" />
-            </div>
-            <h1 className="text-4xl font-bold mb-2">Create account</h1>
-            <p className="text-muted-foreground">Join Spotlighticket and start your journey</p>
+    <AuthShell title="Create your account" subtitle="It takes a minute. No card needed until you buy.">
+      {error && (
+        <div role="alert" className="mb-6 flex items-start gap-2.5 rounded-xl border border-destructive/30 bg-destructive/10 p-3.5 text-sm text-destructive">
+          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" /> <span>{error}</span>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <fieldset>
+          <legend className="text-sm font-medium mb-2">I want to</legend>
+          <div className="grid grid-cols-2 gap-3" role="radiogroup">
+            {ACCOUNT_TYPES.map((t) => {
+              const selected = formData.role === t.role;
+              return (
+                <button
+                  key={t.role}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => setFormData({ ...formData, role: t.role })}
+                  className={`relative text-left rounded-xl border-2 p-4 transition-all ${selected ? 'border-primary bg-primary/5 shadow-sm' : 'border-border hover:border-primary/40'}`}
+                >
+                  {selected && (
+                    <span className="absolute top-2.5 right-2.5 h-5 w-5 rounded-full bg-primary text-primary-foreground inline-flex items-center justify-center">
+                      <Check className="h-3 w-3" />
+                    </span>
+                  )}
+                  <t.icon className={`h-6 w-6 mb-2 ${selected ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <p className="font-semibold text-sm">{t.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{t.body}</p>
+                </button>
+              );
+            })}
           </div>
+          <p className="mt-2 text-xs text-muted-foreground flex items-center gap-1.5">
+            <Store className="h-3.5 w-3.5" /> Selling products or services?{' '}
+            <Link href="/vendor-signup" className="font-medium text-primary hover:underline">Join as a vendor</Link>
+          </p>
+        </fieldset>
 
-          <div className="glass rounded-2xl shadow-card p-8">
-            {error && (
-              <div className="mb-6 p-4 bg-destructive/10 border border-destructive/30 rounded-xl text-destructive text-sm">
-                {error}
-              </div>
-            )}
+        <div>
+          <Label htmlFor="reg-name">Full name</Label>
+          <Input id="reg-name" type="text" autoComplete="name" required value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="h-12" placeholder="Ada Okafor" />
+        </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <Label className="mb-3">I want to...</Label>
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, role: 'attendee' })}
-                    className={`p-4 rounded-xl border-2 transition-all ${
-                      formData.role === 'attendee'
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border hover:border-primary/50'
-                    }`}
-                  >
-                    <Users className={`w-6 h-6 mx-auto mb-2 ${formData.role === 'attendee' ? 'text-primary-glow' : 'text-muted-foreground'}`} />
-                    <div className="font-semibold">Attend Events</div>
-                    <div className="text-xs text-muted-foreground mt-1">Buy tickets</div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, role: 'organizer' })}
-                    className={`p-4 rounded-xl border-2 transition-all ${
-                      formData.role === 'organizer'
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border hover:border-primary/50'
-                    }`}
-                  >
-                    <Calendar className={`w-6 h-6 mx-auto mb-2 ${formData.role === 'organizer' ? 'text-primary-glow' : 'text-muted-foreground'}`} />
-                    <div className="font-semibold">Create Events</div>
-                    <div className="text-xs text-muted-foreground mt-1">Sell tickets</div>
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="reg-name">Full name</Label>
-                <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input
-                    id="reg-name"
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="pl-12"
-                    placeholder="Ada Okafor"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="reg-email">Email address</Label>
-                <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input
-                    id="reg-email"
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="pl-12"
-                    placeholder="you@example.com"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="reg-phone">Phone number</Label>
-                <PhoneInput
-                  id="reg-phone"
-                  required
-                  value={formData.phone}
-                  onChange={(value) => setFormData({ ...formData, phone: value || '' })}
-                  defaultCountry={formData.country}
-                  onCountryChange={(country) => country && setFormData((f) => ({ ...f, country }))}
-                  placeholder="800 000 0000"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="reg-password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
-                  <PasswordInput
-                    id="reg-password"
-                    required
-                    minLength={8}
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="pl-12"
-                    placeholder="••••••••"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="reg-password-confirm">Confirm password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
-                  <PasswordInput
-                    id="reg-password-confirm"
-                    required
-                    value={formData.password_confirmation}
-                    onChange={(e) => setFormData({ ...formData, password_confirmation: e.target.value })}
-                    className="pl-12"
-                    placeholder="••••••••"
-                  />
-                </div>
-              </div>
-
-              <Button type="submit" disabled={loading} variant="hero" size="lg" className="w-full">
-                {loading ? 'Creating account...' : 'Create account'}
-                {!loading && <ArrowRight className="w-5 h-5" />}
-              </Button>
-            </form>
-
-            <div className="mt-6 text-center">
-              <p className="text-muted-foreground text-sm">
-                Already have an account?{' '}
-                <Link href={next ? `/login?next=${encodeURIComponent(next)}` : '/login'} className="text-primary-glow hover:underline font-semibold">
-                  Sign in
-                </Link>
-              </p>
-            </div>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="reg-email">Email</Label>
+            <Input id="reg-email" type="email" autoComplete="email" required value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="h-12" placeholder="you@example.com" />
+          </div>
+          <div>
+            <Label htmlFor="reg-phone">Phone</Label>
+            <PhoneInput
+              id="reg-phone"
+              required
+              value={formData.phone}
+              onChange={(value) => setFormData({ ...formData, phone: value || '' })}
+              defaultCountry={formData.country}
+              onCountryChange={(country) => country && setFormData((f) => ({ ...f, country }))}
+              placeholder="800 000 0000"
+              className="h-12"
+            />
           </div>
         </div>
-      </div>
-      <Footer />
-    </div>
+
+        <div>
+          <Label htmlFor="reg-password">Password</Label>
+          <PasswordInput id="reg-password" autoComplete="new-password" required minLength={8} value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="h-12" placeholder="At least 8 characters" />
+          <PasswordStrength password={formData.password} />
+        </div>
+
+        <div>
+          <Label htmlFor="reg-password-confirm">Confirm password</Label>
+          <PasswordInput id="reg-password-confirm" autoComplete="new-password" required value={formData.password_confirmation}
+            onChange={(e) => setFormData({ ...formData, password_confirmation: e.target.value })}
+            className={`h-12 ${mismatch ? 'border-destructive' : ''}`} placeholder="Type it again" aria-invalid={mismatch || undefined} />
+          {mismatch && <p className="mt-1.5 text-xs text-destructive">Passwords don&apos;t match yet.</p>}
+        </div>
+
+        <Button type="submit" disabled={loading || mismatch} variant="hero" size="lg" className="w-full h-12">
+          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Create account <ArrowRight className="h-5 w-5" /></>}
+        </Button>
+
+        <p className="text-xs text-muted-foreground text-center">
+          By creating an account you agree to our <Link href="/terms" className="underline hover:text-foreground">Terms</Link> and{' '}
+          <Link href="/privacy" className="underline hover:text-foreground">Privacy Policy</Link>.
+        </p>
+      </form>
+
+      <p className="mt-8 text-center text-sm text-muted-foreground">
+        Already have an account?{' '}
+        <Link href={next ? `/login?next=${encodeURIComponent(next)}` : '/login'} className="font-semibold text-primary hover:underline">
+          Sign in
+        </Link>
+      </p>
+    </AuthShell>
   );
 }
