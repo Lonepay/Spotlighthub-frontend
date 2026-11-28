@@ -480,6 +480,11 @@ function DashboardShellInner({
           </div>
         </header>
 
+        {user?.must_change_password && (
+          <Link href="/profile/security?change_password=1" className="block px-4 sm:px-6 py-2.5 text-sm bg-amber-500/15 border-b border-border hover:bg-amber-500/20">
+            <strong>Choose your own password.</strong> Yours was set by our team — change it now in Security settings →
+          </Link>
+        )}
         {user && <AnnouncementTicker key={user.id} />}
 
         <main className="flex-1 w-full max-w-[1536px] mx-auto px-4 py-6 sm:p-6 flex flex-col gap-10">

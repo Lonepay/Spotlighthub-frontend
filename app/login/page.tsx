@@ -36,8 +36,11 @@ function LoginForm() {
   // Back to the page that sent you here (same-site paths only), else your home.
   const next = safeNext(searchParams.get('next'));
 
-  const goToDashboard = (role?: string) => {
-    if (next) {
+  const goToDashboard = (role?: string, mustChangePassword?: boolean) => {
+    // A password an admin generated: choose your own first, then carry on.
+    if (mustChangePassword) {
+      router.push(`/profile/security?change_password=1${next ? `&next=${encodeURIComponent(next)}` : ''}`);
+    } else if (next) {
       router.push(next);
     } else if (role === 'organizer') {
       router.push('/organizer');
@@ -60,7 +63,7 @@ function LoginForm() {
       if (requiresTwoFactor(result)) {
         setPendingTwoFactorEmail(result.email);
       } else {
-        goToDashboard(result.user.role);
+        goToDashboard(result.user.role, result.user.must_change_password);
       }
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || err.message || 'Invalid credentials';
@@ -78,7 +81,7 @@ function LoginForm() {
 
     try {
       const user = await completeTwoFactorLogin(pendingTwoFactorEmail, otp);
-      goToDashboard(user.role);
+      goToDashboard(user.role, user.must_change_password);
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || err.message || 'Invalid or expired code';
       setError(errorMessage);

@@ -21,6 +21,8 @@ export interface User {
   bio?: string;
   avatar_url?: string | null;
   two_factor_enabled?: boolean;
+  // Set when an admin generated their password: they should choose their own.
+  must_change_password?: boolean;
 }
 
 export interface AuthResponse {
