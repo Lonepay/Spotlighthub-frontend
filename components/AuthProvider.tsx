@@ -44,6 +44,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshUser().finally(() => setLoading(false));
   }, []);
 
+  // Pick up changes made elsewhere (KYC approved, role changed) when the
+  // person comes back to the tab - at most once a minute - instead of only
+  // after a reload or a fresh sign-in.
+  useEffect(() => {
+    let last = Date.now();
+    const onFocus = () => {
+      if (document.visibilityState !== 'visible' || Date.now() - last < 60_000 || !localStorage.getItem('token')) return;
+      last = Date.now();
+      auth.getUser().then((fresh) => fresh && setUser(fresh)).catch(() => {});
+    };
+    document.addEventListener('visibilitychange', onFocus);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      document.removeEventListener('visibilitychange', onFocus);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, []);
+
   // Idle detection only runs for a logged-in, not-already-locked user —
   // once locked, further mouse/keyboard activity must NOT silently clear it
   // on its own; only a correct OTP (via unlockSession) may.
