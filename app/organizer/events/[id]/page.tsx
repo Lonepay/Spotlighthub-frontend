@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Plus, Trash2, Edit2, Tag, Calendar, MapPin, Ticket, Info, ChevronUp, ChevronDown, Users, Eye, EyeOff } from 'lucide-react';
+import { Plus, Trash2, Edit2, Tag, Calendar, MapPin, Ticket, Info, ChevronUp, ChevronDown, Users, Eye, EyeOff, Pause, Play } from 'lucide-react';
 import { sanitize } from '@/lib/sanitize';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -121,6 +121,7 @@ export default function OrganizerEventDetailPage() {
   const [confirmingDeleteEvent, setConfirmingDeleteEvent] = useState(false);
   const [confirmingUnpublish, setConfirmingUnpublish] = useState(false);
   const [publishBusy, setPublishBusy] = useState(false);
+  const [salesBusy, setSalesBusy] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
 
   useEffect(() => {
@@ -346,6 +347,22 @@ export default function OrganizerEventDetailPage() {
     }).catch(() => {});
   }, []);
 
+  // Stop sales: the event stays listed (and donations keep running) but no tickets sell until restarted.
+  const setSalesPaused = async (paused: boolean) => {
+    if (!event) return;
+    if (paused && !window.confirm('Stop ticket sales? The event stays listed and sold tickets stay valid; buyers just can\'t buy until you restart sales.')) return;
+    setSalesBusy(true);
+    try {
+      const res = await events.setSalesPaused(event.id, paused);
+      setEvent({ ...event, ...res });
+      toast.success(paused ? 'Ticket sales stopped' : 'Ticket sales restarted');
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Could not change ticket sales');
+    } finally {
+      setSalesBusy(false);
+    }
+  };
+
   // Unpublish hides the event and stops sales; tickets, sales and history stay.
   const setPublished = async (isPublished: boolean) => {
     if (!event) return;
@@ -559,6 +576,8 @@ export default function OrganizerEventDetailPage() {
               <h2 className="font-display font-bold text-xl flex flex-wrap items-center gap-2">
                 {event.title}
                 {event.is_published === false && <Badge variant="secondary">Unpublished · hidden from the public</Badge>}
+                {event.is_published !== false && event.sales_paused && <Badge variant="destructive">Ticket sales stopped</Badge>}
+                {event.sales_status === 'ended' && <Badge variant="outline">Ended</Badge>}
               </h2>
               {(() => {
                 // Mirrors EventPolicy on the backend: owner, admin-level, or
@@ -567,10 +586,16 @@ export default function OrganizerEventDetailPage() {
                 const canManageEvent = user?.id === event.user_id || isAdminLevelRole(user?.role) || hasPermission(user, 'operations');
                 if (!canManageEvent) return null;
                 return (
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex flex-wrap items-center gap-2 shrink-0">
                     <Button variant="outline" size="sm" onClick={() => (showEditEvent ? setShowEditEvent(false) : handleOpenEditEvent())}>
                       <Edit2 className="w-4 h-4" /> {showEditEvent ? 'Cancel' : 'Edit Event'}
                     </Button>
+                    {/* Stopping sales is for the organizer, super-admins and developers only (mirrors the backend). */}
+                    {(user?.id === event.user_id || user?.role === 'super-admin' || user?.role === 'developer') && event.sales_status !== 'ended' && (
+                      <Button variant={event.sales_paused ? 'default' : 'outline'} size="sm" disabled={salesBusy} onClick={() => setSalesPaused(!event.sales_paused)}>
+                        {event.sales_paused ? <><Play className="w-4 h-4" /> Restart sales</> : <><Pause className="w-4 h-4" /> Stop sales</>}
+                      </Button>
+                    )}
                     {event.is_published === false ? (
                       <Button variant="default" size="sm" disabled={publishBusy} onClick={() => setPublished(true)}>
                         <Eye className="w-4 h-4" /> Publish
