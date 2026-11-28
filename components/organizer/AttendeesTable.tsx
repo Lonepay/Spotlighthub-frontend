@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogBody, DialogForm } from '@/components/ui/dialog';
 import { PaginationFooter } from '@/components/dashboard/PaginationFooter';
 import { Loader } from '@/components/Loader';
 import { attendees, AttendeeFilters, AttendeeRow, AttendeeSummary, CustomerRow } from '@/lib/attendees';
@@ -293,7 +293,8 @@ export function AttendeesTable({ eventId, eventTitle }: { eventId: number; event
             <DialogTitle>Edit attendee</DialogTitle>
             <DialogDescription>Ticket {editing?.code}. Changes are recorded in the activity log.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={saveEdit} className="space-y-4">
+          <DialogForm onSubmit={saveEdit}>
+            <DialogBody>
             <div className="space-y-2">
               <Label htmlFor="att-name">Name</Label>
               <Input id="att-name" required maxLength={255} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
@@ -306,11 +307,12 @@ export function AttendeesTable({ eventId, eventTitle }: { eventId: number; event
               <Label htmlFor="att-phone">Phone</Label>
               <Input id="att-phone" type="tel" maxLength={20} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
             </div>
+            </DialogBody>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
               <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
             </DialogFooter>
-          </form>
+          </DialogForm>
         </DialogContent>
       </Dialog>
     </div>

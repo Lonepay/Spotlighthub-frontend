@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogBody, DialogForm } from '@/components/ui/dialog';
 import { Loader } from '@/components/Loader';
 import { shop, Product, naira, num } from '@/lib/shop';
 
@@ -150,11 +150,12 @@ export default function VendorProductsPage() {
       )}
 
       <Dialog open={editing !== null} onOpenChange={(o) => !o && !saving && setEditing(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editing === 'new' ? 'Add product' : 'Edit product'}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={save} className="space-y-4">
+          <DialogForm onSubmit={save}>
+            <DialogBody>
             <div>
               <Label>Photos ({photos.length}/{MAX_PHOTOS}) · the first one is the cover</Label>
               <div className="grid grid-cols-4 gap-2 mt-1.5">
@@ -194,7 +195,7 @@ export default function VendorProductsPage() {
               </div>
               <div>
                 <Label htmlFor="p-stock">Stock</Label>
-                <Input id="p-stock" type="number" min={0} value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} placeholder="Leave blank to not track" />
+                <Input id="p-stock" type="number" min={0} value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} placeholder="Not tracked" />
               </div>
             </div>
             <div>
@@ -209,11 +210,12 @@ export default function VendorProductsPage() {
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} /> Show on my storefront
             </label>
+            </DialogBody>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditing(null)} disabled={saving}>Cancel</Button>
               <Button type="submit" disabled={saving}>{saving ? 'Saving…' : editing === 'new' ? 'List product' : 'Save'}</Button>
             </DialogFooter>
-          </form>
+          </DialogForm>
         </DialogContent>
       </Dialog>
     </DashboardShell>

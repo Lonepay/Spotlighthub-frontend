@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogBody } from '@/components/ui/dialog';
 import { Loader } from '@/components/Loader';
 import { admin, ReversalPreview } from '@/lib/admin';
 
@@ -75,6 +75,7 @@ export function ReversePaymentDialog({ paymentId, onClose, onDone }: { paymentId
           <DialogDescription>Refunds the buyer in full and takes the money back from everyone who was credited. This can&apos;t be undone.</DialogDescription>
         </DialogHeader>
 
+        <DialogBody>
         {!preview ? (
           <div className="py-8 flex justify-center"><Loader size={28} /></div>
         ) : (
@@ -129,6 +130,7 @@ export function ReversePaymentDialog({ paymentId, onClose, onDone }: { paymentId
             )}
           </div>
         )}
+        </DialogBody>
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={busy}>Cancel</Button>
