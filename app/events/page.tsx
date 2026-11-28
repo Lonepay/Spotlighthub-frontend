@@ -28,7 +28,7 @@ function EventsPageInner() {
   const router = useRouter();
   const [eventsList, setEventsList] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(searchParams.get('search') || '');
   const [category, setCategory] = useState(searchParams.get('category') || '');
   const [when, setWhen] = useState<'' | 'past'>(searchParams.get('when') === 'past' ? 'past' : '');
   const [page, setPage] = useState(1);
@@ -51,6 +51,7 @@ function EventsPageInner() {
   useEffect(() => {
     setCategory(searchParams.get('category') || '');
     setWhen(searchParams.get('when') === 'past' ? 'past' : '');
+    if (searchParams.get('search') !== null) setSearch(searchParams.get('search') || '');
   }, [searchParams]);
 
   useEffect(() => {
