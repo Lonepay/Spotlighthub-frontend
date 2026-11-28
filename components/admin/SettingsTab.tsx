@@ -30,8 +30,8 @@ const ACTIVITY_CATEGORY_META: Record<string, { label: string; icon: any }> = {
   listing: { label: 'Listing images', icon: ImageIcon },
 };
 
-type SubTab = 'general' | 'seo' | 'webhooks' | 'cache' | 'patch' | 'activity' | 'errors' | 'staff' | 'staff-roles';
-const VALID_SUB_TABS: SubTab[] = ['general', 'seo', 'webhooks', 'cache', 'patch', 'activity', 'errors', 'staff', 'staff-roles'];
+type SubTab = 'general' | 'seo' | 'payments' | 'webhooks' | 'cache' | 'patch' | 'activity' | 'errors' | 'staff' | 'staff-roles';
+const VALID_SUB_TABS: SubTab[] = ['general', 'seo', 'payments', 'webhooks', 'cache', 'patch', 'activity', 'errors', 'staff', 'staff-roles'];
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',
@@ -439,8 +439,8 @@ export function SettingsTab() {
         </Card>
       </TabsContent>
 
-      <TabsContent value="webhooks" className="space-y-6">
-        <h2 className="font-display font-bold text-lg">Webhooks</h2>
+      <TabsContent value="payments" className="space-y-6">
+        <h2 className="font-display font-bold text-lg">Payment Settings</h2>
 
         <Card>
           <CardContent className="pt-6 space-y-4 max-w-lg">
@@ -502,6 +502,88 @@ export function SettingsTab() {
         <Card>
           <CardContent className="pt-6 space-y-4 max-w-lg">
             <div className="flex items-center justify-between">
+              <h3 className="font-display font-semibold">Stripe (USD cards)</h3>
+              <Badge variant={settings.has_stripe_secret_key ? 'default' : 'destructive'}>
+                {settings.has_stripe_secret_key ? 'Keys set' : 'Keys missing'}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground -mt-2">
+              Card payments through Stripe carry their own fee instead of the Naira platform fee. Who pays it still follows each
+              event&apos;s fee choice (added for the buyer, or taken from the organizer).
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="stripe_fee_percentage">Stripe charge (%)</Label>
+                <Input id="stripe_fee_percentage" type="number" min={0} max={50} step="0.01" value={form.stripe_fee_percentage ?? ''}
+                  onChange={(e) => setForm({ ...form, stripe_fee_percentage: e.target.value === '' ? undefined : parseFloat(e.target.value) })} />
+              </div>
+              <div>
+                <Label htmlFor="stripe_fee_flat_usd">+ flat per payment ($)</Label>
+                <Input id="stripe_fee_flat_usd" type="number" min={0} max={10} step="0.01" value={form.stripe_fee_flat_usd ?? ''}
+                  onChange={(e) => setForm({ ...form, stripe_fee_flat_usd: e.target.value === '' ? undefined : parseFloat(e.target.value) })} />
+              </div>
+              <div>
+                <Label htmlFor="stripe_platform_share">Spotlight keeps (%)</Label>
+                <Input id="stripe_platform_share" type="number" min={0} max={50} step="0.01" value={form.stripe_platform_share_percentage ?? ''}
+                  onChange={(e) => setForm({ ...form, stripe_platform_share_percentage: e.target.value === '' ? undefined : parseFloat(e.target.value) })} />
+              </div>
+              <div>
+                <Label htmlFor="usd_exchange_rate">Exchange rate (₦ per $1)</Label>
+                <Input id="usd_exchange_rate" type="number" min={1} step="0.01" placeholder="e.g. 1650" value={form.usd_exchange_rate ?? ''}
+                  onChange={(e) => setForm({ ...form, usd_exchange_rate: e.target.value === '' ? null : parseFloat(e.target.value) })} />
+              </div>
+            </div>
+            {(() => {
+              const pct = form.stripe_fee_percentage ?? 0;
+              const flat = form.stripe_fee_flat_usd ?? 0;
+              const share = form.stripe_platform_share_percentage ?? 0;
+              const stripePct = Math.max(0, pct - share);
+              return (
+                <div className="rounded-[0.5rem] bg-muted p-3 text-sm space-y-1">
+                  <p><strong>On a $100 ticket:</strong> charge ${(100 * pct / 100 + flat).toFixed(2)}</p>
+                  <p className="text-muted-foreground">Spotlight keeps ${(100 * share / 100).toFixed(2)} ({share}%) · Stripe takes ${(100 * stripePct / 100 + flat).toFixed(2)} ({stripePct.toFixed(2)}% + ${flat.toFixed(2)})</p>
+                  {share > pct && <p className="text-destructive">Spotlight&apos;s share can&apos;t be more than the charge.</p>}
+                </div>
+              );
+            })()}
+            <p className="text-xs text-muted-foreground">
+              Orders are converted from Naira to USD at the exchange rate before they&apos;re sent to Stripe. Update it to track the market;
+              Stripe checkout is unavailable while it&apos;s unset.
+            </p>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? 'Saving...' : saved ? 'Saved' : 'Save changes'}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6 space-y-3 max-w-lg">
+            <h3 className="font-display font-semibold">Gateway keys</h3>
+            <div className="flex items-center justify-between py-2 border-t border-border text-sm">
+              <span>Paystack</span>
+              <Badge variant={settings.has_paystack_secret_key ? 'default' : 'destructive'}>{settings.has_paystack_secret_key ? 'Configured' : 'Not configured'}</Badge>
+            </div>
+            <div className="flex items-center justify-between py-2 border-t border-border text-sm">
+              <span>Stripe</span>
+              <Badge variant={settings.has_stripe_secret_key ? 'default' : 'destructive'}>{settings.has_stripe_secret_key ? 'Configured' : 'Not configured'}</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Keys live in the backend&apos;s .env: <code>PAYSTACK_PUBLIC_KEY</code> / <code>PAYSTACK_SECRET_KEY</code>, <code>FLW_SECRET_KEY</code>,
+              and <code>STRIPE_SECRET_KEY</code> / <code>STRIPE_PUBLISHABLE_KEY</code>. Start Stripe with test keys (<code>sk_test_...</code>) before going live.
+            </p>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="webhooks" className="space-y-6">
+        <h2 className="font-display font-bold text-lg">Webhooks</h2>
+        <p className="text-sm text-muted-foreground -mt-4">
+          One URL receives payment confirmations from all three gateways. Gateway switches, Stripe fees and keys are under Payment Settings.
+        </p>
+
+        <Card>
+          <CardContent className="pt-6 space-y-4 max-w-lg">
+            <div className="flex items-center justify-between">
               <h3 className="font-display font-semibold">Flutterwave</h3>
               <Badge variant={settings.has_flutterwave_webhook_secret ? 'default' : 'outline'}>
                 {settings.has_flutterwave_webhook_secret ? 'Custom secret set' : 'Using FLW_SECRET_KEY'}
@@ -515,9 +597,7 @@ export function SettingsTab() {
                   {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Paste this into Flutterwave Dashboard → Settings → Webhooks as the redirect/webhook URL.
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">Flutterwave Dashboard → Settings → Webhooks.</p>
             </div>
             <div>
               <Label htmlFor="webhook_secret">Webhook secret hash</Label>
@@ -527,9 +607,7 @@ export function SettingsTab() {
                 value={form.flutterwave_webhook_secret_hash ?? ''}
                 onChange={(e) => setForm({ ...form, flutterwave_webhook_secret_hash: e.target.value })}
               />
-              <p className="text-xs text-muted-foreground mt-1">
-                Must exactly match the &quot;Secret hash&quot; configured in Flutterwave&apos;s dashboard.
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">Must exactly match the &quot;Secret hash&quot; configured in Flutterwave&apos;s dashboard.</p>
             </div>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? 'Saving...' : saved ? 'Saved' : 'Save changes'}
@@ -539,12 +617,7 @@ export function SettingsTab() {
 
         <Card>
           <CardContent className="pt-6 space-y-4 max-w-lg">
-            <div className="flex items-center justify-between">
-              <h3 className="font-display font-semibold">Paystack</h3>
-              <Badge variant={settings.has_paystack_secret_key ? 'default' : 'destructive'}>
-                {settings.has_paystack_secret_key ? 'Configured' : 'Not configured'}
-              </Badge>
-            </div>
+            <h3 className="font-display font-semibold">Paystack</h3>
             <div>
               <Label>Webhook URL</Label>
               <div className="flex gap-2">
@@ -559,28 +632,15 @@ export function SettingsTab() {
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Same URL as Flutterwave above — one endpoint handles both gateways, routed by their signature header. Paste this into Paystack Dashboard → Settings → API Keys &amp; Webhooks.
+                Paystack Dashboard → Settings → API Keys &amp; Webhooks. Paystack signs with your secret key, so there&apos;s no separate webhook secret.
               </p>
             </div>
-            {!settings.has_paystack_secret_key && (
-              <p className="text-xs text-destructive">
-                No <code>PAYSTACK_SECRET_KEY</code> is set in the backend&apos;s .env, so incoming Paystack webhooks will be rejected. Paystack checkout is unavailable until this is set.
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Unlike Flutterwave, Paystack doesn&apos;t support a separate configurable webhook secret — it signs requests with your account&apos;s secret key directly. Set <code>PAYSTACK_PUBLIC_KEY</code> / <code>PAYSTACK_SECRET_KEY</code> in the backend&apos;s .env, then restart the backend.
-            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="pt-6 space-y-4 max-w-lg">
-            <div className="flex items-center justify-between">
-              <h3 className="font-display font-semibold">Stripe</h3>
-              <Badge variant={settings.has_stripe_secret_key ? 'default' : 'destructive'}>
-                {settings.has_stripe_secret_key ? 'Configured' : 'Not configured'}
-              </Badge>
-            </div>
+            <h3 className="font-display font-semibold">Stripe</h3>
             <div>
               <Label>Webhook URL</Label>
               <div className="flex gap-2">
@@ -595,35 +655,10 @@ export function SettingsTab() {
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Same URL as the others above — one endpoint handles all three gateways, routed by their signature header. Paste this into Stripe Dashboard → Developers → Webhooks, and select the <code>checkout.session.completed</code> event.
+                Stripe Dashboard → Developers → Webhooks, event <code>checkout.session.completed</code>. Put the signing secret in the backend&apos;s
+                .env as <code>STRIPE_WEBHOOK_SECRET</code>.
               </p>
             </div>
-            <div>
-              <Label htmlFor="usd_exchange_rate">Exchange rate (₦ per $1)</Label>
-              <Input
-                id="usd_exchange_rate"
-                type="number"
-                min={1}
-                step="0.01"
-                placeholder="e.g. 1650"
-                value={form.usd_exchange_rate ?? ''}
-                onChange={(e) => setForm({ ...form, usd_exchange_rate: e.target.value === '' ? null : parseFloat(e.target.value) })}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Every order's Naira total is converted to USD using this rate before it's sent to Stripe. Update it periodically to track the real market rate — Stripe checkout is unavailable if this is unset.
-              </p>
-            </div>
-            {!settings.has_stripe_secret_key && (
-              <p className="text-xs text-destructive">
-                No <code>STRIPE_SECRET_KEY</code> is set in the backend&apos;s .env, so Stripe checkout is unavailable until this is set.
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Set <code>STRIPE_SECRET_KEY</code> / <code>STRIPE_PUBLISHABLE_KEY</code> / <code>STRIPE_WEBHOOK_SECRET</code> in the backend&apos;s .env, then restart the backend. Start with test-mode keys (<code>sk_test_...</code>) to verify before switching to live keys.
-            </p>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? 'Saving...' : saved ? 'Saved' : 'Save changes'}
-            </Button>
           </CardContent>
         </Card>
 

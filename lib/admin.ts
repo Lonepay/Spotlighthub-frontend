@@ -133,6 +133,10 @@ export interface AdminSettings {
   donation_fee_percentage: number | null;
   // Platform cut of product sales; null = same as platform_fee_percentage
   marketplace_fee_percentage: number | null;
+  // Stripe (USD cards): charge % + flat $, of which Spotlight keeps share %
+  stripe_fee_percentage: number;
+  stripe_fee_flat_usd: number;
+  stripe_platform_share_percentage: number;
   site_title: string | null;
   site_description: string | null;
   site_keywords: string | null;
@@ -298,6 +302,9 @@ export const admin = {
     platform_flat_fee: number | null;
     donation_fee_percentage: number | null;
     marketplace_fee_percentage: number | null;
+    stripe_fee_percentage: number;
+    stripe_fee_flat_usd: number;
+    stripe_platform_share_percentage: number;
     site_title: string | null;
     site_description: string | null;
     site_keywords: string | null;
