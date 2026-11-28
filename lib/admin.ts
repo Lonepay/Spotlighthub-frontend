@@ -351,7 +351,7 @@ export const admin = {
     window.URL.revokeObjectURL(url);
   },
 
-  async downloadExport(resource: 'users' | 'events' | 'tickets' | 'payments' | 'activity-logs', format: 'csv' | 'pdf', filters?: Record<string, any>) {
+  async downloadExport(resource: 'users' | 'events' | 'tickets' | 'payments' | 'activity-logs', format: 'csv' | 'xlsx' | 'pdf', filters?: Record<string, any>) {
     const { data } = await api.get(`/admin/export/${resource}`, {
       params: { ...filters, format },
       responseType: 'blob',

@@ -672,6 +672,9 @@ export function SettingsTab() {
                 <Button variant="outline" size="sm" onClick={() => admin.downloadExport('activity-logs', 'csv', activityFilters(1))}>
                   <Download className="w-4 h-4" /> CSV
                 </Button>
+                <Button variant="outline" size="sm" onClick={() => admin.downloadExport('activity-logs', 'xlsx', activityFilters(1))}>
+                  <Download className="w-4 h-4" /> Excel
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => admin.downloadExport('activity-logs', 'pdf', activityFilters(1))}>
                   <Download className="w-4 h-4" /> PDF
                 </Button>

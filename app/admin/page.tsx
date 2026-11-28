@@ -307,6 +307,9 @@ function AdminDashboardPageInner() {
       <Button variant="outline" size="sm" onClick={() => admin.downloadExport(resource, 'csv', filters)}>
         <Download className="w-4 h-4" /> CSV
       </Button>
+      <Button variant="outline" size="sm" onClick={() => admin.downloadExport(resource, 'xlsx', filters)}>
+        <Download className="w-4 h-4" /> Excel
+      </Button>
       <Button variant="outline" size="sm" onClick={() => admin.downloadExport(resource, 'pdf', filters)}>
         <Download className="w-4 h-4" /> PDF
       </Button>
