@@ -55,6 +55,7 @@ import {
   Package,
   HeartHandshake,
   CreditCard,
+  Scale,
 } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { TopProgressBar } from '@/components/TopProgressBar';
@@ -159,6 +160,7 @@ function buildAdminNav(role: string): NavSection[] {
       item('SEO', '/admin?tab=settings&sub=seo', Globe),
       item('Payment Settings', '/admin?tab=settings&sub=payments', CreditCard),
       item('Webhooks', '/admin?tab=settings&sub=webhooks', Webhook),
+      item('Wallet Adjustments', '/admin?tab=wallet', Scale),
       item('Cache', '/admin?tab=settings&sub=cache', Trash2),
       item('Patch', '/admin?tab=settings&sub=patch', ShieldAlert),
       item('Activity Logs', '/admin?tab=settings&sub=activity', Activity),

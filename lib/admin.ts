@@ -97,6 +97,23 @@ export interface PatchStatus {
   pending_request: { command: string; created_at: string } | null;
 }
 
+export interface WalletLookup {
+  user: { id: number; name: string; email: string; role: string };
+  balance: number;
+  debt: number;
+  total_earned: number;
+}
+
+export interface WalletAdjustmentRow {
+  id: number;
+  amount: string; // + credit, - debit
+  purpose: string;
+  reference: string | null;
+  created_at: string;
+  user: { id: number; name: string; email: string; role: string } | null;
+  creator: { id: number; name: string } | null;
+}
+
 export interface ReversalPreview {
   payment: {
     id: number;
@@ -256,6 +273,21 @@ export const admin = {
   async updatePaymentStatus(paymentId: number, status: 'pending'|'success'|'failed'|'refunded') {
     const { data } = await api.put(`/admin/payments/${paymentId}/status`, { status });
     return data;
+  },
+
+  async lookupWallet(email: string): Promise<WalletLookup> {
+    const { data } = await api.get('/admin/wallet-adjustments/lookup', { params: { email } });
+    return data;
+  },
+
+  async getWalletAdjustments(params?: { page?: number; user_id?: number }) {
+    const { data } = await api.get('/admin/wallet-adjustments', { params });
+    return data as Paginated<WalletAdjustmentRow>;
+  },
+
+  async adjustWallet(payload: { user_id: number; direction: 'credit' | 'debit'; amount: number; purpose: string; reference?: string }) {
+    const { data } = await api.post('/admin/wallet-adjustments', payload);
+    return data as { adjustment: WalletAdjustmentRow; wallet: WalletLookup };
   },
 
   async getReversalPreview(paymentId: number): Promise<ReversalPreview> {

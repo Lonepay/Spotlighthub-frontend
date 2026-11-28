@@ -34,14 +34,15 @@ import { VendorsTab } from '@/components/admin/VendorsTab';
 import { SupportTicketsTab } from '@/components/admin/SupportTicketsTab';
 import { FraudFlagsTab } from '@/components/admin/FraudFlagsTab';
 import { AnnouncementsTab } from '@/components/admin/AnnouncementsTab';
+import { WalletAdjustmentsTab } from '@/components/admin/WalletAdjustmentsTab';
 import { ReversePaymentDialog } from '@/components/admin/ReversePaymentDialog';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { storageUrl } from '@/lib/storage';
 import Link from 'next/link';
 import { eventPath } from '@/lib/eventLink';
 
-type AdminTab = 'overview' | 'users' | 'events' | 'kyc' | 'withdrawals' | 'tickets' | 'payments' | 'blog' | 'vendors' | 'fraud' | 'announcements' | 'settings' | 'support';
-const VALID_TABS: AdminTab[] = ['overview', 'users', 'events', 'kyc', 'withdrawals', 'tickets', 'payments', 'blog', 'vendors', 'fraud', 'announcements', 'settings', 'support'];
+type AdminTab = 'overview' | 'users' | 'events' | 'kyc' | 'withdrawals' | 'tickets' | 'payments' | 'blog' | 'vendors' | 'fraud' | 'announcements' | 'wallet' | 'settings' | 'support';
+const VALID_TABS: AdminTab[] = ['overview', 'users', 'events', 'kyc', 'withdrawals', 'tickets', 'payments', 'blog', 'vendors', 'fraud', 'announcements', 'wallet', 'settings', 'support'];
 
 export default function AdminDashboardPage() {
   // useSearchParams() below requires a Suspense ancestor for Next.js's
@@ -1207,6 +1208,14 @@ function AdminDashboardPageInner() {
 
           <TabsContent value="announcements">
             <AnnouncementsTab />
+          </TabsContent>
+
+          <TabsContent value="wallet">
+            {isElevatedActor ? (
+              <WalletAdjustmentsTab />
+            ) : (
+              <p className="text-muted-foreground">Only super-admins and developers can adjust wallets.</p>
+            )}
           </TabsContent>
 
           <TabsContent value="settings">
