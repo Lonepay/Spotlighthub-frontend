@@ -492,6 +492,7 @@ function AdminDashboardPageInner() {
                       <option value="">All roles</option>
                       <option value="attendee">Attendees</option>
                       <option value="organizer">Organizers</option>
+                      <option value="vendor">Vendors</option>
                       <option value="admin">Admins</option>
                       <option value="support">Support</option>
                       {isElevatedActor && <option value="staff">Staff (Admin+)</option>}
@@ -623,6 +624,8 @@ function AdminDashboardPageInner() {
                             >
                               <option value="attendee">Attendee</option>
                               <option value="organizer">Organizer</option>
+                              <option value="vendor">Vendor</option>
+                              {u.role === 'staff' && <option value="staff">Staff</option>}
                               <option value="admin">Admin</option>
                               <option value="super-admin">Super Admin</option>
                               {/* Only the developer can see/assign the developer role — this option is rendered for a
