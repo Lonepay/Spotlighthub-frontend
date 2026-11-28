@@ -13,6 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Store, Clock, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
+import { DeliverySettingsCard } from '@/components/vendor/DeliverySettingsCard';
 
 const CATEGORY_PRESETS = ['Photography', 'Catering', 'Decor & Styling', 'DJ & Entertainment', 'Makeup & Beauty', 'Event Planning', 'Furniture & Rentals', 'Sound & Lighting', 'Other'];
 
@@ -94,7 +95,7 @@ export default function VendorMyListingPage() {
   const cover = storageUrl(vendor.cover_image);
 
   return (
-    <DashboardShell title="My Listing" description="Edit your directory listing">
+    <DashboardShell title="My Listing" description="Your storefront details, and how buyers get their orders">
       <div className="max-w-2xl space-y-6">
         <div className="flex items-center gap-3">
           {vendor.is_published ? (
@@ -189,6 +190,8 @@ export default function VendorMyListingPage() {
             </form>
           </CardContent>
         </Card>
+
+        <DeliverySettingsCard vendor={vendor} />
       </div>
     </DashboardShell>
   );

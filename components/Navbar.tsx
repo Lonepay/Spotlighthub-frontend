@@ -38,8 +38,7 @@ import {
   Info,
   ChevronDown,
   Clapperboard,
-  MapPin,
-} from 'lucide-react';
+  MapPin, ShoppingBag } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { useState } from 'react';
 
@@ -56,6 +55,7 @@ const NAV_LINKS = [
 // Blog dropped from nav entirely (still reachable via the Footer/direct URL)
 // per explicit feedback that the bar felt cluttered.
 const MORE_LINKS = [
+  { href: '/shop', label: 'Shop', icon: ShoppingBag },
   { href: '/organizers', label: 'Organizers', icon: Building2 },
   { href: '/vendors', label: 'Vendors', icon: Store },
   { href: '/pricing', label: 'Pricing', icon: NairaSign },

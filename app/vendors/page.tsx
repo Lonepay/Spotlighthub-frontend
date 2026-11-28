@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { vendorInquiries } from '@/lib/vendorInquiries';
 import { vendors, Vendor } from '@/lib/vendors';
 import { storageUrl } from '@/lib/storage';
+import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { MapPin, Users, TrendingUp, ArrowRight, CheckCircle2, Store, Search } from 'lucide-react';
 
 const BENEFITS = [
@@ -131,8 +132,8 @@ export default function VendorsPage() {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-70" />
                       <div className="absolute bottom-0 left-0 right-0 p-4">
                         <span className="inline-block px-2 py-1 mb-2 text-xs font-bold text-white bg-primary/80 backdrop-blur-sm rounded-md">{v.category}</span>
-                        <h3 className="text-base font-bold text-white leading-tight line-clamp-1">{v.name}</h3>
-                        <p className="text-white/80 text-xs">{v.city}</p>
+                        <h3 className="text-base font-bold text-white leading-tight line-clamp-1 flex items-center gap-1">{v.name} {v.is_verified && <VerifiedBadge size="sm" />}</h3>
+                        <p className="text-white/80 text-xs">{v.city}{v.product_count ? ` · ${v.product_count} product${v.product_count === 1 ? '' : 's'}` : ''}</p>
                       </div>
                     </div>
                   </Link>

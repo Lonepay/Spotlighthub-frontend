@@ -50,6 +50,9 @@ import {
   Contact,
   Megaphone,
   Home,
+  ShoppingBag,
+  LayoutGrid,
+  Package,
 } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { TopProgressBar } from '@/components/TopProgressBar';
@@ -65,10 +68,12 @@ const NAV_BY_ROLE: Record<string, NavSection[]> = {
     { title: 'Tickets', items: [
       item('Overview', '/dashboard', LayoutDashboard),
       item('My Tickets', '/my-tickets', Ticket),
+      item('My Orders', '/my-orders', ShoppingBag),
       item('My Promotions', '/promoter', Megaphone),
     ] },
     { title: 'Discover', items: [
       item('Explore', '/events', Compass),
+      item('Shop', '/shop', Store),
       item('Pricing', '/pricing', NairaSign),
     ] },
     { title: 'Account', items: [
@@ -100,8 +105,19 @@ const NAV_BY_ROLE: Record<string, NavSection[]> = {
     ] },
   ],
   vendor: [
-    { title: 'Listing', items: [
+    { title: 'Storefront', items: [
       item('My Listing', '/vendor', Store),
+      item('Products', '/vendor/products', ShoppingBag),
+      item('Portfolio', '/vendor/portfolio', LayoutGrid),
+      item('Orders', '/vendor/orders', Package),
+    ] },
+    { title: 'Money', items: [
+      item('Wallet', '/organizer/wallet', Wallet),
+      item('Verification', '/vendor/verification', BadgeCheck),
+    ] },
+    { title: 'More', items: [
+      item('Shop', '/shop', Compass),
+      item('Support', '/support', LifeBuoy),
       item('Settings', '/profile', Settings),
     ] },
   ],

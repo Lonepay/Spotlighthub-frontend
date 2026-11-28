@@ -8,7 +8,7 @@ import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { useCart, entryTotal } from '@/lib/cart';
 import { storageUrl } from '@/lib/storage';
-import { ShoppingCart, Calendar, MapPin, ArrowRight, Trash2, Clapperboard, Building2, Ticket as TicketIcon } from 'lucide-react';
+import { ShoppingCart, Calendar, MapPin, ArrowRight, Trash2, Clapperboard, Building2, ShoppingBag, Minus, Plus, Ticket as TicketIcon } from 'lucide-react';
 
 function formatNaira(value: number) {
   return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(value);
@@ -16,7 +16,7 @@ function formatNaira(value: number) {
 
 export default function CartPage() {
   const router = useRouter();
-  const { cart, removeEntry, clear } = useCart();
+  const { cart, removeEntry, setQuantity, clear } = useCart();
 
   if (cart.entries.length === 0) {
     return (
@@ -26,7 +26,7 @@ export default function CartPage() {
           <div className="glass rounded-2xl p-10 md:p-14 shadow-card">
             <ShoppingCart className="h-14 w-14 mx-auto text-primary-glow mb-4" />
             <h1 className="font-display font-bold text-3xl md:text-4xl mb-2">Your cart is empty</h1>
-            <p className="text-muted-foreground mb-8">Add tickets to an event, movie, or venue to see them here.</p>
+            <p className="text-muted-foreground mb-8">Add tickets or products from the shop to see them here.</p>
             <Button asChild variant="hero" size="lg">
               <Link href="/events">Explore events</Link>
             </Button>
@@ -112,6 +112,31 @@ export default function CartPage() {
                       </p>
                     )}
                   </div>
+                  <button onClick={() => removeEntry(idx)} className="text-muted-foreground hover:text-destructive transition-colors p-2 shrink-0">
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
+
+              {entry.type === 'product' && (
+                <div className="flex gap-4 items-center">
+                  <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-muted shrink-0">
+                    {entry.product.image ? (
+                      <Image src={storageUrl(entry.product.image)!} alt={entry.product.name} fill className="object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-primary flex items-center justify-center"><ShoppingBag className="w-8 h-8 text-white/50" /></div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <Link href={`/shop/${entry.product.id}`} className="font-display font-semibold text-lg truncate block hover:underline">{entry.product.name}</Link>
+                    <div className="text-xs text-muted-foreground">from {entry.product.vendor_name}</div>
+                    <div className="mt-2 inline-flex items-center border border-border rounded-lg">
+                      <button type="button" aria-label="Fewer" className="p-1.5 disabled:opacity-40" disabled={entry.quantity <= 1} onClick={() => setQuantity(idx, entry.quantity - 1)}><Minus className="w-3.5 h-3.5" /></button>
+                      <span className="w-8 text-center text-sm tabular-nums">{entry.quantity}</span>
+                      <button type="button" aria-label="More" className="p-1.5 disabled:opacity-40" disabled={entry.quantity >= Math.min(entry.product.stock ?? 100, 100)} onClick={() => setQuantity(idx, entry.quantity + 1)}><Plus className="w-3.5 h-3.5" /></button>
+                    </div>
+                  </div>
+                  <span className="font-semibold shrink-0">{formatNaira(entryTotal(entry))}</span>
                   <button onClick={() => removeEntry(idx)} className="text-muted-foreground hover:text-destructive transition-colors p-2 shrink-0">
                     <Trash2 className="w-5 h-5" />
                   </button>

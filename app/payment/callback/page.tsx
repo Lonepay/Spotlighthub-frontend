@@ -27,7 +27,7 @@ function PaymentCallbackContent() {
   const { clear } = useCart();
   const [status, setStatus] = useState<'loading' | 'success' | 'failed'>('loading');
   const [message, setMessage] = useState('Hang tight while we confirm your payment.');
-  const [result, setResult] = useState<{ tickets: any[]; paymentId: number; guestEmail?: string; donationOnly?: boolean } | null>(null);
+  const [result, setResult] = useState<{ tickets: any[]; paymentId: number; guestEmail?: string; donationOnly?: boolean; shopOnly?: boolean } | null>(null);
 
   useEffect(() => {
     const reference = searchParams.get('reference') || searchParams.get('transaction_id');
@@ -44,11 +44,18 @@ function PaymentCallbackContent() {
 
         if (response.status === 'success') {
           const issued = response.tickets || [];
-          // A donation on its own issues no tickets.
-          const donationOnly = issued.length === 0;
+          const lines: { type?: string }[] = response.payment?.gateway_response?.items || [];
+          const hasProducts = lines.some((l) => l.type === 'product');
+          // Products or a donation on their own issue no tickets.
+          const shopOnly = issued.length === 0 && hasProducts;
+          const donationOnly = issued.length === 0 && !hasProducts;
           setStatus('success');
-          setMessage(donationOnly
+          setMessage(shopOnly
+            ? 'Order placed! The vendor has been told, and your confirmation is on its way to your email.'
+            : donationOnly
             ? 'Thank you for your donation! Your receipt is on its way to your email.'
+            : hasProducts
+            ? 'Your tickets have been issued and your order has been sent to the vendor.'
             : 'Your tickets have been issued.');
           clear();
 
@@ -58,11 +65,12 @@ function PaymentCallbackContent() {
             paymentId: response.payment?.id,
             guestEmail: isLoggedIn ? undefined : response.payment?.guest_email,
             donationOnly,
+            shopOnly,
           });
 
           if (isLoggedIn && !donationOnly) {
             setTimeout(() => {
-              router.push('/my-tickets');
+              router.push(shopOnly ? '/my-orders' : '/my-tickets');
             }, 3000);
           }
         } else {
@@ -98,11 +106,11 @@ function PaymentCallbackContent() {
                 <div className="w-16 h-16 bg-emerald-500/15 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Check className="w-8 h-8 text-emerald-500" />
                 </div>
-                <h2 className="font-display text-2xl font-bold mb-2">{result?.donationOnly ? 'Thank you 💛' : "You're in 🎉"}</h2>
+                <h2 className="font-display text-2xl font-bold mb-2">{result?.donationOnly ? 'Thank you 💛' : result?.shopOnly ? 'Order placed 🛍️' : "You're in 🎉"}</h2>
                 <p className="text-muted-foreground mb-6">{message}</p>
 
                 {user && !result?.donationOnly ? (
-                  <p className="text-sm text-muted-foreground">Redirecting to your tickets…</p>
+                  <p className="text-sm text-muted-foreground">{result?.shopOnly ? 'Taking you to your orders…' : 'Redirecting to your tickets…'}</p>
                 ) : (
                   result && (
                     <>
