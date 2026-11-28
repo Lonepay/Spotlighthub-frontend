@@ -11,6 +11,8 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/components/AuthProvider';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { PasswordStrength } from '@/components/auth/PasswordStrength';
+import { EmailCodeStep } from '@/components/auth/EmailCodeStep';
+import { auth } from '@/lib/auth';
 import { ArrowRight, Ticket, CalendarPlus, Store, Check, Loader2, AlertCircle } from 'lucide-react';
 import { safeNext } from '@/lib/redirect';
 
@@ -36,9 +38,20 @@ export default function RegisterPage() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // Step two: the code we emailed, proving the address is theirs.
+  const [awaitingCode, setAwaitingCode] = useState(false);
 
   const mismatch = formData.password_confirmation.length > 0 && formData.password !== formData.password_confirmation;
 
+  const showError = (err: any, fallback: string) => {
+    if (err.response?.data?.errors) {
+      setError(Object.values(err.response.data.errors).flat().join(', '));
+    } else {
+      setError(err.response?.data?.message || err.message || fallback);
+    }
+  };
+
+  // Step one: check the form, then email a code to the address.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -49,9 +62,23 @@ export default function RegisterPage() {
     }
 
     setLoading(true);
+    try {
+      await auth.sendRegistrationCode(formData.email.trim());
+      setAwaitingCode(true);
+    } catch (err: any) {
+      showError(err, 'Could not send the confirmation code. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Step two: create the account with the code.
+  const handleCreate = async (code: string) => {
+    setError('');
+    setLoading(true);
 
     try {
-      await register(formData.name, formData.email, formData.phone, formData.password, formData.password_confirmation, formData.role, formData.country);
+      await register(formData.name, formData.email.trim(), formData.phone, formData.password, formData.password_confirmation, formData.role, formData.country, code);
       // Signed up from a page that needed an account: go straight back to it.
       if (next) {
         router.push(next);
@@ -63,24 +90,33 @@ export default function RegisterPage() {
         router.push('/dashboard');
       }
     } catch (err: any) {
-      if (err.response?.data) {
-        if (err.response.data.errors) {
-          setError(Object.values(err.response.data.errors).flat().join(', '));
-        } else {
-          setError(err.response.data.message || 'Registration failed');
-        }
-      } else if (err.message) {
-        setError(err.message);
-      } else {
-        setError('Registration failed. Please check your connection and try again.');
-      }
+      showError(err, 'Registration failed. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
   };
 
+  if (awaitingCode) {
+    return (
+      <AuthShell title="Confirm your email" subtitle="One last step before your account is ready.">
+        {error && (
+          <div role="alert" className="mb-6 flex items-start gap-2.5 rounded-xl border border-destructive/30 bg-destructive/10 p-3.5 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" /> <span>{error}</span>
+          </div>
+        )}
+        <EmailCodeStep
+          email={formData.email.trim()}
+          busy={loading}
+          submitLabel="Create account"
+          onSubmit={handleCreate}
+          onBack={() => { setAwaitingCode(false); setError(''); }}
+        />
+      </AuthShell>
+    );
+  }
+
   return (
-    <AuthShell title="Create your account" subtitle="It takes a minute. No card needed until you buy.">
+    <AuthShell title="Create your account" subtitle="It takes a minute. We'll email you a code to confirm it's you.">
       {error && (
         <div role="alert" className="mb-6 flex items-start gap-2.5 rounded-xl border border-destructive/30 bg-destructive/10 p-3.5 text-sm text-destructive">
           <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" /> <span>{error}</span>
@@ -163,7 +199,7 @@ export default function RegisterPage() {
         </div>
 
         <Button type="submit" disabled={loading || mismatch} variant="hero" size="lg" className="w-full h-12">
-          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Create account <ArrowRight className="h-5 w-5" /></>}
+          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Continue <ArrowRight className="h-5 w-5" /></>}
         </Button>
 
         <p className="text-xs text-muted-foreground text-center">
