@@ -924,12 +924,17 @@ function AdminDashboardPageInner() {
                         </TableCell>
                         <TableCell className="text-right text-sm tabular-nums whitespace-nowrap">
                           {Number(ticket.price) > 0 ? `₦${Number(ticket.price).toLocaleString('en-NG')}` : 'Free'}
+                          {ticket.price_source === 'list' && <div className="text-[11px] text-muted-foreground" title="This order is too old to record what was paid per ticket">list price</div>}
                         </TableCell>
                         <TableCell className="text-xs whitespace-nowrap">
                           {ticket.payment ? (
                             <>
                               <div className="font-medium text-sm tabular-nums">₦{Number(ticket.payment.amount).toLocaleString('en-NG')}</div>
-                              <div className="text-muted-foreground">{ticket.payment.tickets_count} ticket{ticket.payment.tickets_count === 1 ? '' : 's'} · {ticket.payment.reference}</div>
+                              <div className="text-muted-foreground">
+                                {ticket.payment.tickets_count} ticket{ticket.payment.tickets_count === 1 ? '' : 's'}
+                                {Number(ticket.payment.fees) > 0 ? ` · incl. ₦${Number(ticket.payment.fees).toLocaleString('en-NG')} fees` : ''}
+                                {' · '}{ticket.payment.reference}
+                              </div>
                             </>
                           ) : '—'}
                         </TableCell>
