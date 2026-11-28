@@ -17,6 +17,8 @@ export interface EventCartEntry {
   selectedDate: string;
   selectedTime: string;
   items: CartLineItem[];
+  // Optional donation on top of the tickets (events with donations open).
+  donationAmount?: number;
 }
 
 export interface MovieAddonSelection {
@@ -87,6 +89,7 @@ interface CartContextType {
   itemCount: number;
   addEntry: (entry: CartEntry) => void;
   removeEntry: (index: number) => void;
+  setDonation: (index: number, amount: number | undefined) => void;
   setGateway: (gateway: PaymentGateway) => void;
   clear: () => void;
 }
@@ -141,6 +144,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
     persist({ ...cart, entries: cart.entries.filter((_, i) => i !== index) });
   };
 
+  const setDonation = (index: number, amount: number | undefined) => {
+    persist({
+      ...cart,
+      entries: cart.entries.map((e, i) => (i === index && e.type === 'event' ? { ...e, donationAmount: amount } : e)),
+    });
+  };
+
   const setGateway = (gateway: PaymentGateway) => {
     persist({ ...cart, gateway });
   };
@@ -157,7 +167,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, 0);
 
   return (
-    <CartContext.Provider value={{ cart, itemCount, addEntry, removeEntry, setGateway, clear }}>
+    <CartContext.Provider value={{ cart, itemCount, addEntry, removeEntry, setDonation, setGateway, clear }}>
       {children}
     </CartContext.Provider>
   );

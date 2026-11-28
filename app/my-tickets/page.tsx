@@ -16,6 +16,7 @@ import { storageUrl } from '@/lib/storage';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, MapPin, Ticket as TicketIcon, ArrowRight, Download, Receipt } from 'lucide-react';
 import { toast } from 'sonner';
+import { eventPath } from '@/lib/eventLink';
 
 export default function MyTicketsPage() {
   const router = useRouter();
@@ -168,7 +169,7 @@ export default function MyTicketsPage() {
                     </div>
                   </div>
                   <Link
-                    href={`/events/${ticket.event_id}`}
+                    href={eventPath({ id: ticket.event_id, title: ticket.event?.title })}
                     className="text-xs text-primary-glow hover:underline inline-flex items-center gap-1 shrink-0"
                   >
                     View event <ArrowRight className="w-3 h-3" />

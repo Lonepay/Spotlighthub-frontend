@@ -36,6 +36,7 @@ import { FraudFlagsTab } from '@/components/admin/FraudFlagsTab';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { storageUrl } from '@/lib/storage';
 import Link from 'next/link';
+import { eventPath } from '@/lib/eventLink';
 
 type AdminTab = 'overview' | 'users' | 'events' | 'kyc' | 'withdrawals' | 'tickets' | 'payments' | 'blog' | 'vendors' | 'fraud' | 'settings' | 'support';
 const VALID_TABS: AdminTab[] = ['overview', 'users', 'events', 'kyc', 'withdrawals', 'tickets', 'payments', 'blog', 'vendors', 'fraud', 'settings', 'support'];
@@ -401,7 +402,7 @@ function AdminDashboardPageInner() {
                           <p className="text-xs text-muted-foreground">{event.tickets_count} tickets sold</p>
                         </div>
                       </div>
-                      <Link href={`/events/${event.id}`} className="text-sm font-medium text-primary hover:underline">
+                      <Link href={eventPath(event)} className="text-sm font-medium text-primary hover:underline">
                         View
                       </Link>
                     </div>
@@ -774,7 +775,7 @@ function AdminDashboardPageInner() {
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <Button asChild variant="ghost" size="sm">
-                            <Link href={`/events/${event.id}`}>View</Link>
+                            <Link href={eventPath(event)}>View</Link>
                           </Button>
                           <Button asChild variant="outline" size="sm">
                             <Link href={`/organizer/events/${event.id}`}>

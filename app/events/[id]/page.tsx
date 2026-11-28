@@ -17,6 +17,10 @@ import { CountdownTimer } from '@/components/CountdownTimer';
 import { VenueMap } from '@/components/VenueMap';
 import { gateway, GatewayStatus, PaymentGateway } from '@/lib/gateway';
 import { storageUrl } from '@/lib/storage';
+import { eventPath, parseEventId } from '@/lib/eventLink';
+import { ShareEvent } from '@/components/events/ShareEvent';
+import { EventLineup } from '@/components/events/EventLineup';
+import { DonateBox } from '@/components/events/DonateBox';
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -72,10 +76,23 @@ export default function EventDetailPage() {
     }
   }, [event]);
 
+  // /events/<title-slug>-<id> (or legacy /events/<id>) - the id is the trailing number.
+  const eventId = parseEventId(params.id as string | string[] | undefined);
+
   const loadEvent = async () => {
+    if (!eventId) {
+      setLoading(false);
+      return;
+    }
     try {
-      const data = await events.getOne(Number(params.id));
+      const data = await events.getOne(eventId);
       setEvent(data);
+      // Old numeric or outdated links move to the current name link, so
+      // whatever gets copied from the address bar is the shareable one.
+      const canonical = eventPath(data);
+      if (typeof window !== 'undefined' && window.location.pathname !== canonical) {
+        window.history.replaceState(null, '', canonical + window.location.search);
+      }
     } catch (error) {
       console.error('Failed to load event:', error);
     } finally {
@@ -83,7 +100,7 @@ export default function EventDetailPage() {
     }
 
     try {
-      const variationData = await events.getVariations(Number(params.id));
+      const variationData = await events.getVariations(eventId);
       setVariations(variationData);
     } catch (error) {
       console.error('Failed to load ticket variations:', error);
@@ -304,7 +321,18 @@ export default function EventDetailPage() {
                   </div>
                 </div>
               </div>
+
+              <div className="border-t border-border mt-8 pt-8">
+                <h3 className="font-semibold text-foreground mb-4">Share this event</h3>
+                <ShareEvent event={event} compact />
+              </div>
             </section>
+
+            <EventLineup guests={event.guests} />
+
+            {event.donations_open && (
+              <DonateBox eventId={event.id} eventTitle={event.title} gatewayStatus={gatewayStatus} />
+            )}
           </div>
 
           {/* Right Column: Ticket selector.

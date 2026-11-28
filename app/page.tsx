@@ -27,6 +27,7 @@ import { movies, Movie } from '@/lib/movies';
 import { venues, Venue } from '@/lib/venues';
 import { storageUrl } from '@/lib/storage';
 import { COMMUNITY_LINK } from '@/lib/constants';
+import { eventPath } from '@/lib/eventLink';
 
 const CATEGORY_ICONS = [Ticket, Film, MapPin, Calendar, Building2, ShieldCheck];
 const CATEGORY_IMAGES = ['/images/feature-experience.jpg', '/images/feature-secure.jpg', '/images/feature-global.jpg'];
@@ -46,6 +47,10 @@ function formatNaira(value: number) {
 
 export default function Home() {
   const [trendingEvents, setTrendingEvents] = useState<Event[]>([]);
+  // All upcoming events, a page at a time, so the home page isn't capped
+  // at the first few.
+  const [eventsPage, setEventsPage] = useState({ current: 1, last: 1 });
+  const [loadingMore, setLoadingMore] = useState(false);
   const [pastEvents, setPastEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<CategoryCount[]>([]);
@@ -54,9 +59,24 @@ export default function Home() {
   const [featuredVenues, setFeaturedVenues] = useState<Venue[]>([]);
   const [venuesLoading, setVenuesLoading] = useState(true);
 
+  const loadMoreEvents = async () => {
+    setLoadingMore(true);
+    try {
+      const data = await events.getAll({ page: eventsPage.current + 1, sort: 'trending' });
+      setTrendingEvents((prev) => {
+        const seen = new Set(prev.map((e) => e.id));
+        return [...prev, ...(data.data || []).filter((e: Event) => !seen.has(e.id))];
+      });
+      setEventsPage({ current: data.current_page ?? eventsPage.current + 1, last: data.last_page ?? eventsPage.last });
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
   useEffect(() => {
     events.getAll({ page: 1, sort: 'trending' }).then((data) => {
-      setTrendingEvents(data.data?.slice(0, 8) || []);
+      setTrendingEvents(data.data || []);
+      setEventsPage({ current: data.current_page ?? 1, last: data.last_page ?? 1 });
       setLoading(false);
     }).catch(() => setLoading(false));
 
@@ -242,7 +262,7 @@ export default function Home() {
             <RevealGroup className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {trendingEvents.map((event) => (
                 <RevealItem key={event.id}>
-                <Link href={`/events/${event.id}`} className="group relative block">
+                <Link href={eventPath(event)} className="group relative block">
                   <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-muted shadow-card transition-all duration-300 group-hover:shadow-glow-sm group-hover:scale-[1.02]">
                     {event.image ? (
                       <Image
@@ -279,6 +299,13 @@ export default function Home() {
           ) : (
             <div className="text-center py-12">
               <p className="text-muted-foreground text-lg">No upcoming events yet. Check back soon!</p>
+            </div>
+          )}
+          {!loading && eventsPage.current < eventsPage.last && (
+            <div className="mt-10 flex justify-center">
+              <Button variant="outline" onClick={loadMoreEvents} disabled={loadingMore}>
+                {loadingMore ? 'Loading…' : 'Load more events'}
+              </Button>
             </div>
           )}
         </div>
@@ -434,7 +461,7 @@ export default function Home() {
             <RevealGroup className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {pastEvents.map((event) => (
                 <RevealItem key={event.id}>
-                  <Link href={`/events/${event.id}`} className="group relative block opacity-80 hover:opacity-100 transition-opacity">
+                  <Link href={eventPath(event)} className="group relative block opacity-80 hover:opacity-100 transition-opacity">
                     <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-muted shadow-card grayscale-[40%] group-hover:grayscale-0 transition-all duration-300">
                       {event.image ? (
                         <Image src={storageUrl(event.image)!} alt={event.title} fill className="object-cover" />

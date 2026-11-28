@@ -62,6 +62,7 @@ export default function CreateEventPage() {
     total_tickets: '',
     is_virtual: false,
     fee_payer: 'organizer' as 'organizer' | 'attendee',
+    accepts_donations: false,
   });
   const [image, setImage] = useState<File | null>(null);
   const [error, setError] = useState('');
@@ -185,6 +186,7 @@ export default function CreateEventPage() {
       data.append('total_tickets', formData.total_tickets);
       data.append('is_virtual', formData.is_virtual ? '1' : '0');
       data.append('fee_payer', formData.fee_payer);
+      data.append('accepts_donations', formData.accepts_donations ? '1' : '0');
       data.append('image', image);
 
       const newEvent = await events.create(data);
@@ -226,7 +228,8 @@ export default function CreateEventPage() {
         toast.error(`Event created, but ${failures.join(' and ')} failed to save. You can add them again from this page.`);
       }
 
-      router.push(`/organizer/events/${newEvent.id}`);
+      // ?created=1 opens the share panel so the organizer gets their link straight away.
+      router.push(`/organizer/events/${newEvent.id}?created=1`);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to create event');
     } finally {
@@ -446,6 +449,22 @@ export default function CreateEventPage() {
                     </button>
                   </div>
                 </div>
+
+                <label htmlFor="accepts_donations" className="flex items-start gap-3 rounded-xl border-2 border-border px-4 py-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    id="accepts_donations"
+                    className="mt-1"
+                    checked={formData.accepts_donations}
+                    onChange={(e) => setFormData({ ...formData, accepts_donations: e.target.checked })}
+                  />
+                  <span className="text-sm font-medium">
+                    Accept donations
+                    <span className="block text-xs text-muted-foreground font-normal mt-0.5">
+                      Your event page gets a &quot;Donate to show support&quot; box, and buyers can add a donation at checkout. Great for free or donation-based events. A small platform fee applies; you see every donation on your event page.
+                    </span>
+                  </span>
+                </label>
               </div>
             </section>
 

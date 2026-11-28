@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { events, Event, CategoryCount } from '@/lib/events';
 import { storageUrl } from '@/lib/storage';
 import { Search } from 'lucide-react';
+import { eventPath } from '@/lib/eventLink';
 
 export default function EventsPage() {
   // useSearchParams() below requires a Suspense ancestor for Next.js's
@@ -192,7 +193,7 @@ function EventsPageInner() {
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {eventsList.map((event) => (
-                <Link key={event.id} href={`/events/${event.id}`} className="group relative block">
+                <Link key={event.id} href={eventPath(event)} className="group relative block">
                   <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-muted shadow-card transition-all duration-300 group-hover:shadow-glow-sm group-hover:scale-[1.02]">
                     {event.image ? (
                       <Image

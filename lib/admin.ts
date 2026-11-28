@@ -100,6 +100,8 @@ export interface PatchStatus {
 export interface AdminSettings {
   platform_fee_percentage: number | null;
   platform_flat_fee: number | null;
+  // null = same as platform_fee_percentage
+  donation_fee_percentage: number | null;
   site_title: string | null;
   site_description: string | null;
   site_keywords: string | null;
@@ -253,6 +255,7 @@ export const admin = {
   async updateSettings(payload: Partial<{
     platform_fee_percentage: number | null;
     platform_flat_fee: number | null;
+    donation_fee_percentage: number | null;
     site_title: string | null;
     site_description: string | null;
     site_keywords: string | null;

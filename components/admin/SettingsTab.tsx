@@ -284,6 +284,26 @@ export function SettingsTab() {
                 Each organizer chooses per event whether they or their attendees cover it — that isn&apos;t set here.
               </p>
             </div>
+            <div>
+              <Label htmlFor="donation-fee">Donation fee (%)</Label>
+              <div className="relative">
+                <Input
+                  id="donation-fee"
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  max={100}
+                  placeholder={form.platform_fee_percentage != null ? `${form.platform_fee_percentage} (same as ticket fee)` : 'Same as ticket fee'}
+                  value={form.donation_fee_percentage ?? ''}
+                  onChange={(e) => setForm({ ...form, donation_fee_percentage: e.target.value === '' ? null : parseFloat(e.target.value) })}
+                />
+                <Percent className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Your cut of each donation, deducted from what the organizer receives; donors pay exactly what they enter. No flat fee on donations.
+                Leave empty to use the ticket fee percentage. Changes apply to new donations only.
+              </p>
+            </div>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? 'Saving...' : saved ? 'Saved' : 'Save changes'}
             </Button>
