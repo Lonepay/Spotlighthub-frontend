@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { safeNext } from '@/lib/redirect';
+import { PasskeysSection } from '@/components/profile/PasskeysSection';
 import { Button } from '@/components/ui/button';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
@@ -80,7 +81,7 @@ export default function SecurityPage() {
     <div>
       <div className="mb-6">
         <h2 className="font-display font-bold text-xl mb-1">Security Settings</h2>
-        <p className="text-muted-foreground text-sm">Manage your password and security preferences.</p>
+        <p className="text-muted-foreground text-sm">Manage your password, two-factor sign-in and passkeys.</p>
       </div>
 
       {user?.must_change_password && (
@@ -202,6 +203,8 @@ export default function SecurityPage() {
           </Button>
         )}
       </div>
+
+      <PasskeysSection />
     </div>
   );
 }
