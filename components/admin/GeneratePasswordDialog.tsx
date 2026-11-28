@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { KeyRound, Copy, Check, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogBody } from '@/components/ui/dialog';
 import { admin } from '@/lib/admin';
 
 type Target = { id: number; name: string; email: string } | null;
@@ -63,6 +63,7 @@ export function GeneratePasswordDialog({ target, onClose }: { target: Target; on
           </DialogDescription>
         </DialogHeader>
 
+        <DialogBody>
         {!result ? (
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" checked={sendEmail} onChange={(e) => setSendEmail(e.target.checked)} className="mt-1" />
@@ -86,6 +87,7 @@ export function GeneratePasswordDialog({ target, onClose }: { target: Target; on
             </Button>
           </div>
         )}
+        </DialogBody>
 
         <DialogFooter>
           {!result ? (

@@ -13,6 +13,8 @@ export interface KycInfo {
   kyc_reviewed_at: string | null;
   kyc_rejection_reason: string | null;
   is_verified: boolean;
+  // Returned by approve/reject: whether the status email actually went out.
+  emailed?: boolean;
 }
 
 export const kyc = {
@@ -38,12 +40,12 @@ export const kyc = {
     return data;
   },
 
-  async approve(userId: number) {
+  async approve(userId: number): Promise<KycInfo> {
     const { data } = await api.post(`/admin/kyc/${userId}/approve`);
     return data;
   },
 
-  async reject(userId: number, reason: string) {
+  async reject(userId: number, reason: string): Promise<KycInfo> {
     const { data } = await api.post(`/admin/kyc/${userId}/reject`, { reason });
     return data;
   },

@@ -633,7 +633,9 @@ function AdminDashboardPageInner() {
                           )}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {u.events_count || 0} events, {u.tickets_count || 0} tickets
+                          {u.role === 'organizer'
+                            ? <>{u.events_count || 0} events · {u.tickets_sold || 0} tickets sold</>
+                            : <>{u.tickets_count || 0} ticket{Number(u.tickets_count) === 1 ? '' : 's'}</>}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1 flex-wrap">
@@ -861,7 +863,7 @@ function AdminDashboardPageInner() {
                   <h2 className="font-display font-bold text-lg">Tickets</h2>
                   <div className="flex flex-wrap items-center gap-2">
                     <Input
-                      placeholder="Search by ticket code..."
+                      placeholder="Search by code, email or name..."
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') refreshTickets(1); }}
@@ -899,6 +901,8 @@ function AdminDashboardPageInner() {
                       <TableHead>Event</TableHead>
                       <TableHead>Attendee</TableHead>
                       <TableHead>Code</TableHead>
+                      <TableHead className="text-right">Price</TableHead>
+                      <TableHead>Order</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -907,8 +911,25 @@ function AdminDashboardPageInner() {
                     {ticketsList.map((ticket: any)=> (
                       <TableRow key={ticket.id}>
                         <TableCell className="font-medium">{ticket.event?.title}</TableCell>
-                        <TableCell className="text-muted-foreground">{ticket.user?.name || ticket.attendee_name}</TableCell>
-                        <TableCell className="font-mono text-xs">{ticket.code}</TableCell>
+                        <TableCell>
+                          <div className="text-sm">{ticket.attendee_name || ticket.user?.name || '—'}</div>
+                          {ticket.holder_email && <div className="text-xs text-muted-foreground">{ticket.holder_email}</div>}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {ticket.code}
+                          {ticket.variation?.name && <div className="font-sans text-muted-foreground">{ticket.variation.name}</div>}
+                        </TableCell>
+                        <TableCell className="text-right text-sm tabular-nums whitespace-nowrap">
+                          {Number(ticket.price) > 0 ? `₦${Number(ticket.price).toLocaleString('en-NG')}` : 'Free'}
+                        </TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">
+                          {ticket.payment ? (
+                            <>
+                              <div className="font-medium text-sm tabular-nums">₦{Number(ticket.payment.amount).toLocaleString('en-NG')}</div>
+                              <div className="text-muted-foreground">{ticket.payment.tickets_count} ticket{ticket.payment.tickets_count === 1 ? '' : 's'} · {ticket.payment.reference}</div>
+                            </>
+                          ) : '—'}
+                        </TableCell>
                         <TableCell>
                           <Badge variant={ticket.status === 'checked_in' ? 'success' : (ticket.status === 'revoked' || ticket.status === 'invalid') ? 'destructive' : 'outline'}>
                             {ticket.status || 'valid'}

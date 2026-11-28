@@ -70,6 +70,9 @@ export const payments = {
     // item per line, so expand those out; Movie/Venue entries map 1:1.
     const expanded: Record<string, unknown>[] = entries.flatMap((entry): Record<string, unknown>[] => {
       if (entry.type === 'event') {
+        // Holders are stored in ticket order across the lines; hand each
+        // line its own slice. Blank slots stay with the buyer.
+        let offset = 0;
         const lines: Record<string, unknown>[] = entry.items.map((line) => ({
           type: 'event',
           event_id: entry.event.id,
@@ -79,6 +82,11 @@ export const payments = {
           booking_time: entry.selectedTime,
           // From a promoter link (?ref=CODE) for this event, if any.
           promoter_code: promoters.refFor(entry.event.id),
+          attendees: (() => {
+            const slice = Array.from({ length: line.quantity }, (_, k) => (entry.attendees ?? [])[offset + k] ?? { name: '', email: '' });
+            offset += line.quantity;
+            return slice.some((h) => h && (h.name.trim() || h.email.trim())) ? slice : undefined;
+          })(),
         }));
         // Optional donation added at checkout - its own line, priced
         // and fee'd separately server-side.

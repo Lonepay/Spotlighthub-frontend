@@ -9,6 +9,7 @@ import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { storageUrl } from '@/lib/storage';
 import { Loader } from '@/components/Loader';
 import { FileText, Check, X } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function KycReviewTab() {
   const [statusFilter, setStatusFilter] = useState('pending');
@@ -16,6 +17,7 @@ export function KycReviewTab() {
   const [loading, setLoading] = useState(true);
   const [rejectingId, setRejectingId] = useState<number | null>(null);
   const [reason, setReason] = useState('');
+  const [busyId, setBusyId] = useState<number | null>(null);
 
   const refresh = async () => {
     setLoading(true);
@@ -32,17 +34,39 @@ export function KycReviewTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
 
-  const handleApprove = async (userId: number) => {
-    await kyc.approve(userId);
-    await refresh();
+  // Say what happened: the row leaves the Pending list, which on its own
+  // looked like nothing had happened.
+  const handleApprove = async (item: KycInfo) => {
+    setBusyId(item.id);
+    try {
+      const res = await kyc.approve(item.id);
+      toast.success(`${item.name} is now verified.`, {
+        description: res.emailed ? 'They were emailed, and will see it on their dashboard.' : "The email couldn't be sent - they'll still see it on their dashboard.",
+      });
+      await refresh();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || `Could not approve ${item.name}`);
+    } finally {
+      setBusyId(null);
+    }
   };
 
-  const handleReject = async (userId: number) => {
+  const handleReject = async (item: KycInfo) => {
     if (!reason.trim()) return;
-    await kyc.reject(userId, reason);
-    setRejectingId(null);
-    setReason('');
-    await refresh();
+    setBusyId(item.id);
+    try {
+      const res = await kyc.reject(item.id, reason);
+      toast.success(`${item.name}'s verification was rejected.`, {
+        description: res.emailed ? 'They were emailed the reason.' : "The email couldn't be sent - they'll see the reason on their dashboard.",
+      });
+      setRejectingId(null);
+      setReason('');
+      await refresh();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || `Could not reject ${item.name}`);
+    } finally {
+      setBusyId(null);
+    }
   };
 
   const statusBadge = (status: string) => {
@@ -112,7 +136,7 @@ export function KycReviewTab() {
                     </a>
                   )}
                   {item.kyc_status !== 'approved' && (
-                    <Button size="sm" onClick={() => handleApprove(item.id)}>
+                    <Button size="sm" disabled={busyId === item.id} onClick={() => handleApprove(item)}>
                       <Check className="w-4 h-4" /> Approve
                     </Button>
                   )}
@@ -132,9 +156,9 @@ export function KycReviewTab() {
                     placeholder="Reason for rejection..."
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleReject(item.id)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleReject(item)}
                   />
-                  <Button size="sm" onClick={() => handleReject(item.id)}>Confirm</Button>
+                  <Button size="sm" disabled={busyId === item.id} onClick={() => handleReject(item)}>Confirm</Button>
                   <Button size="sm" variant="outline" onClick={() => { setRejectingId(null); setReason(''); }}>Cancel</Button>
                 </div>
               )}
