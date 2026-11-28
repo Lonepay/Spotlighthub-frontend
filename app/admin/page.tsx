@@ -7,7 +7,7 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { PaginationFooter } from '@/components/dashboard/PaginationFooter';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useAuth } from '@/components/AuthProvider';
-import { isStaffRole, StaffRole as StaffRoleType } from '@/lib/auth';
+import { isStaffRole, isAdminLevelRole, StaffRole as StaffRoleType } from '@/lib/auth';
 import { staffRoles as staffRolesApi } from '@/lib/staffRoles';
 import { getGreeting } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -23,7 +23,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Users, Calendar, Ticket, Award, Plus, Edit, Trash, ChevronUp, ChevronDown, Newspaper, Receipt, Search, Download, Crown, Eye, EyeOff, Phone, Mail, ShieldCheck, ArrowRight, Wallet } from 'lucide-react';
+import { Users, Calendar, Ticket, Award, Plus, Edit, Trash, ChevronUp, ChevronDown, Newspaper, Receipt, Search, Download, Crown, Eye, EyeOff, Phone, Mail, ShieldCheck, ArrowRight, Wallet, Undo2 } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { SettingsTab } from '@/components/admin/SettingsTab';
 import { DashboardCharts } from '@/components/admin/DashboardCharts';
@@ -33,6 +33,7 @@ import { WithdrawalsTab } from '@/components/admin/WithdrawalsTab';
 import { VendorsTab } from '@/components/admin/VendorsTab';
 import { SupportTicketsTab } from '@/components/admin/SupportTicketsTab';
 import { FraudFlagsTab } from '@/components/admin/FraudFlagsTab';
+import { ReversePaymentDialog } from '@/components/admin/ReversePaymentDialog';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { storageUrl } from '@/lib/storage';
 import Link from 'next/link';
@@ -125,6 +126,7 @@ function AdminDashboardPageInner() {
   const [search, setSearch] = useState<string>('');
   const [eventCategoryFilter, setEventCategoryFilter] = useState<string>('');
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>('');
+  const [reversingPaymentId, setReversingPaymentId] = useState<number | null>(null);
   const [ticketStatusFilter, setTicketStatusFilter] = useState<string>('');
   const [userRoleFilter, setUserRoleFilter] = useState<string>('');
   const [paymentSearch, setPaymentSearch] = useState<string>('');
@@ -950,7 +952,7 @@ function AdminDashboardPageInner() {
                       <TableHead>Amount</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Receipt</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -965,6 +967,9 @@ function AdminDashboardPageInner() {
                           {new Date(payment.created_at).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
+                          {payment.reversed_at ? (
+                            <Badge variant="destructive" title={payment.reversal_reason ?? undefined}>Reversed</Badge>
+                          ) : (
                           <select
                             className="h-9 rounded-none border border-input bg-background px-2 text-sm"
                             value={payment.status}
@@ -975,8 +980,9 @@ function AdminDashboardPageInner() {
                             <option value="failed">failed</option>
                             <option value="refunded">refunded</option>
                           </select>
+                          )}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right whitespace-nowrap">
                           {payment.status === 'success' && (
                             <Button
                               variant="ghost"
@@ -986,6 +992,12 @@ function AdminDashboardPageInner() {
                               <Receipt className="w-4 h-4" /> Receipt
                             </Button>
                           )}
+                          {/* Real money moves: admin-level only, mirroring the backend route. */}
+                          {payment.status === 'success' && !payment.reversed_at && isAdminLevelRole(authUser?.role) && (
+                            <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setReversingPaymentId(payment.id)}>
+                              <Undo2 className="w-4 h-4" /> Reverse
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -993,6 +1005,11 @@ function AdminDashboardPageInner() {
                 </Table>
                 {paymentsList.length === 0 && <p className="text-muted-foreground text-center py-8">No payments found.</p>}
                 {paginationControls(paymentsPage, (page) => refreshPayments(undefined, page))}
+                <ReversePaymentDialog
+                  paymentId={reversingPaymentId}
+                  onClose={() => setReversingPaymentId(null)}
+                  onDone={() => refreshPayments(undefined, paymentsPage.current_page)}
+                />
               </CardContent>
             </Card>
           </TabsContent>

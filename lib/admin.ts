@@ -97,6 +97,35 @@ export interface PatchStatus {
   pending_request: { command: string; created_at: string } | null;
 }
 
+export interface ReversalPreview {
+  payment: {
+    id: number;
+    reference: string;
+    amount: number;
+    gateway: string | null;
+    status: string;
+    reversed_at: string | null;
+    reversal_reason: string | null;
+    buyer: string | null;
+    buyer_email: string | null;
+    event: string | null;
+  };
+  tickets: number;
+  earnings: { user: string | null; kind: string; amount: number; description: string | null }[];
+}
+
+export interface ReversalResult {
+  message: string;
+  summary: {
+    refunded_amount: number;
+    gateway_refund_reference: string | null;
+    tickets_revoked: number;
+    earnings_reversed: { user_id: number; kind: string; amount: number }[];
+    debts: Record<string, number>;
+    buyer_flagged?: boolean;
+  };
+}
+
 export interface AdminSettings {
   platform_fee_percentage: number | null;
   platform_flat_fee: number | null;
@@ -220,6 +249,16 @@ export const admin = {
 
   async updatePaymentStatus(paymentId: number, status: 'pending'|'success'|'failed'|'refunded') {
     const { data } = await api.put(`/admin/payments/${paymentId}/status`, { status });
+    return data;
+  },
+
+  async getReversalPreview(paymentId: number): Promise<ReversalPreview> {
+    const { data } = await api.get(`/admin/payments/${paymentId}/reversal`);
+    return data;
+  },
+
+  async reversePayment(paymentId: number, payload: { reason: string; already_refunded?: boolean; flag_buyer?: boolean }): Promise<ReversalResult> {
+    const { data } = await api.post(`/admin/payments/${paymentId}/reverse`, payload);
     return data;
   },
 
