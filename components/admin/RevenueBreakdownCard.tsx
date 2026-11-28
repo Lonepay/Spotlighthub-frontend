@@ -22,6 +22,13 @@ export function RevenueBreakdownCard({ data }: { data: RevenueBreakdown }) {
   ];
   if (data.card_processing > 0) lines.push({ label: 'Card processing (Stripe)', value: data.card_processing, hint: "Stripe's share of the card fee" });
   if (data.awaiting_delivery > 0) lines.push({ label: 'Shop orders awaiting delivery', value: data.awaiting_delivery, hint: 'Paid to the vendor once they mark it delivered' });
+  if (data.older_orders?.count > 0) {
+    lines.push({
+      label: `Older orders (${data.older_orders.count})`,
+      value: data.older_orders.amount,
+      hint: `From before earnings were linked to each order. Organizers were credited ${naira(data.older_orders.unlinked_credits)} for older sales.`,
+    });
+  }
   if (Math.abs(data.unmatched) >= 1) lines.push({ label: 'Unmatched', value: data.unmatched, hint: 'Orders with no earnings recorded (usually from before the current system)', warn: true });
 
   return (

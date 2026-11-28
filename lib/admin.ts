@@ -183,6 +183,8 @@ export interface RevenueBreakdown {
   spotlight_fee_parts: { tickets: number; donations: number; shop: number; partner_commission_paid: number };
   card_processing: number;
   awaiting_delivery: number;
+  // Paid orders from before earnings were linked to orders
+  older_orders: { count: number; amount: number; unlinked_credits: number };
   unmatched: number;
   refunded: { count: number; amount: number };
 }
