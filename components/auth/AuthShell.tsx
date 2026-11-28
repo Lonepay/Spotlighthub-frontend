@@ -6,7 +6,7 @@ import { Logo } from '@/components/Logo';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 const POINTS = [
-  { icon: Ticket, title: 'Tickets in seconds', body: 'Pay with Paystack, Flutterwave or card; your QR ticket lands in your inbox.' },
+  { icon: Ticket, title: 'Tickets in seconds', body: 'Check out securely and your QR ticket lands in your inbox.' },
   { icon: Zap, title: 'Sell without the stress', body: 'Organizers list events, track sales and get paid out to their bank.' },
   { icon: Fingerprint, title: 'Sign in your way', body: 'Password, emailed code or a passkey with your face or fingerprint.' },
 ];
@@ -31,7 +31,7 @@ export function AuthShell({ title, subtitle, children }: { title: string; subtit
         <div className="relative z-10 max-w-md space-y-10">
           <div>
             <h2 className="font-display text-4xl xl:text-5xl font-bold leading-[1.1]">Every great night out starts here.</h2>
-            <p className="mt-4 text-white/75 text-lg">Concerts, parties, movies and venues across Nigeria, in one place.</p>
+            <p className="mt-4 text-white/75 text-lg">Concerts, parties, movies and venues, all in one place.</p>
           </div>
 
           {/* A sample ticket, so the panel shows what you're signing up for. */}
@@ -40,7 +40,7 @@ export function AuthShell({ title, subtitle, children }: { title: string; subtit
               <div className="flex-1 p-5 space-y-3">
                 <span className="inline-block rounded-full bg-white/20 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wider">Admit one · VIP</span>
                 <p className="font-display text-xl font-bold leading-tight">Afro Night Live</p>
-                <p className="text-sm text-white/70">Sat, 20 Dec · 8:00 PM<br />Eko Hotel, Lagos</p>
+                <p className="text-sm text-white/70">Sat, 20 Dec · 8:00 PM<br />The Grand Arena</p>
               </div>
               <div className="relative w-28 border-l-2 border-dashed border-white/25 flex items-center justify-center">
                 <span aria-hidden="true" className="absolute -top-3 -left-3 h-6 w-6 rounded-full bg-[#2b0f5c]" />
@@ -68,7 +68,7 @@ export function AuthShell({ title, subtitle, children }: { title: string; subtit
         </div>
 
         <p className="relative z-10 flex items-center gap-2 text-sm text-white/60">
-          <ShieldCheck className="h-4 w-4" /> Payments secured by Paystack, Flutterwave and Stripe
+          <ShieldCheck className="h-4 w-4" /> Secure checkout · Your details stay private
         </p>
       </aside>
 
