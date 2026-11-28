@@ -23,7 +23,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Users, Calendar, Ticket, Award, Plus, Edit, Trash, ChevronUp, ChevronDown, Newspaper, Receipt, Search, Download, Crown, Eye, EyeOff, Phone, Mail, ShieldCheck, ArrowRight, Wallet, Undo2 } from 'lucide-react';
+import { Users, Calendar, Ticket, Award, Plus, Edit, Trash, ChevronUp, ChevronDown, Newspaper, Receipt, Search, Download, Crown, Eye, EyeOff, Phone, Mail, ShieldCheck, ArrowRight, Wallet, Undo2, KeyRound } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { SettingsTab } from '@/components/admin/SettingsTab';
 import { DashboardCharts } from '@/components/admin/DashboardCharts';
@@ -36,6 +36,7 @@ import { FraudFlagsTab } from '@/components/admin/FraudFlagsTab';
 import { AnnouncementsTab } from '@/components/admin/AnnouncementsTab';
 import { WalletAdjustmentsTab } from '@/components/admin/WalletAdjustmentsTab';
 import { ReversePaymentDialog } from '@/components/admin/ReversePaymentDialog';
+import { GeneratePasswordDialog } from '@/components/admin/GeneratePasswordDialog';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { storageUrl } from '@/lib/storage';
 import Link from 'next/link';
@@ -163,6 +164,7 @@ function AdminDashboardPageInner() {
   // actions below (users/events/tickets/blog posts) — only one can be open
   // at a time, so a single busy flag is enough.
   const [deleteUserTarget, setDeleteUserTarget] = useState<{ id: number; name: string } | null>(null);
+  const [passwordTarget, setPasswordTarget] = useState<{ id: number; name: string; email: string } | null>(null);
   const [deleteEventTarget, setDeleteEventTarget] = useState<{ id: number; title: string } | null>(null);
   const [deleteTicketTarget, setDeleteTicketTarget] = useState<{ id: number; code?: string } | null>(null);
   const [deleteBlogPostTarget, setDeleteBlogPostTarget] = useState<{ id: number; title: string } | null>(null);
@@ -643,6 +645,18 @@ function AdminDashboardPageInner() {
                               {expandedUserId === u.id ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                               {expandedUserId === u.id ? 'Hide' : 'View'}
                             </Button>
+                            {/* Same protection as delete: nobody resets an account above their own. */}
+                            {!isStaffActor && u.id !== authUser?.id && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                disabled={!canDeleteUser(u)}
+                                title={!canDeleteUser(u) ? "This account is protected" : 'Generate a password to share with them'}
+                                onClick={() => setPasswordTarget({ id: u.id, name: u.name, email: u.email })}
+                              >
+                                <KeyRound className="w-4 h-4" /> Password
+                              </Button>
+                            )}
                             {!isStaffActor && (
                               <Button
                                 variant="ghost"
@@ -1256,6 +1270,7 @@ function AdminDashboardPageInner() {
         </Tabs>
       </div>
 
+      <GeneratePasswordDialog target={passwordTarget} onClose={() => setPasswordTarget(null)} />
       <ConfirmDialog
         open={!!deleteUserTarget}
         onOpenChange={(open) => !open && setDeleteUserTarget(null)}
