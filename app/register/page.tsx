@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Navbar } from '@/components/Navbar';
@@ -13,9 +13,13 @@ import { PhoneInput } from '@/components/ui/phone-input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/components/AuthProvider';
 import { Mail, Lock, User, ArrowRight, Users, Calendar } from 'lucide-react';
+import { safeNext } from '@/lib/redirect';
 
 export default function RegisterPage() {
   const router = useRouter();
+  // The page that sent you to sign up (same-site only), read after mount.
+  const [next, setNext] = useState<string | null>(null);
+  useEffect(() => setNext(safeNext(new URLSearchParams(window.location.search).get('next'))), []);
   const { register } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
@@ -42,7 +46,10 @@ export default function RegisterPage() {
 
     try {
       await register(formData.name, formData.email, formData.phone, formData.password, formData.password_confirmation, formData.role, formData.country);
-      if (formData.role === 'organizer') {
+      // Signed up from a page that needed an account: go straight back to it.
+      if (next) {
+        router.push(next);
+      } else if (formData.role === 'organizer') {
         router.push('/organizer');
       } else if (formData.role === 'admin') {
         router.push('/admin');
@@ -206,7 +213,7 @@ export default function RegisterPage() {
             <div className="mt-6 text-center">
               <p className="text-muted-foreground text-sm">
                 Already have an account?{' '}
-                <Link href="/login" className="text-primary-glow hover:underline font-semibold">
+                <Link href={next ? `/login?next=${encodeURIComponent(next)}` : '/login'} className="text-primary-glow hover:underline font-semibold">
                   Sign in
                 </Link>
               </p>

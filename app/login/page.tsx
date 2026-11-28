@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/components/AuthProvider';
 import { isStaffRole, requiresTwoFactor } from '@/lib/auth';
 import { Mail, Lock, ArrowRight, ShieldCheck } from 'lucide-react';
+import { safeNext } from '@/lib/redirect';
 
 export default function LoginPage() {
   return (
@@ -32,14 +33,18 @@ function LoginForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Back to the page that sent you here (same-site paths only), else your home.
+  const next = safeNext(searchParams.get('next'));
+
   const goToDashboard = (role?: string) => {
-    const next = searchParams.get('next');
     if (next) {
       router.push(next);
     } else if (role === 'organizer') {
       router.push('/organizer');
     } else if (isStaffRole(role)) {
       router.push('/admin');
+    } else if (role === 'vendor') {
+      router.push('/vendor');
     } else {
       router.push('/dashboard');
     }
@@ -188,7 +193,7 @@ function LoginForm() {
                 <div className="mt-6 text-center">
                   <p className="text-muted-foreground text-sm">
                     Don't have an account?{' '}
-                    <Link href="/register" className="text-primary-glow hover:underline font-semibold">
+                    <Link href={next ? `/register?next=${encodeURIComponent(next)}` : '/register'} className="text-primary-glow hover:underline font-semibold">
                       Sign up
                     </Link>
                   </p>
