@@ -57,6 +57,7 @@ import {
   ShieldAlert,
   ShieldBan,
   Contact,
+  Megaphone,
 } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { TopProgressBar } from '@/components/TopProgressBar';
@@ -71,6 +72,7 @@ const NAV_BY_ROLE: Record<string, NavEntry[]> = {
   attendee: [
     link('Overview', '/dashboard', LayoutDashboard),
     link('My Tickets', '/my-tickets', Ticket),
+    link('My Promotions', '/promoter', Megaphone),
     link('Explore', '/events', Compass),
     link('Pricing', '/pricing', NairaSign),
     link('Support', '/support', LifeBuoy),
@@ -85,6 +87,7 @@ const NAV_BY_ROLE: Record<string, NavEntry[]> = {
     link('Scan Tickets', '/organizer/scan', QrCode),
     link('Verification', '/organizer/verification', BadgeCheck),
     link('Wallet', '/organizer/wallet', Wallet),
+    link('My Promotions', '/promoter', Megaphone),
     link('Pricing', '/pricing', NairaSign),
     link('Explore', '/events', Compass),
     link('Support', '/support', LifeBuoy),

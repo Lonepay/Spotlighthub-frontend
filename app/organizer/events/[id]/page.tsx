@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { ShareEvent } from '@/components/events/ShareEvent';
 import { EventGuestsManager } from '@/components/organizer/EventGuestsManager';
 import { EventDonationsPanel } from '@/components/organizer/EventDonationsPanel';
+import { EventPromotersPanel } from '@/components/organizer/EventPromotersPanel';
 import Link from 'next/link';
 
 interface TicketVariation {
@@ -1245,6 +1246,7 @@ export default function OrganizerEventDetailPage() {
           <>
             <EventGuestsManager eventId={event.id} guests={event.guests ?? []} onChange={loadEvent} />
             <EventDonationsPanel eventId={event.id} acceptsDonations={!!event.accepts_donations} />
+            <EventPromotersPanel event={event} />
           </>
         )}
 

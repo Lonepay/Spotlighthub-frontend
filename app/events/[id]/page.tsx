@@ -18,6 +18,7 @@ import { VenueMap } from '@/components/VenueMap';
 import { gateway, GatewayStatus, PaymentGateway } from '@/lib/gateway';
 import { storageUrl } from '@/lib/storage';
 import { eventPath, parseEventId } from '@/lib/eventLink';
+import { promoters } from '@/lib/promoters';
 import { ShareEvent } from '@/components/events/ShareEvent';
 import { EventLineup } from '@/components/events/EventLineup';
 import { DonateBox } from '@/components/events/DonateBox';
@@ -87,6 +88,9 @@ export default function EventDetailPage() {
     try {
       const data = await events.getOne(eventId);
       setEvent(data);
+      // Promoter link: credit this event's sale to them at checkout.
+      const ref = new URLSearchParams(window.location.search).get('ref');
+      if (ref) promoters.rememberRef(data.id, ref);
       // Old numeric or outdated links move to the current name link, so
       // whatever gets copied from the address bar is the shareable one.
       const canonical = eventPath(data);

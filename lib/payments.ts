@@ -1,6 +1,7 @@
 import api from './api';
 import { CartEntry } from './cart';
 import { PaymentGateway } from './gateway';
+import { promoters } from './promoters';
 
 export interface Payment {
   id: number;
@@ -75,6 +76,8 @@ export const payments = {
           quantity: line.quantity,
           booking_date: entry.selectedDate,
           booking_time: entry.selectedTime,
+          // From a promoter link (?ref=CODE) for this event, if any.
+          promoter_code: promoters.refFor(entry.event.id),
         }));
         // Optional donation added at checkout - its own line, priced
         // and fee'd separately server-side.
