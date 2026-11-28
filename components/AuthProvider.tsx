@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, auth, LoginResult, requiresTwoFactor } from '@/lib/auth';
+import { passkeys } from '@/lib/passkeys';
 
 // 20 minutes of no mouse/keyboard/touch/scroll activity locks the app and
 // requires a fresh emailed OTP to keep going — the Sanctum token itself
@@ -15,6 +16,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<LoginResult>;
   completeTwoFactorLogin: (email: string, otp: string) => Promise<User>;
+  loginWithPasskey: () => Promise<User>;
   register: (name: string, email: string, phone: string, password: string, passwordConfirmation: string, role?: 'attendee' | 'organizer' | 'admin', country?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -98,6 +100,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return response.user;
   };
 
+  const loginWithPasskey = async () => {
+    const signedIn = await passkeys.signIn();
+    setUser(signedIn);
+    return signedIn;
+  };
+
   const register = async (name: string, email: string, phone: string, password: string, passwordConfirmation: string, role: 'attendee' | 'organizer' | 'admin' = 'attendee', country?: string) => {
     const response = await auth.register(name, email, phone, password, passwordConfirmation, role, country);
     setUser(response.user);
@@ -111,7 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, completeTwoFactorLogin, register, logout, refreshUser, locked, unlockSession }}>
+    <AuthContext.Provider value={{ user, loading, login, completeTwoFactorLogin, loginWithPasskey, register, logout, refreshUser, locked, unlockSession }}>
       {children}
     </AuthContext.Provider>
   );

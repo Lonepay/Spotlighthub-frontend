@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Navbar } from '@/components/Navbar';
@@ -12,7 +12,8 @@ import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/components/AuthProvider';
 import { isStaffRole, requiresTwoFactor } from '@/lib/auth';
-import { Mail, Lock, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, ArrowRight, ShieldCheck, Fingerprint } from 'lucide-react';
+import { passkeysSupported, passkeyErrorMessage } from '@/lib/passkeys';
 import { safeNext } from '@/lib/redirect';
 
 export default function LoginPage() {
@@ -26,12 +27,15 @@ export default function LoginPage() {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, completeTwoFactorLogin } = useAuth();
+  const { login, completeTwoFactorLogin, loginWithPasskey } = useAuth();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [otp, setOtp] = useState('');
   const [pendingTwoFactorEmail, setPendingTwoFactorEmail] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // Checked after mount: the server render can't know the browser's support.
+  const [canUsePasskey, setCanUsePasskey] = useState(false);
+  useEffect(() => setCanUsePasskey(passkeysSupported()), []);
 
   // Back to the page that sent you here (same-site paths only), else your home.
   const next = safeNext(searchParams.get('next'));
@@ -68,6 +72,20 @@ function LoginForm() {
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || err.message || 'Invalid credentials';
       setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // No email or password: the browser offers the passkeys it has for Spotlighticket.
+  const handlePasskey = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const user = await loginWithPasskey();
+      goToDashboard(user.role, user.must_change_password);
+    } catch (err: any) {
+      setError(passkeyErrorMessage(err, 'Could not sign in with a passkey'));
     } finally {
       setLoading(false);
     }
@@ -192,6 +210,17 @@ function LoginForm() {
                     {!loading && <ArrowRight className="w-5 h-5" />}
                   </Button>
                 </form>
+
+                {canUsePasskey && (
+                  <>
+                    <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
+                      <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
+                    </div>
+                    <Button type="button" variant="outline" size="lg" className="w-full" onClick={handlePasskey} disabled={loading}>
+                      <Fingerprint className="w-5 h-5" /> Sign in with a passkey
+                    </Button>
+                  </>
+                )}
 
                 <div className="mt-6 text-center">
                   <p className="text-muted-foreground text-sm">
