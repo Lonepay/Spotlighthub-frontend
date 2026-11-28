@@ -41,7 +41,7 @@ const TIER_PRESETS = ['Regular', 'VIP', 'VVIP', 'Early Bird', 'Table', 'Group', 
 export default function OrganizerEventDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   // Arrived straight from "create event" (?created=1): lead with the share link.
@@ -121,6 +121,7 @@ export default function OrganizerEventDetailPage() {
   const [deleteBusy, setDeleteBusy] = useState(false);
 
   useEffect(() => {
+    if (authLoading) return; // a reload starts with no user while the auth check runs
     if (!user || (user.role !== 'organizer' && !isStaffRole(user.role))) {
       router.push('/login');
     } else {
@@ -129,7 +130,7 @@ export default function OrganizerEventDetailPage() {
       loadTickets(1);
       loadCoupons();
     }
-  }, [params.id, user]);
+  }, [params.id, user, authLoading]);
 
   const loadCoupons = async () => {
     try {

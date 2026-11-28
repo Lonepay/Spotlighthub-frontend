@@ -26,7 +26,7 @@ const emptyTierForm = () => ({ name: '', description: '', price: 0, quantity: 0 
 export default function OrganizerMovieDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const movieId = Number(params.id);
 
   const [movie, setMovie] = useState<Movie | null>(null);
@@ -68,9 +68,10 @@ export default function OrganizerMovieDetailPage() {
   const [deleteBusy, setDeleteBusy] = useState(false);
 
   useEffect(() => {
+    if (authLoading) return; // a reload starts with no user while the auth check runs
     if (!user) { router.push('/login'); return; }
     load();
-  }, [params.id, user]);
+  }, [params.id, user, authLoading]);
 
   const load = async () => {
     try {

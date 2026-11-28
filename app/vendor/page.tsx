@@ -19,7 +19,7 @@ const CATEGORY_PRESETS = ['Photography', 'Catering', 'Decor & Styling', 'DJ & En
 
 export default function VendorMyListingPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -31,11 +31,12 @@ export default function VendorMyListingPage() {
   });
 
   useEffect(() => {
+    if (authLoading) return; // a reload starts with no user while the auth check runs
     if (!user) { router.push('/login'); return; }
     if (user.role !== 'vendor') { router.push('/dashboard'); return; }
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, authLoading]);
 
   const load = async () => {
     try {

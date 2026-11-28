@@ -39,7 +39,7 @@ const emptyTier = (): TierDraft => ({ name: '', price: '', description: '' });
 
 export default function CreateVenuePage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -62,6 +62,8 @@ export default function CreateVenuePage() {
   const [tierDraft, setTierDraft] = useState<TierDraft>(emptyTier());
   const [tierError, setTierError] = useState('');
 
+  // Wait for the auth check: a reload starts with no user while it's in flight.
+  if (authLoading) return null;
   if (typeof window !== 'undefined' && !user) {
     router.push('/login');
     return null;

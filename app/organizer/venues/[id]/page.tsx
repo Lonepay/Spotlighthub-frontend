@@ -20,7 +20,7 @@ const emptyTierForm = () => ({ name: '', description: '', price: 0 });
 export default function OrganizerVenueDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const venueId = Number(params.id);
 
   const [venue, setVenue] = useState<Venue | null>(null);
@@ -43,9 +43,10 @@ export default function OrganizerVenueDetailPage() {
   const [savingTier, setSavingTier] = useState(false);
 
   useEffect(() => {
+    if (authLoading) return; // a reload starts with no user while the auth check runs
     if (!user) { router.push('/login'); return; }
     load();
-  }, [params.id, user]);
+  }, [params.id, user, authLoading]);
 
   const load = async () => {
     try {
