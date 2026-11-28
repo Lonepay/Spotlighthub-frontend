@@ -275,6 +275,12 @@ export const admin = {
     return data;
   },
 
+  /** A new password for a locked-out user, returned once (optionally emailed to them). */
+  async generatePassword(userId: number, sendEmail: boolean) {
+    const { data } = await api.post(`/admin/users/${userId}/generate-password`, { send_email: sendEmail });
+    return data as { password: string; emailed: boolean; sessions_signed_out: number };
+  },
+
   async lookupWallet(email: string): Promise<WalletLookup> {
     const { data } = await api.get('/admin/wallet-adjustments/lookup', { params: { email } });
     return data;
