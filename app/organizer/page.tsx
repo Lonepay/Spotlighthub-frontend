@@ -19,6 +19,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { DonutBreakdown } from '@/components/charts/DonutBreakdown';
 import { Ticket, Calendar, ArrowRight, Receipt, PieChart, Trash2, Eye, X } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
+import { loginHref } from '@/lib/redirect';
 
 export default function OrganizerDashboardPage() {
   // useSearchParams() below (for ?organizer_id=) requires a Suspense
@@ -42,7 +43,7 @@ function OrganizerDashboardPageInner() {
   useEffect(() => {
     if (!authLoading) {
       if (!user) {
-        router.push('/login');
+        router.push(loginHref());
       } else if (user.role !== 'organizer' && !isStaffRole(user.role)) {
         router.push('/dashboard');
       } else {

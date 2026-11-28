@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Clapperboard, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { loginHref } from '@/lib/redirect';
 
 export default function OrganizerMoviesPage() {
   const router = useRouter();
@@ -24,7 +25,7 @@ export default function OrganizerMoviesPage() {
   useEffect(() => {
     if (authLoading) return; // a reload starts with no user while the auth check runs
     if (!user || (user.role !== 'organizer' && !isStaffRole(user.role))) {
-      router.push('/login');
+      router.push(loginHref());
       return;
     }
     load();

@@ -40,6 +40,7 @@ import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { storageUrl } from '@/lib/storage';
 import Link from 'next/link';
 import { eventPath } from '@/lib/eventLink';
+import { loginHref } from '@/lib/redirect';
 
 type AdminTab = 'overview' | 'users' | 'events' | 'kyc' | 'withdrawals' | 'tickets' | 'payments' | 'blog' | 'vendors' | 'fraud' | 'announcements' | 'wallet' | 'settings' | 'support';
 const VALID_TABS: AdminTab[] = ['overview', 'users', 'events', 'kyc', 'withdrawals', 'tickets', 'payments', 'blog', 'vendors', 'fraud', 'announcements', 'wallet', 'settings', 'support'];
@@ -182,7 +183,7 @@ function AdminDashboardPageInner() {
   useEffect(() => {
     if (!authLoading) {
       if (!authUser) {
-        router.push('/login');
+        router.push(loginHref());
       } else if (!isStaffRole(authUser.role)) {
         router.push('/dashboard');
       } else if (authUser.role === 'staff') {

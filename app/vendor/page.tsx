@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Store, Clock, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
 import { DeliverySettingsCard } from '@/components/vendor/DeliverySettingsCard';
+import { loginHref } from '@/lib/redirect';
 
 const CATEGORY_PRESETS = ['Photography', 'Catering', 'Decor & Styling', 'DJ & Entertainment', 'Makeup & Beauty', 'Event Planning', 'Furniture & Rentals', 'Sound & Lighting', 'Other'];
 
@@ -32,7 +33,7 @@ export default function VendorMyListingPage() {
 
   useEffect(() => {
     if (authLoading) return; // a reload starts with no user while the auth check runs
-    if (!user) { router.push('/login'); return; }
+    if (!user) { router.push(loginHref()); return; }
     if (user.role !== 'vendor') { router.push('/dashboard'); return; }
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -25,6 +25,7 @@ import { EventGuestsManager } from '@/components/organizer/EventGuestsManager';
 import { EventDonationsPanel } from '@/components/organizer/EventDonationsPanel';
 import { EventPromotersPanel } from '@/components/organizer/EventPromotersPanel';
 import Link from 'next/link';
+import { loginHref } from '@/lib/redirect';
 
 interface TicketVariation {
   id?: number;
@@ -123,7 +124,7 @@ export default function OrganizerEventDetailPage() {
   useEffect(() => {
     if (authLoading) return; // a reload starts with no user while the auth check runs
     if (!user || (user.role !== 'organizer' && !isStaffRole(user.role))) {
-      router.push('/login');
+      router.push(loginHref());
     } else {
       loadEvent();
       loadVariations();

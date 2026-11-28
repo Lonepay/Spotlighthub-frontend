@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { CheckCircle2, XCircle, AlertTriangle, Camera, Keyboard, Loader2 } from 'lucide-react';
+import { loginHref } from '@/lib/redirect';
 
 const RESULT_STYLES: Record<string, { icon: any; className: string }> = {
   success: { icon: CheckCircle2, className: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
@@ -35,7 +36,7 @@ export default function ScanTicketsPage() {
   useEffect(() => {
     if (!authLoading) {
       if (!user) {
-        router.push('/login');
+        router.push(loginHref());
       } else if (user.role !== 'organizer' && !isAdminLevelRole(user.role)) {
         router.push('/dashboard');
       }

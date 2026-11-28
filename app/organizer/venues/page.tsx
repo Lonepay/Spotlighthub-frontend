@@ -12,6 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from 'sonner';
 import { Plus, Building2, Trash2 } from 'lucide-react';
+import { loginHref } from '@/lib/redirect';
 
 export default function OrganizerVenuesPage() {
   const router = useRouter();
@@ -22,7 +23,7 @@ export default function OrganizerVenuesPage() {
   useEffect(() => {
     if (authLoading) return; // a reload starts with no user while the auth check runs
     if (!user || (user.role !== 'organizer' && !isStaffRole(user.role))) {
-      router.push('/login');
+      router.push(loginHref());
       return;
     }
     load();

@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, Clock, Upload, ArrowRight, Loader2, Info, FileText, Ticket, Image as ImageIcon, Trash2, Plus, X, Popcorn, Building } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
+import { loginHref } from '@/lib/redirect';
 
 const CITY_PRESETS = ['Lagos', 'Abuja', 'Port Harcourt', 'Ibadan', 'Kano', 'Enugu', 'Benin City', 'Kaduna', 'Owerri', 'Uyo', 'Calabar', 'Abeokuta'];
 const MOVIE_TIER_PRESETS = ['Regular', 'VIP', 'Premium', 'Recliner'];
@@ -88,7 +89,7 @@ export default function CreateMoviePage() {
   // Wait for the auth check: a reload starts with no user while it's in flight.
   if (authLoading) return null;
   if (typeof window !== 'undefined' && !user) {
-    router.push('/login');
+    router.push(loginHref());
     return null;
   }
 

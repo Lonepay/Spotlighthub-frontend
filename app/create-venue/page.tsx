@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, Clock, MapPin, Upload, ArrowRight, Loader2, Info, FileText, Image as ImageIcon, Trash2, Plus, X, BookText } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
+import { loginHref } from '@/lib/redirect';
 
 const CITY_PRESETS = ['Lagos', 'Abuja', 'Port Harcourt', 'Ibadan', 'Kano', 'Enugu', 'Benin City', 'Kaduna', 'Owerri', 'Uyo', 'Calabar', 'Abeokuta'];
 
@@ -65,7 +66,7 @@ export default function CreateVenuePage() {
   // Wait for the auth check: a reload starts with no user while it's in flight.
   if (authLoading) return null;
   if (typeof window !== 'undefined' && !user) {
-    router.push('/login');
+    router.push(loginHref());
     return null;
   }
 

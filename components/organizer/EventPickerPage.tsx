@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Loader } from '@/components/Loader';
 import { Calendar, Search } from 'lucide-react';
+import { loginHref } from '@/lib/redirect';
 
 export type PickedEvent = {
   id: number;
@@ -51,7 +52,7 @@ function Inner({ title, description, emptyText, basePath, children }: Props) {
   useEffect(() => {
     if (authLoading) return;
     if (!user || (user.role !== 'organizer' && !isStaffRole(user.role))) {
-      router.push('/login');
+      router.push(loginHref());
       return;
     }
     organizer.getDashboard()

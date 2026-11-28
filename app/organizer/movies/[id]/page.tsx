@@ -16,6 +16,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Plus, Trash2, Edit2, Calendar, Building, Ticket, Popcorn, Clock, ChevronUp, ChevronDown } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { toast } from 'sonner';
+import { loginHref } from '@/lib/redirect';
 
 const MOVIE_TIER_PRESETS = ['Regular', 'VIP', 'Premium', 'Recliner'];
 
@@ -69,7 +70,7 @@ export default function OrganizerMovieDetailPage() {
 
   useEffect(() => {
     if (authLoading) return; // a reload starts with no user while the auth check runs
-    if (!user) { router.push('/login'); return; }
+    if (!user) { router.push(loginHref()); return; }
     load();
   }, [params.id, user, authLoading]);
 
