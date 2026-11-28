@@ -56,6 +56,7 @@ import {
   Building2,
   ShieldAlert,
   ShieldBan,
+  Contact,
 } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { TopProgressBar } from '@/components/TopProgressBar';
@@ -78,6 +79,7 @@ const NAV_BY_ROLE: Record<string, NavEntry[]> = {
   organizer: [
     link('Overview', '/organizer', LayoutDashboard),
     link('Create', '/create', PlusCircle),
+    link('Attendees', '/organizer/attendees', Contact),
     link('My Movies', '/organizer/movies', Clapperboard),
     link('My Venues', '/organizer/venues', Building2),
     link('Scan Tickets', '/organizer/scan', QrCode),
@@ -131,6 +133,7 @@ function buildAdminNav(role: string): NavEntry[] {
     link('Overview', '/admin?tab=overview', LayoutDashboard),
     { type: 'group', label: 'Admin Tools', icon: Wrench, items: adminToolsItems },
     link('Organizer', '/organizer', Briefcase),
+    link('Attendees', '/organizer/attendees', Contact),
     link('My Movies', '/organizer/movies', Clapperboard),
     link('My Venues', '/organizer/venues', Building2),
     link('Scan Tickets', '/organizer/scan', QrCode),
@@ -156,6 +159,7 @@ function buildStaffNav(permissions: string[]): NavEntry[] {
   }
   if (permissions.includes('operations')) {
     items.push(link('Events', '/admin?tab=events', Calendar));
+    items.push(link('Attendees', '/organizer/attendees', Contact));
     items.push(link('My Movies', '/organizer/movies', Clapperboard));
     items.push(link('My Venues', '/organizer/venues', Building2));
     items.push(link('KYC Review', '/admin?tab=kyc', BadgeCheck));

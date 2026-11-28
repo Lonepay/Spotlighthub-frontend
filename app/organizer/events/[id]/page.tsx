@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Plus, Trash2, Edit2, Tag, Calendar, MapPin, Ticket, Info, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Edit2, Tag, Calendar, MapPin, Ticket, Info, ChevronUp, ChevronDown, Users } from 'lucide-react';
 import { sanitize } from '@/lib/sanitize';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { ShareEvent } from '@/components/events/ShareEvent';
 import { EventGuestsManager } from '@/components/organizer/EventGuestsManager';
 import { EventDonationsPanel } from '@/components/organizer/EventDonationsPanel';
+import Link from 'next/link';
 
 interface TicketVariation {
   id?: number;
@@ -508,9 +509,14 @@ export default function OrganizerEventDetailPage() {
   return (
     <DashboardShell title={event.title} description="Manage event details and ticket types">
       <div className="space-y-6">
-        <Button variant="ghost" size="sm" onClick={() => router.back()}>
-          &larr; Back to events
-        </Button>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Button variant="ghost" size="sm" onClick={() => router.back()}>
+            &larr; Back to events
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/organizer/attendees?event=${event.id}`}><Users className="w-4 h-4" /> Attendees &amp; export</Link>
+          </Button>
+        </div>
 
         {/* Share link - front and centre right after the event is created */}
         <Card className={justCreated ? 'border-2 border-primary' : undefined}>
