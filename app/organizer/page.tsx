@@ -189,7 +189,10 @@ function OrganizerDashboardPageInner() {
                   >
                     <div className="flex justify-between items-center gap-3">
                       <div className="min-w-0">
-                        <h3 className="font-medium truncate">{event.title}</h3>
+                        <h3 className="font-medium truncate flex items-center gap-2">
+                          <span className="truncate">{event.title}</span>
+                          {event.is_published === false && <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">Unpublished</span>}
+                        </h3>
                         <p className="text-sm text-muted-foreground">
                           {event.tickets_count} bookings &middot; {new Date(event.date).toLocaleDateString()}
                           {event.user && (

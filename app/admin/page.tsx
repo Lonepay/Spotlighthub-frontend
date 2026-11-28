@@ -40,6 +40,7 @@ import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { storageUrl } from '@/lib/storage';
 import Link from 'next/link';
 import { eventPath } from '@/lib/eventLink';
+import { events as eventsApi } from '@/lib/events';
 import { loginHref } from '@/lib/redirect';
 
 type AdminTab = 'overview' | 'users' | 'events' | 'kyc' | 'withdrawals' | 'tickets' | 'payments' | 'blog' | 'vendors' | 'fraud' | 'announcements' | 'wallet' | 'settings' | 'support';
@@ -778,7 +779,10 @@ function AdminDashboardPageInner() {
                     <div key={event.id} className="p-4 rounded-xl border border-border">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium truncate">{event.title}</div>
+                          <div className="font-medium truncate flex items-center gap-2">
+                            <span className="truncate">{event.title}</span>
+                            {event.is_published === false && <Badge variant="secondary">Unpublished</Badge>}
+                          </div>
                           <div className="text-sm text-muted-foreground">By {event.user?.name} &middot; {event.tickets_count || 0} tickets sold</div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
@@ -789,6 +793,22 @@ function AdminDashboardPageInner() {
                             <Link href={`/organizer/events/${event.id}`}>
                               <Edit className="w-4 h-4"/> Manage
                             </Link>
+                          </Button>
+                          {/* Unpublish hides it and stops sales without deleting anything. */}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                await eventsApi.setPublished(event.id, event.is_published === false);
+                                toast.success(event.is_published === false ? 'Published' : 'Unpublished - hidden and off sale');
+                                await refreshEvents(undefined, eventsPage.current_page);
+                              } catch {
+                                toast.error('Could not update the event');
+                              }
+                            }}
+                          >
+                            {event.is_published === false ? <><Eye className="w-4 h-4" /> Publish</> : <><EyeOff className="w-4 h-4" /> Unpublish</>}
                           </Button>
                           <Button
                             variant="ghost"
