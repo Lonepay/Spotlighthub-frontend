@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Plus, Trash2, Edit2, Tag, Calendar, MapPin, Ticket, Info, ChevronUp, ChevronDown, Users } from 'lucide-react';
+import { Plus, Trash2, Edit2, Tag, Calendar, MapPin, Ticket, Info, ChevronUp, ChevronDown, Users, Eye, EyeOff } from 'lucide-react';
 import { sanitize } from '@/lib/sanitize';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -119,6 +119,8 @@ export default function OrganizerEventDetailPage() {
   const [deleteTicketTarget, setDeleteTicketTarget] = useState<{ id: number; code?: string } | null>(null);
   const [deleteVariationTarget, setDeleteVariationTarget] = useState<{ id: number; name: string } | null>(null);
   const [confirmingDeleteEvent, setConfirmingDeleteEvent] = useState(false);
+  const [confirmingUnpublish, setConfirmingUnpublish] = useState(false);
+  const [publishBusy, setPublishBusy] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
 
   useEffect(() => {
@@ -344,6 +346,22 @@ export default function OrganizerEventDetailPage() {
     }).catch(() => {});
   }, []);
 
+  // Unpublish hides the event and stops sales; tickets, sales and history stay.
+  const setPublished = async (isPublished: boolean) => {
+    if (!event) return;
+    setPublishBusy(true);
+    try {
+      const res = await events.setPublished(event.id, isPublished);
+      setEvent({ ...event, ...res });
+      toast.success(isPublished ? 'Published - your event is live again' : 'Unpublished - hidden from the public and off sale');
+      setConfirmingUnpublish(false);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Could not update the event');
+    } finally {
+      setPublishBusy(false);
+    }
+  };
+
   const handleOpenEditEvent = () => {
     if (!event) return;
     setCustomCategory(!!event.category && !categoryOptions.includes(event.category));
@@ -538,7 +556,10 @@ export default function OrganizerEventDetailPage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex flex-wrap justify-between items-start gap-3 mb-2">
-              <h2 className="font-display font-bold text-xl">{event.title}</h2>
+              <h2 className="font-display font-bold text-xl flex flex-wrap items-center gap-2">
+                {event.title}
+                {event.is_published === false && <Badge variant="secondary">Unpublished · hidden from the public</Badge>}
+              </h2>
               {(() => {
                 // Mirrors EventPolicy on the backend: owner, admin-level, or
                 // staff with the 'operations' permission. A staff account
@@ -550,6 +571,15 @@ export default function OrganizerEventDetailPage() {
                     <Button variant="outline" size="sm" onClick={() => (showEditEvent ? setShowEditEvent(false) : handleOpenEditEvent())}>
                       <Edit2 className="w-4 h-4" /> {showEditEvent ? 'Cancel' : 'Edit Event'}
                     </Button>
+                    {event.is_published === false ? (
+                      <Button variant="default" size="sm" disabled={publishBusy} onClick={() => setPublished(true)}>
+                        <Eye className="w-4 h-4" /> Publish
+                      </Button>
+                    ) : (
+                      <Button variant="outline" size="sm" disabled={publishBusy} onClick={() => setConfirmingUnpublish(true)}>
+                        <EyeOff className="w-4 h-4" /> Unpublish
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
@@ -1360,6 +1390,15 @@ export default function OrganizerEventDetailPage() {
         onConfirm={confirmDeleteVariation}
       />
 
+      <ConfirmDialog
+        open={confirmingUnpublish}
+        onOpenChange={setConfirmingUnpublish}
+        title="Unpublish this event?"
+        description="It disappears from Explore, search and its link, and ticket sales stop. Tickets already sold stay valid and nothing is deleted - you can publish it again any time."
+        confirmLabel="Unpublish"
+        onConfirm={() => setPublished(false)}
+        loading={publishBusy}
+      />
       <ConfirmDialog
         open={confirmingDeleteEvent}
         onOpenChange={setConfirmingDeleteEvent}
