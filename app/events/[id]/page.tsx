@@ -44,9 +44,15 @@ export default function EventDetailPage() {
 
   const isMovie = event?.category === 'Movie';
 
-  const eventStarted = event
-    ? new Date(`${format(new Date(event.date), 'yyyy-MM-dd')}T${(event.time || '00:00').slice(0, 5)}`) <= new Date()
-    : false;
+  // The server decides: tickets sell through the event day until 24 hours
+  // after it, unless the organizer stopped sales.
+  const salesStatus = event?.sales_status ?? 'open';
+  const salesClosed = salesStatus !== 'open';
+  const salesClosedMessage = salesStatus === 'paused'
+    ? 'Ticket sales are stopped by the organizer for now.'
+    : salesStatus === 'ended'
+    ? 'This event has ended. Ticket sales are closed.'
+    : 'Tickets for this event are not available.';
 
   const formatNaira = (value: number) =>
     new Intl.NumberFormat('en-NG', {
@@ -129,8 +135,8 @@ export default function EventDetailPage() {
 
   const handleAddToCart = () => {
     if (!event) return;
-    if (eventStarted) {
-      toast.error('This event has already started — ticket sales are closed!');
+    if (salesClosed) {
+      toast.error(salesClosedMessage);
       return;
     }
     if (!selectedDate || !selectedTime) {
@@ -368,9 +374,9 @@ export default function EventDetailPage() {
                   </div>
                 </div>
 
-                {eventStarted && (
+                {salesClosed && (
                   <div className="rounded-xl bg-destructive/10 border border-destructive/30 px-4 py-3 text-sm text-destructive font-medium">
-                    This event has already started. Ticket sales are closed.
+                    {salesClosedMessage}
                   </div>
                 )}
 
@@ -533,14 +539,14 @@ export default function EventDetailPage() {
 
                 <Button
                   onClick={handleAddToCart}
-                  disabled={totalQuantity === 0 || eventStarted}
+                  disabled={totalQuantity === 0 || salesClosed}
                   variant="hero"
                   size="lg"
                   className="w-full"
                 >
                   <Ticket className="w-5 h-5" />
-                  {eventStarted
-                    ? 'Sales Closed'
+                  {salesClosed
+                    ? salesStatus === 'paused' ? 'Sales Stopped' : 'Sales Closed'
                     : totalQuantity > 0
                     ? `Add ${totalQuantity} Ticket${totalQuantity > 1 ? 's' : ''} to Cart`
                     : 'Select tickets to continue'}
