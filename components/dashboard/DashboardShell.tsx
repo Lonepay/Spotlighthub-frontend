@@ -53,6 +53,7 @@ import {
 } from 'lucide-react';
 import { NairaSign } from '@/components/icons/NairaSign';
 import { TopProgressBar } from '@/components/TopProgressBar';
+import { AnnouncementTicker } from '@/components/dashboard/AnnouncementTicker';
 
 type NavItem = { label: string; href: string; icon: any };
 type NavSection = { title: string; items: NavItem[] };
@@ -123,6 +124,7 @@ function buildAdminNav(role: string): NavSection[] {
       item('Withdrawals', '/admin?tab=withdrawals', Wallet),
     ] },
     { title: 'Content & support', items: [
+      item('Announcements', '/admin?tab=announcements', Megaphone),
       item('Blog', '/admin?tab=blog', Newspaper),
       item('Vendors', '/admin?tab=vendors', Store),
       item('Support Tickets', '/admin?tab=support', LifeBuoy),
@@ -454,6 +456,8 @@ function DashboardShellInner({
             </DropdownMenu>
           </div>
         </header>
+
+        {user && <AnnouncementTicker key={user.id} />}
 
         <main className="flex-1 w-full max-w-[1536px] mx-auto px-4 py-6 sm:p-6 flex flex-col gap-10">
           <div className="flex flex-wrap items-start justify-between gap-4">

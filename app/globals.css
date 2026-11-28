@@ -315,3 +315,26 @@ html {
 .dash-scroll:hover::-webkit-scrollbar-thumb {
   background: hsl(var(--border));
 }
+
+/* Dashboard announcement ticker: scrolls, pauses on hover/focus, still for reduced motion. */
+@keyframes dash-ticker-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.dash-ticker__track {
+  animation: dash-ticker-scroll linear infinite;
+  will-change: transform;
+}
+.dash-ticker:hover .dash-ticker__track,
+.dash-ticker:focus-within .dash-ticker__track {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dash-ticker__track {
+    animation: none;
+    flex-wrap: wrap;
+  }
+  .dash-ticker__track > [aria-hidden='true'] {
+    display: none;
+  }
+}
